@@ -29,6 +29,7 @@ from acutis_api.application.use_cases.agape import (
     ListarMembrosFamiliaUseCase,
     AdicionarVoluntarioAgapeUseCase,
     BuscarEnderecoFamiliaAgapeUseCase,
+    BuscarEnderecoCicloAcaoUseCase,
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -57,6 +58,7 @@ from acutis_api.communication.responses.agape import (
     RegistrarItemEstoqueAgapeResponse,
     ListarFamiliasAgapeResponsePaginada,
     EnderecoResponse,
+    EnderecoCicloAcaoResponse,
 )
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros
@@ -172,6 +174,26 @@ def buscar_endereco_familia(familia_id: UUID):
         error_response = errors_handler(exc)
         return error_response
 
+
+@agape_bp.get('/buscar-endereco-ciclo-acao/<uuid:ciclo_acao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=EnderecoCicloAcaoResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Ações'], 
+)
+def buscar_endereco_ciclo_acao(ciclo_acao_id: UUID):
+    '''Busca o endereço de um ciclo de ação ágape pelo ID do ciclo.'''
+    try:
+        repository = AgapeRepository(database) 
+        use_case = BuscarEnderecoCicloAcaoUseCase(agape_repository=repository)
+        response_data = use_case.execute(ciclo_acao_id=ciclo_acao_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
 
 @agape_bp.get('/listar-nomes-acoes')
 @swagger.validate(

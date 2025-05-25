@@ -151,3 +151,23 @@ class ListarFamiliasAgapeResponsePaginada(PaginacaoResponse):
     
 class ListarMembrosFamiliaAgapeResponsePaginada(PaginacaoResponse):
     resultados: list[MembroFamiliaAgapeResponse]
+
+
+class EnderecoCicloAcaoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    # Campos do EnderecoResponse achatados
+    id: uuid.UUID # ID do Endereço
+    codigo_postal: str | None
+    logradouro: str | None
+    numero: str | None
+    complemento: str | None
+    bairro: str | None
+    cidade: str | None
+    estado: str | None
+    ponto_referencia: str | None
+    latitude: float | None
+    longitude: float | None
+    
+    # Campo específico do ciclo de ação
+    abrangencia: AbrangenciaInstanciaAcaoAgapeEnum

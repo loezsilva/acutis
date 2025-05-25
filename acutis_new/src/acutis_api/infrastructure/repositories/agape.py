@@ -709,3 +709,14 @@ class AgapeRepository(AgapeRepositoryInterface):
         if instancia is None:
             raise HttpNotFoundError(f'Endereço {endereco_id} não encontrado.')
         return instancia
+
+    def buscar_instancia_acao_agape_por_id(self, ciclo_acao_id: UUID) -> InstanciaAcaoAgape | None:
+        '''Busca uma instância de ciclo de ação ágape pelo seu ID.'''
+        instancia = self._database.session.get(InstanciaAcaoAgape, ciclo_acao_id)
+        
+        # A entidade InstanciaAcaoAgape em acutis_new não possui campo 'deletado_em' explícito.
+        # Portanto, se 'instancia' for None, ela não foi encontrada.
+        if instancia is None:
+            raise HttpNotFoundError(f'Ciclo de ação ágape com ID {ciclo_acao_id} não encontrado.')
+            
+        return instancia

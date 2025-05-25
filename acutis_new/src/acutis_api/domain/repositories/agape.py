@@ -233,3 +233,8 @@ class AgapeRepositoryInterface(ABC):
     def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
         '''Busca um endereço pelo seu ID.'''
         ...
+
+    @abstractmethod
+    def buscar_instancia_acao_agape_por_id(self, ciclo_acao_id: UUID) -> InstanciaAcaoAgape | None:
+        '''Busca uma instância de ciclo de ação ágape pelo seu ID.'''
+        ...

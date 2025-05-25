@@ -1,2 +1,7 @@
 from .buscar_endereco_familia_agape import BuscarEnderecoFamiliaAgapeUseCase
-__all__ = ['BuscarEnderecoFamiliaAgapeUseCase']
+from .buscar_endereco_ciclo_acao import BuscarEnderecoCicloAcaoUseCase
+
+__all__ = [
+    'BuscarEnderecoFamiliaAgapeUseCase',
+    'BuscarEnderecoCicloAcaoUseCase'
+]
