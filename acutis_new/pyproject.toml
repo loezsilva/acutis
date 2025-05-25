@@ -1,0 +1,110 @@
+[project]
+name = "acutis-api"
+version = "0.1.0"
+description = "Instituto HeSed - API Acutis"
+authors = [
+    {name = "leoneville",email = "leoneville_@hotmail.com"}
+]
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "flask (>=3.1.0,<4.0.0)",
+    "flask-sqlalchemy (>=3.1.1,<4.0.0)",
+    "flask-migrate (>=4.1.0,<5.0.0)",
+    "pydantic[email] (>=2.10.6,<3.0.0)",
+    "pydantic-settings (>=2.8.0,<3.0.0)",
+    "spectree (>=1.4.4,<2.0.0)",
+    "flask-cors (>=5.0.1,<6.0.0)",
+    "flask-limiter (>=3.10.1,<4.0.0)",
+    "flask-jwt-extended (>=4.7.1,<5.0.0)",
+    "pyodbc (>=5.2.0,<6.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "pwdlib[argon2] (>=0.2.1,<0.3.0)",
+    "sendgrid (>=6.11.0,<7.0.0)",
+    "boto3 (>=1.37.4,<2.0.0)",
+    "gunicorn (>=23.0.0,<24.0.0)",
+    "authlib (>=1.5.1,<2.0.0)",
+    "requests (>=2.32.3,<3.0.0)",
+    "gevent (>=24.11.1,<25.0.0)",
+    "validate-docbr (>=1.10.0,<2.0.0)",
+    "googlemaps (>=4.10.0,<5.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)",
+    "xmltodict (>=0.14.2,<0.15.0)",
+    "pandas (>=2.2.3,<3.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "acutis_api", from = "src"}]
+
+[project.scripts]
+acutis-api = "acutis_api.api.app:app"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
+testcontainers = "^4.9.1"
+factory-boy = "^3.3.3"
+pre-commit = "^4.1.0"
+poethepoet = "^0.32.2"
+ruff = "^0.9.7"
+pillow = "^11.1.0"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = "-p no:warnings"
+
+[tool.ruff]
+line-length = 79
+indent-width = 4
+extend-exclude = ["migrations", "templates", "script-de-importacao.py"]
+
+[tool.ruff.lint]
+preview = true
+select = ["I", "F", "E", "W", "PL", "PT"]
+ignore = [
+    "PLC0414",
+    "PLC0415",
+    "PLR0912",
+    "PLR2004",
+    "PLR6301",
+    "PLR0904",
+]
+
+[tool.ruff.format]
+preview = true
+quote-style = "single"
+
+[tool.poe.tasks]
+test-migrate = ["downgrade", "upgrade"]
+dev = "flask run --reload --debug"
+run = "gunicorn -w 4 -k gevent acutis_api.api.app:app"
+format  = ["check-ruff", "format-ruff"]
+test-cov = ["test", "coverage"]
+
+[tool.poe.tasks.test]
+help = "Roda os testes da aplicação"
+cmd = "pytest -vvv --cov=acutis_api --cov-report=html"
+
+[tool.poe.tasks.coverage]
+help = "Gera o coverage HTML"
+cmd = "coverage html"
+
+[tool.poe.tasks.downgrade]
+help = "Retorna o alembic version para a versao anterior"
+cmd = "flask db downgrade"
+
+[tool.poe.tasks.upgrade]
+help = "Define o alembic version para a ultima versão"
+cmd = "flask db upgrade"
+
+[tool.poe.tasks.check-ruff]
+help = "Checa se o código está fora dos padrões exigidos."
+cmd = "ruff check . --fix"
+
+[tool.poe.tasks.format-ruff]
+help = "Tenta formatar o código para os padrões exigidos."
+cmd = "ruff format ."
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

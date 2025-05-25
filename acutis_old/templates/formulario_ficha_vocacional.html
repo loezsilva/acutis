@@ -1,0 +1,627 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            font-family: open sans, helvetica neue, Helvetica, sans-serif;
+        }
+
+        .centro {
+            margin: 0 auto;
+            width: 650px;
+        }
+
+        .topo {
+            background-color: #BA8F38;
+            padding: 25px 0;
+            text-align: center;
+        }
+
+        p {
+            margin-bottom: 22px;
+        }
+
+        .body {
+            border: 0.5px solid #d3d2d2;
+            padding: 0 25px;
+            background-color: #fafffe;
+        }
+
+        .title {
+            font-size: 22px;
+            color: #333333;
+        }
+
+        .subtitle {
+            font-weight: 700;
+            font-size: 25px;
+            line-height: 48px;
+            color: #BA8F38;
+        }
+
+        .footer {
+            align-items: center;
+            text-align: center;
+            color: #fff;
+            justify-content: center;
+            background-color: #62372C;
+            padding: 13px 0;
+        }
+
+        .botao {
+            padding: 12px 20px;
+            color: #FFF !important;
+            background-color: #0f996a;
+            text-decoration: none !important;
+            font-size: 13px;
+        }
+
+        .button-wrapper {
+            display: flex;
+            gap: 15px;
+        }
+
+        .reject-btn {
+            color: white !important;
+            background-color: red;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        select,
+        textarea,
+        input[type="text"],
+        input[type="month"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        select:focus,
+        textarea:focus,
+        input[type="text"]:focus,
+        input[type="month"]:focus,
+        input[type="number"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        #divorciado-info,
+        #seminario-info,
+        #religiao-info,
+        #saude-info,
+        #remedio-info {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        .file-input {
+            font-size: 20px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .file-label {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f7f7f7;
+            color: #333;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+
+        .file-label:hover {
+            background-color: #e7e7e7;
+        }
+
+        .file-label:active {
+            background-color: #d7d7d7;
+        }
+
+        .file-label i {
+            margin-right: 10px;
+        }
+
+        label {
+            font-weight: 600;
+        }
+
+        .btn-submit {
+            margin-top: 20px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            display: inline-block;
+        }
+
+        .btn-submit:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:active {
+            background-color: #004494;
+            transform: translateY(0);
+        }
+
+        .btn-submit:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+
+        .obrigatorio {
+            color: red;
+            font-weight: bold;
+        }
+
+        .message {
+            margin-top: 5vh;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .curso-item {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;  
+        }
+        .remove-curso {
+            cursor: pointer;
+            font-size: 20px;  
+            padding: 1px 7px; 
+            border: none;
+            background-color: transparent;            
+        }
+
+        .add-curso {
+            margin-top: 10px;  
+            cursor: pointer;
+            font-size: 20px;  
+            padding: 1px 7px; 
+            background-color: #0f996a;
+            border: none;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="centro">
+        <div class="topo">
+            <img src="https://doe.institutohesed.org.br/assets/logo-1-cpFNl0o8.png" width="200px" alt="">
+        </div>
+        <div class="body">
+            <h4 class="subtitle">Olá, {{nome}}.</h4>
+            <p><b>Ficamos felizes por lhe ter nessa nova etapa.</b></p>
+            <p><b>Preencha sua ficha vocacional para darmos continuidade ao processo!</b><br /><br /></p>
+            <form id="ficha-vocacional-form">
+                <input type="hidden" name="fk_cadastro_vocacional_id" value="{{fk_cadastro_vocacional_id}}">
+                <div class="form-group">
+                    <label for="escolaridade">Escolaridade<span class="obrigatorio">*</span></label>
+                    <select id="escolaridade" name="escolaridade" required>
+                        <option value="" selected">Escolha uma opção</option>
+                        <option value="fundamental incompleto">Ensino Fundamental Incompleto</option>
+                        <option value="fundamental completo">Ensino Fundamental Completo</option>
+                        <option value="medio incompleto">Ensino Médio Incompleto</option>
+                        <option value="medio completo">Ensino Médio Completo</option>
+                        <option value="superior incompleto">Ensino Superior Incompleto</option>
+                        <option value="superior completo">Ensino Superior Completo</option>
+                        <option value="pos graduacao">Pós-graduação</option>
+                        <option value="mestrado">Mestrado</option>
+                        <option value="doutorado">Doutorado</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="cursos-container">
+                    <label for="curso">Curso:</label>
+                    <div id="cursos-list">
+                        <div class="curso-item">
+                            <input type="text" name="curso" placeholder="Digite o curso" required>
+                        </div>
+                    </div>
+                    <button type="button" id="add-curso" class="add-curso">+</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="sacramentos">Quais sacramentos possui:<span class="obrigatorio">*</span></label>
+                    <select id="sacramentos" name="sacramentos" required>
+                        <option value="" selected">Escolha uma opção</option>
+                        <option value="batismo">Batismo</option>
+                        <option value="eucaristia">1ª Eucaristia</option>
+                        <option value="crisma">Crisma</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Estado Civil:<span class="obrigatorio">*</span></label>
+                    <label>
+                        <input type="radio" name="estado_civil" value="solteiro" onclick="toggleDivorciadoInput()"
+                            required>
+                        Solteiro(a)
+                    </label>
+                    <label>
+                        <input type="radio" name="estado_civil" value="namorando" onclick="toggleDivorciadoInput()"
+                            required>
+                        Namorando
+                    </label>
+                    <label>
+                        <input type="radio" name="estado_civil" value="casado" onclick="toggleDivorciadoInput()"
+                            required> Casado
+                    </label>
+                    <label>
+                        <input type="radio" id="estado_civil_divorciado" name="estado_civil" value="divorciado"
+                            onclick="toggleDivorciadoInput()"> Divorciado
+                    </label>
+                    <div id="divorciado-info">
+                        <label for="divorciado_details">Detalhes sobre o divórcio:</label>
+                        <textarea id="divorciado_details" name="divorciado_details"
+                            placeholder="Especifique, se desejar" rows="4"></textarea>
+                    </div>
+
+                    </br>
+
+                    <div class="form-group">
+                        <label for="profissao">Profissão:<span class="obrigatorio">*</span></label>
+                        <input type="text" name="profissao" id="profissao" placeholder="Profissão:" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="como_nos_conheceu">Como conheceu o instituto:</label>
+                        <textarea id="como_nos_conheceu" name="como_nos_conheceu"
+                            placeholder="Conte-nos como nos conheceu" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="motivacao">O que te motivou a pedir admissão no acompanhamento vocacional?</label>
+                        <textarea id="motivacao" name="motivacao" placeholder="Descreva sua motivação" rows="4"
+                            required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="atencao">O que mais te chamou a atenção no Instituto Hesed?:</label>
+                        <textarea id="atencao" name="atencao" placeholder="Descreva o que chamou sua atenção" rows="4"
+                            required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="identificacao">Em quais pontos você mais se identifica com o Instituto
+                            Hesed:</label>
+                        <textarea id="identificacao" name="identificacao"
+                            placeholder="Descreva em quais pontos você se identifica" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dia_a_dia">Como é seu dia-a-dia de oração, trabalho e estudo?</label>
+                        <textarea id="dia_a_dia" name="dia_a_dia" placeholder="Descreva seu dia-a-dia" rows="4"
+                            required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Já fez seminário de Vida no Espírito Santo?</label>
+                        <label>
+                            <input type="radio" id="seminario_sim" name="seminario" value="sim"
+                                onclick="toggleSeminarioInput()" required> Sim
+                        </label>
+                        <label>
+                            <input type="radio" id="seminario_nao" name="seminario" value="nao"
+                                onclick="toggleSeminarioInput()" required> Não
+                        </label>
+
+                    </div>
+
+                    <div id="seminario-info">
+                        <label for="tempo_seminario">Há quanto tempo (mês e ano):</label>
+                        <input type="month" id="tempo_seminario" name="tempo_seminario">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Já foi de outra religião, frequentou alguma seita?</label>
+                    <label>
+                        <input type="radio" id="religiao_sim" name="religiao_anterior" value="sim"
+                            onclick="toggleReligiaoInput()" required> Sim
+                    </label>
+                    <label>
+                        <input type="radio" id="religiao_nao" name="religiao_anterior" value="nao"
+                            onclick="toggleReligiaoInput()" required> Não
+                    </label>
+                    <div id="religiao-info">
+                        <label for="tempo_religiao">Há quanto tempo (mês e ano):</label>
+                        <input type="month" id="tempo_religiao" name="tempo_religiao">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="aceitacao_familia">Como é a aceitação de sua família com relação a sua vocação?</label>
+                    <textarea id="aceitacao_familia" name="aceitacao_familia"
+                        placeholder="Descreva a aceitação de sua família" rows="4" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Possui algum problema de saúde?</label>
+                    <label>
+                        <input type="radio" id="saude_sim" name="saude" value="sim" onclick="toggleSaudeInput()" required> Sim
+                    </label>
+                    <label>
+                        <input type="radio" id="saude_nao" name="saude" value="nao" onclick="toggleSaudeInput()" required> Não
+                    </label>
+                    <div id="saude-info">
+                        <label for="qual_problema">Qual:</label>
+                        <input type="text" id="qual_problema" name="qual_problema"
+                            placeholder="Descreva o problema de saúde">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Fez ou faz uso de remédio controlado?</label>
+                    <label>
+                        <input type="radio" id="remedio_sim" name="remedio" value="sim" onclick="toggleRemedioInput()" required>
+                        Sim
+                    </label>
+                    <label>
+                        <input type="radio" id="remedio_nao" name="remedio" value="nao" onclick="toggleRemedioInput()" required>
+                        Não
+                    </label>
+                    <div id="remedio-info">
+                        <label for="qual_remedio">Qual:</label>
+                        <input type="text" id="qual_remedio" name="qual_remedio" placeholder="Descreva o remédio" />
+                        </br>
+                        <label for="inicio_remedio">Ano que iniciou:</label>
+                        <input type="month" id="inicio_remedio" name="inicio_remedio" />
+
+                        </br>
+
+                        <label for="fim_remedio">Ano que parou de tomar:</label>
+                        <input type="month" id="fim_remedio" name="fim_remedio" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="testemunho_conversao">Testemunho de conversão:</label>
+                        <textarea id="testemunho_conversao" name="testemunho_conversao"
+                            placeholder="Partilhe conosco o testemunho de sua história de conversão, sobre sua juventude e como sentiu o seu chamado? Importante que mencione as datas."
+                            rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="foto_vocacional">Foto vocacional: Envie uma foto atual de corpo inteiro</label>
+                        <div class="file-upload" style="width: 80%;">
+                            <input type="file" name="foto_vocacional" id="foto_vocacional" class="file-input"
+                                onchange="updateLabel(this)" required>
+                            <label for="foto_vocacional" class="file-label">
+                                <i class="fas fa-upload"></i> Escolha uma foto...
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right; width: 80%; margin: 0 auto;">
+                    <button type="submit" class="btn-submit">Enviar</button>
+                </div>
+                <div id="message" class="message"></div>
+            </form>
+
+            <p>Se você tiver alguma dúvida ou precisar de ajuda, não hesite em entrar em contato com nossa equipe de
+                suporte ao cliente, que está disponível para ajudá-lo com qualquer problema ou preocupação.</p>
+
+            <p>Caso não seja você, por favor, desconsidere este e-mail.</p>
+            <p><br /></p>
+        </div>
+        <div class="footer">
+            <p><b>Fale Conosco</b><br /><br />
+                (84) 9 9123-4567 | <a href="mailto:contato@institutohesed.org.br"
+                    style="color: #FFF; text-decoration: none;">contato@institutohesed.org.br</a></p>
+        </div>
+    </div>
+    </div>
+    <script>
+        function toggleDivorciadoInput() {
+            const divorciadoInput = document.getElementById('divorciado-info');
+            const divorciadoRadio = document.getElementById('estado_civil_divorciado');
+            divorciadoInput.style.display = divorciadoRadio.checked ? 'block' : 'none';
+        }
+
+        function toggleSeminarioInput() {
+            const seminarioYes = document.getElementById('seminario_sim');
+            const seminarioInput = document.getElementById('seminario-info');
+            seminarioInput.style.display = seminarioYes.checked ? 'block' : 'none';
+        }
+
+        function toggleReligiaoInput() {
+            const religiaoYes = document.getElementById('religiao_sim');
+            const religiaoInput = document.getElementById('religiao-info');
+            religiaoInput.style.display = religiaoYes.checked ? 'block' : 'none';
+        }
+
+        function toggleSaudeInput() {
+            const saudeYes = document.getElementById('saude_sim');
+            const saudeInput = document.getElementById('saude-info');
+            saudeInput.style.display = saudeYes.checked ? 'block' : 'none';
+        }
+
+        function toggleRemedioInput() {
+            const remedioYes = document.getElementById('remedio_sim');
+            const remedioInput = document.getElementById('remedio-info');
+            remedioInput.style.display = remedioYes.checked ? 'block' : 'none';
+        }
+
+        function updateLabel(input) {
+            const label = input.nextElementSibling;
+            if (input.files.length > 0) {
+                label.textContent = input.files[0].name;
+            } else {
+                label.textContent = "Escolha uma foto...";
+            }
+        }
+
+        const cursosContainer = document.getElementById('cursos-container');
+        const cursosList = document.getElementById('cursos-list');
+
+        document.getElementById('add-curso').addEventListener('click', function() {
+            const inputCurso = document.createElement('div');
+            inputCurso.className = 'curso-item';
+        
+            inputCurso.innerHTML = `
+                <input type="text" name="curso" placeholder="Digite o curso" required>
+                <button type="button" class="remove-curso">❌</button>
+            `;
+        
+            cursosList.appendChild(inputCurso);
+        
+            inputCurso.querySelector('.remove-curso').addEventListener('click', function() {
+                cursosList.removeChild(inputCurso);
+            });
+        });
+
+
+        document.getElementById('ficha-vocacional-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            const messageDiv = document.getElementById('message');
+
+            const cursos = Array.from(cursosList.getElementsByTagName('input'))
+                .map(input => input.value.trim())  
+                .filter(value => value)  
+                .join(' - ');  
+
+            formData.set('cursos', cursos);
+
+            function formatDateToYYYYMMDD(date) {
+                return date ? `${date}-01` : null;
+            }
+
+            const fotoInput = formData.get('foto_vocacional');
+
+            const data = {
+                escolaridade: formData.get('escolaridade'),
+                profissao: formData.get('profissao'),
+                justificativa_divorcio: formData.get('divorciado_details'),
+                sacramentos: formData.get('sacramentos'),
+                estado_civil: formData.get('estado_civil'),
+                referencia_conhecimento_instituto: formData.get('como_nos_conheceu'),
+                motivacao_admissao_vocacional: formData.get('motivacao'),
+                identificacao_com_instituto: formData.get('identificacao'),
+                motivacao_pelo_instituto: formData.get('atencao'),
+                rotina_diaria: formData.get('dia_a_dia'),
+                
+                seminario: formData.get('seminario'),
+                religiao_anterior: formData.get("religiao_anterior"),
+                saude: formData.get("saude"),
+                remedio: formData.get("remedio"),
+                
+                seminario_vida_espirito_santo_realizado_em: formatDateToYYYYMMDD(formData.get('tempo_seminario')),
+                deixou_religiao_anterior_em: formatDateToYYYYMMDD(formData.get('tempo_religiao')),
+                aceitacao_familiar: formData.get('aceitacao_familia'),
+                problema_saude_descricao: formData.get('qual_problema'),
+                remedio_controlado_data_inicio: formatDateToYYYYMMDD(formData.get('inicio_remedio')),
+                remedio_controlado_data_fim: formatDateToYYYYMMDD(formData.get('fim_remedio')),
+                remedio_controlado: formatDateToYYYYMMDD(formData.get('qual_remedio')),
+                testemunho_conversao: formData.get('testemunho_conversao'),
+                fk_cadastro_vocacional_id: formData.get('fk_cadastro_vocacional_id'),
+                foto_vocacional: null,
+                cursos: cursos
+            };
+
+            console.log(data);
+            if (fotoInput && fotoInput instanceof File && fotoInput.size > 0) {
+                const reader = new FileReader();
+                reader.onloadend = function () {
+                    const base64data = reader.result;
+                    if (base64data && base64data.startsWith('data:image/')) {
+                        data.foto_vocacional = base64data;
+                    }
+                    sendData(data);
+                };
+                reader.readAsDataURL(fotoInput);
+            } else {
+                sendData(data);
+            }
+
+            function sendData(data) {
+                fetch('/vocacional/ficha-vocacional-create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => response.json().then(data => {
+                        if (response.ok) {
+                            showMessage('success', 'Seu formulário foi enviado com sucesso!');
+                        } else {
+                            showMessage('error', data.error || 'Ocorreu um erro ao processar sua solicitação.');
+                        }
+                    }))
+                    .catch((error) => {
+                        showMessage('error', 'Erro de rede: ' + error.message);
+                    });
+            }
+        });
+
+        function showMessage(type, text) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type === 'success' ? 'message success' : 'message error';
+            messageDiv.innerText = text;
+            messageDiv.style.display = 'block';
+        }
+
+    </script>
+</body>
+
+</html>

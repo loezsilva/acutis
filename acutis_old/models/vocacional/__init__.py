@@ -1,0 +1,5 @@
+from .cadastro_vocacional import CadastroVocacional
+from .etapa_vocacional import EtapaVocacional
+from .ficha_vocacional import FichaVocacional
+from .sacramento_vocacional import SacramentoVocacional
+from .usuario_vocacional import UsuarioVocacional

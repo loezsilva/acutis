@@ -1,0 +1,2 @@
+from .email_templates import active_account_email_template, delete_account_email_template, reset_password_email_template, \
+    recurrence_pix_invoice_payment_email_template, active_account_email_template_for_emails_inactives
