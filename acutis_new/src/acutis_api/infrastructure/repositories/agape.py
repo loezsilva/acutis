@@ -695,3 +695,17 @@ class AgapeRepository(AgapeRepositoryInterface):
         # Verifica se o voluntário já está cadastrado
         if not session.query(MembroAgape).filter_by(id=lead_id).first():
             raise HttpNotFoundError(f'Voluntário {lead_id} não encontrado.')
+
+    def buscar_familia_agape_por_id(self, familia_id: UUID) -> FamiliaAgape | None:
+        instancia = self._database.session.get(FamiliaAgape, familia_id)
+        if instancia is None:
+            raise HttpNotFoundError(f'Família ágape {familia_id} não encontrada.')
+        if hasattr(instancia, 'deletado_em') and instancia.deletado_em is not None:
+            raise HttpNotFoundError(f'Família ágape {familia_id} não encontrada (deletada).')
+        return instancia
+
+    def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
+        instancia = self._database.session.get(Endereco, endereco_id)
+        if instancia is None:
+            raise HttpNotFoundError(f'Endereço {endereco_id} não encontrado.')
+        return instancia

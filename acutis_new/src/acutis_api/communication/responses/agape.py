@@ -41,6 +41,9 @@ class EnderecoResponse(BaseModel):
     estado: str | None
     numero: str | None
     complemento: str | None
+    ponto_referencia: str | None
+    latitude: float | None
+    longitude: float | None
 
 
 # Estoque Ágape

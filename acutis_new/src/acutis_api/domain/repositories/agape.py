@@ -223,3 +223,13 @@ class AgapeRepositoryInterface(ABC):
 
     @abstractmethod
     def adicionar_voluntario_agape(self, lead_id: UUID) -> None: ...
+
+    @abstractmethod
+    def buscar_familia_agape_por_id(self, familia_id: UUID) -> FamiliaAgape | None:
+        '''Busca uma família ágape pelo seu ID.'''
+        ...
+
+    @abstractmethod
+    def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
+        '''Busca um endereço pelo seu ID.'''
+        ...
