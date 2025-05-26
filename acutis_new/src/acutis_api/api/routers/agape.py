@@ -32,6 +32,7 @@ from acutis_api.application.use_cases.agape import (
     BuscarEnderecoCicloAcaoUseCase,
     BuscarUltimaAcaoAgapeUseCase,
     BuscarFamiliaAgapePorCpfUseCase,
+    BuscarMembroAgapePorIdUseCase,
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -63,6 +64,7 @@ from acutis_api.communication.responses.agape import (
     EnderecoCicloAcaoResponse,
     UltimoCicloAcaoAgapeResponse,
     FamiliaAgapeDetalhesPorCpfResponse,
+    MembroAgapeDetalhesResponse,
 )
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros
@@ -239,6 +241,31 @@ def buscar_familia_agape_por_cpf(cpf: str, ciclo_acao_id: UUID):
             file_service=file_service 
         )
         response_data = use_case.execute(cpf=cpf, ciclo_acao_id=ciclo_acao_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/buscar-membro/<uuid:membro_agape_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=MembroAgapeDetalhesResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Familias'], # Mantendo a tag sugerida, pode ser 'Ágape - Membros'
+)
+def buscar_membro_agape_por_id(membro_agape_id: UUID):
+    '''Busca os detalhes de um membro ágape pelo seu ID.'''
+    try:
+        repository = AgapeRepository(database)
+        file_service = file_service_factory()
+
+        use_case = BuscarMembroAgapePorIdUseCase(
+            agape_repository=repository,
+            file_service=file_service 
+        )
+        response_data = use_case.execute(membro_agape_id=membro_agape_id)
         return response_data, HTTPStatus.OK
     except Exception as exc:
         error_response = errors_handler(exc)

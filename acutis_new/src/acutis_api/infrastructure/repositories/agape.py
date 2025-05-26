@@ -774,3 +774,13 @@ class AgapeRepository(AgapeRepositoryInterface):
             .scalar_one_or_none() # Retorna o valor máximo ou None se não houver doações
         )
         return data_maxima
+
+    def buscar_membro_agape_por_id(self, membro_agape_id: UUID) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu ID, considerando soft delete se aplicável.'''
+        # A entidade MembroAgape em acutis_new herda de ModeloBase, que NÃO tem 'deletado_em'.
+        # Portanto, a busca é direta. Se não encontrado, levanta HttpNotFoundError.
+        membro = self._database.session.get(MembroAgape, membro_agape_id)
+        if not membro:
+            # Para consistência com outros métodos de busca por ID que levantam erro no repo.
+            raise HttpNotFoundError(f"Membro Ágape com ID {membro_agape_id} não encontrado.")
+        return membro

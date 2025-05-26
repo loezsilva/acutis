@@ -261,3 +261,8 @@ class AgapeRepositoryInterface(ABC):
     def buscar_data_ultimo_recebimento_familia_no_ciclo(self, familia_id: UUID, ciclo_acao_id: UUID) -> datetime | None:
         '''Busca a data da última doação recebida por uma família em um ciclo de ação específico.'''
         ...
+
+    @abstractmethod
+    def buscar_membro_agape_por_id(self, membro_agape_id: UUID) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu ID.'''
+        ...

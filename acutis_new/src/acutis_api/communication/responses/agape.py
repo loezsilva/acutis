@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date # Ensure date is imported
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -199,3 +199,24 @@ class FamiliaAgapeDetalhesPorCpfResponse(BaseModel):
     ultimo_recebimento: datetime | None # Data da última doação da família neste ciclo
     endereco: EnderecoResponse | None
     fotos_familia_urls: list[str]
+
+
+class MembroAgapeDetalhesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    fk_familia_agape_id: uuid.UUID # Não anulável conforme entidade acutis_new
+    nome: str
+    email: str | None
+    telefone: str | None
+    cpf: str | None
+    data_nascimento: date 
+    responsavel: bool
+    funcao_familiar: str # Não anulável conforme entidade acutis_new
+    escolaridade: str    # Não anulável conforme entidade acutis_new
+    ocupacao: str        # Não anulável conforme entidade acutis_new
+    renda: float | None
+    foto_documento_url: str | None
+    beneficiario_assistencial: bool # Não anulável conforme entidade acutis_new
+    criado_em: datetime
+    atualizado_em: datetime
