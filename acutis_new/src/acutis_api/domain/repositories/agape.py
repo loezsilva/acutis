@@ -14,8 +14,11 @@ from acutis_api.domain.entities.foto_familia_agape import FotoFamiliaAgape
 from acutis_api.domain.entities.historico_movimentacao_agape import (
     HistoricoMovimentacaoAgape,
 )
+from datetime import datetime # Added
 from acutis_api.domain.entities.instancia_acao_agape import InstanciaAcaoAgape
 from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
+# MembroAgape is already imported below, ensuring it's available.
+# FotoFamiliaAgape is already imported.
 from acutis_api.domain.entities.membro_agape import MembroAgape
 from acutis_api.domain.repositories.schemas.agape import (
     DoacaoAgapeSchema,
@@ -242,4 +245,19 @@ class AgapeRepositoryInterface(ABC):
     @abstractmethod
     def buscar_ultima_instancia_por_nome_acao_id(self, nome_acao_id: UUID) -> InstanciaAcaoAgape | None:
         '''Busca a última instância de ciclo de ação ágape (mais recente) associada a um nome de ação específico.'''
+        ...
+
+    @abstractmethod
+    def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu CPF.'''
+        ...
+
+    @abstractmethod
+    def listar_fotos_por_familia_id(self, familia_id: UUID) -> list[FotoFamiliaAgape]:
+        '''Lista todas as fotos de uma família ágape.'''
+        ...
+
+    @abstractmethod
+    def buscar_data_ultimo_recebimento_familia_no_ciclo(self, familia_id: UUID, ciclo_acao_id: UUID) -> datetime | None:
+        '''Busca a data da última doação recebida por uma família em um ciclo de ação específico.'''
         ...

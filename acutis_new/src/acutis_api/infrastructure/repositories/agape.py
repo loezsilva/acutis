@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, func # Added func
 
 from acutis_api.communication.requests.agape import (
     CoordenadaFormData,
@@ -25,8 +25,16 @@ from acutis_api.domain.entities.instancia_acao_agape import (
     InstanciaAcaoAgape,
     StatusAcaoAgapeEnum,
 )
+# ItemInstanciaAgape is already imported below
 from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
+# MembroAgape is already imported below
 from acutis_api.domain.entities.membro_agape import MembroAgape
+# FamiliaAgape and FotoFamiliaAgape are already imported
+# HttpNotFoundError is already imported
+
+# Assuming these paths based on instructions, will verify if entities exist
+from acutis_api.domain.entities.doacao_agape import DoacaoAgape 
+from acutis_api.domain.entities.item_doacao_agape import ItemDoacaoAgape
 from acutis_api.domain.repositories.agape import (
     AgapeRepositoryInterface,
 )
@@ -732,3 +740,37 @@ class AgapeRepository(AgapeRepositoryInterface):
         
         # Não levanta erro se não encontrar, apenas retorna None. O caso de uso tratará isso.
         return instancia
+
+    def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu CPF.'''
+        # A entidade MembroAgapeEntity armazena CPF como string, a comparação direta é usada.
+        # O tratamento de CPF (limpeza de caracteres) deve ocorrer antes de chamar este método, se necessário.
+        membro = self._database.session.query(MembroAgape).filter(MembroAgape.cpf == cpf).first()
+        return membro
+
+    def listar_fotos_por_familia_id(self, familia_id: UUID) -> list[FotoFamiliaAgape]:
+        '''Lista todas as fotos de uma família ágape.'''
+        fotos = (
+            self._database.session.query(FotoFamiliaAgape)
+            .filter(FotoFamiliaAgape.fk_familia_agape_id == familia_id)
+            .all()
+        )
+        return fotos
+
+    def buscar_data_ultimo_recebimento_familia_no_ciclo(self, familia_id: UUID, ciclo_acao_id: UUID) -> datetime | None:
+        '''Busca a data da última doação recebida por uma família em um ciclo de ação específico.'''
+        # Esta query é baseada na lógica do acutis_old, adaptada para SQLAlchemy com entidades do acutis_new
+        # DoacaoAgape.criado_em é o que queremos maximizar.
+        # Junção: DoacaoAgape -> ItemDoacaoAgape -> ItemInstanciaAgape
+        
+        data_maxima = (
+            self._database.session.query(func.max(DoacaoAgape.criado_em))
+            .join(ItemDoacaoAgape, ItemDoacaoAgape.fk_doacao_agape_id == DoacaoAgape.id)
+            .join(ItemInstanciaAgape, ItemInstanciaAgape.id == ItemDoacaoAgape.fk_item_instancia_agape_id)
+            .filter(
+                DoacaoAgape.fk_familia_agape_id == familia_id,
+                ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id
+            )
+            .scalar_one_or_none() # Retorna o valor máximo ou None se não houver doações
+        )
+        return data_maxima

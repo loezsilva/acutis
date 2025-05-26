@@ -185,3 +185,17 @@ class UltimoCicloAcaoAgapeResponse(BaseModel):
     itens_do_ciclo: list[DoacaoAgapeResponse]
     criado_em: datetime
     atualizado_em: datetime
+
+
+class FamiliaAgapeDetalhesPorCpfResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID  # ID da FamiliaAgapeEntity
+    nome_familia: str
+    observacao: str | None
+    comprovante_residencia_url: str | None
+    criado_em: datetime 
+    ativo: bool # Derivado de FamiliaAgapeEntity.deletado_em
+    ultimo_recebimento: datetime | None # Data da última doação da família neste ciclo
+    endereco: EnderecoResponse | None
+    fotos_familia_urls: list[str]

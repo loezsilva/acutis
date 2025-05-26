@@ -31,6 +31,7 @@ from acutis_api.application.use_cases.agape import (
     BuscarEnderecoFamiliaAgapeUseCase,
     BuscarEnderecoCicloAcaoUseCase,
     BuscarUltimaAcaoAgapeUseCase,
+    BuscarFamiliaAgapePorCpfUseCase,
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -61,6 +62,7 @@ from acutis_api.communication.responses.agape import (
     EnderecoResponse,
     EnderecoCicloAcaoResponse,
     UltimoCicloAcaoAgapeResponse,
+    FamiliaAgapeDetalhesPorCpfResponse,
 )
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros
@@ -212,6 +214,31 @@ def buscar_ultima_acao_agape(nome_acao_id: UUID):
         repository = AgapeRepository(database) 
         use_case = BuscarUltimaAcaoAgapeUseCase(agape_repository=repository)
         response_data = use_case.execute(nome_acao_id=nome_acao_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/buscar-familia-agape-por-cpf/<string:cpf>/<uuid:ciclo_acao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=FamiliaAgapeDetalhesPorCpfResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Familias'], 
+)
+def buscar_familia_agape_por_cpf(cpf: str, ciclo_acao_id: UUID):
+    '''Busca os detalhes de uma família ágape pelo CPF do responsável e ID do ciclo de ação.'''
+    try:
+        repository = AgapeRepository(database)
+        file_service = file_service_factory()
+
+        use_case = BuscarFamiliaAgapePorCpfUseCase(
+            agape_repository=repository,
+            file_service=file_service 
+        )
+        response_data = use_case.execute(cpf=cpf, ciclo_acao_id=ciclo_acao_id)
         return response_data, HTTPStatus.OK
     except Exception as exc:
         error_response = errors_handler(exc)
