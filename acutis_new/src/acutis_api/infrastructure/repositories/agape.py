@@ -720,3 +720,15 @@ class AgapeRepository(AgapeRepositoryInterface):
             raise HttpNotFoundError(f'Ciclo de ação ágape com ID {ciclo_acao_id} não encontrado.')
             
         return instancia
+
+    def buscar_ultima_instancia_por_nome_acao_id(self, nome_acao_id: UUID) -> InstanciaAcaoAgape | None:
+        '''Busca a última instância de ciclo de ação ágape (mais recente) associada a um nome de ação específico.'''
+        instancia = (
+            self._database.session.query(InstanciaAcaoAgape)
+            .filter(InstanciaAcaoAgape.fk_acao_agape_id == nome_acao_id)
+            .order_by(desc(InstanciaAcaoAgape.criado_em)) # Ordena pela data de criação para pegar a mais recente
+            .first()
+        )
+        
+        # Não levanta erro se não encontrar, apenas retorna None. O caso de uso tratará isso.
+        return instancia

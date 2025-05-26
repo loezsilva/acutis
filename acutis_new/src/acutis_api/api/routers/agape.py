@@ -30,6 +30,7 @@ from acutis_api.application.use_cases.agape import (
     AdicionarVoluntarioAgapeUseCase,
     BuscarEnderecoFamiliaAgapeUseCase,
     BuscarEnderecoCicloAcaoUseCase,
+    BuscarUltimaAcaoAgapeUseCase,
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -59,6 +60,7 @@ from acutis_api.communication.responses.agape import (
     ListarFamiliasAgapeResponsePaginada,
     EnderecoResponse,
     EnderecoCicloAcaoResponse,
+    UltimoCicloAcaoAgapeResponse,
 )
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros
@@ -190,6 +192,26 @@ def buscar_endereco_ciclo_acao(ciclo_acao_id: UUID):
         repository = AgapeRepository(database) 
         use_case = BuscarEnderecoCicloAcaoUseCase(agape_repository=repository)
         response_data = use_case.execute(ciclo_acao_id=ciclo_acao_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/buscar-ultima-acao-agape/<uuid:nome_acao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=UltimoCicloAcaoAgapeResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Ações'], 
+)
+def buscar_ultima_acao_agape(nome_acao_id: UUID):
+    '''Busca o último ciclo de uma ação ágape (nome da ação) pelo ID do nome da ação.'''
+    try:
+        repository = AgapeRepository(database) 
+        use_case = BuscarUltimaAcaoAgapeUseCase(agape_repository=repository)
+        response_data = use_case.execute(nome_acao_id=nome_acao_id)
         return response_data, HTTPStatus.OK
     except Exception as exc:
         error_response = errors_handler(exc)

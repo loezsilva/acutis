@@ -171,3 +171,17 @@ class EnderecoCicloAcaoResponse(BaseModel):
     
     # Campo específico do ciclo de ação
     abrangencia: AbrangenciaInstanciaAcaoAgapeEnum
+
+
+class UltimoCicloAcaoAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID  # ID da InstanciaAcaoAgape (o ciclo)
+    abrangencia: AbrangenciaInstanciaAcaoAgapeEnum
+    status: StatusAcaoAgapeEnum # Usando o Enum diretamente
+    data_inicio: datetime | None
+    data_termino: datetime | None
+    endereco: EnderecoResponse | None
+    itens_do_ciclo: list[DoacaoAgapeResponse]
+    criado_em: datetime
+    atualizado_em: datetime

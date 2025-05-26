@@ -238,3 +238,8 @@ class AgapeRepositoryInterface(ABC):
     def buscar_instancia_acao_agape_por_id(self, ciclo_acao_id: UUID) -> InstanciaAcaoAgape | None:
         '''Busca uma instância de ciclo de ação ágape pelo seu ID.'''
         ...
+
+    @abstractmethod
+    def buscar_ultima_instancia_por_nome_acao_id(self, nome_acao_id: UUID) -> InstanciaAcaoAgape | None:
+        '''Busca a última instância de ciclo de ação ágape (mais recente) associada a um nome de ação específico.'''
+        ...
