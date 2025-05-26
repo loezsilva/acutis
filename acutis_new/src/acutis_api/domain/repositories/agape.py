@@ -266,3 +266,15 @@ class AgapeRepositoryInterface(ABC):
     def buscar_membro_agape_por_id(self, membro_agape_id: UUID) -> MembroAgape | None:
         '''Busca um membro ágape pelo seu ID.'''
         ...
+
+    @abstractmethod
+    def buscar_membro_por_email(self, email: str) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu email.'''
+        ...
+        
+    @abstractmethod
+    def registrar_membro_agape(self, membro: MembroAgape) -> MembroAgape:
+        '''Registra um novo membro ágape na sessão do banco de dados.
+           Não faz commit, apenas adiciona à sessão e retorna a entidade.
+        '''
+        ...

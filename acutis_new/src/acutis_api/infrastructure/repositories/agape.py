@@ -784,3 +784,18 @@ class AgapeRepository(AgapeRepositoryInterface):
             # Para consistência com outros métodos de busca por ID que levantam erro no repo.
             raise HttpNotFoundError(f"Membro Ágape com ID {membro_agape_id} não encontrado.")
         return membro
+
+    def buscar_membro_por_email(self, email: str) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu email.'''
+        # MembroAgape não tem 'deletado_em', então a busca é direta.
+        # Retorna None se não encontrado; o UseCase tratará o HttpNotFoundError ou ConflictError.
+        membro = self._database.session.query(MembroAgape).filter(MembroAgape.email == email).first()
+        return membro
+
+    def registrar_membro_agape(self, membro: MembroAgape) -> MembroAgape:
+        '''Registra um novo membro ágape na sessão do banco de dados.
+           Não faz commit, apenas adiciona à sessão e retorna a entidade.
+        '''
+        self._database.session.add(membro)
+        # self._database.session.flush() # Opcional
+        return membro

@@ -33,6 +33,7 @@ from acutis_api.application.use_cases.agape import (
     BuscarUltimaAcaoAgapeUseCase,
     BuscarFamiliaAgapePorCpfUseCase,
     BuscarMembroAgapePorIdUseCase,
+    CadastrarMembrosFamiliaAgapeUseCase, # Added
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -49,6 +50,7 @@ from acutis_api.communication.requests.agape import (
     RemoverItemEstoqueAgapeFormData,
     ListarFamiliasAgapeQueryPaginada,
     AdicionarVoluntarioAgapeFormData,
+    MembrosAgapeCadastroRequestSchema, # Added
 )
 from acutis_api.communication.responses.agape import (
     BuscarCicloAcaoAgapeResponse,
@@ -156,6 +158,42 @@ def registrar_nome_acao_agape():
 
     except Exception as exc:
         database.session.rollback()
+        error_response = errors_handler(exc)
+        return error_response
+
+# ROTA PARA FAMILIAS (continuação)
+@agape_bp.post('/cadastrar-membros/<uuid:familia_agape_id>')
+@swagger.validate(
+    json=MembrosAgapeCadastroRequestSchema, # Valida o corpo da requisição
+    resp=Response(
+        HTTP_201=ResponsePadraoSchema, 
+        HTTP_400=ErroPadraoResponse, # Para BadRequestError
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_409=ErroPadraoResponse, # Para ConflictError
+        HTTP_422=ErroPadraoResponse  # Para erros de validação do Pydantic no corpo
+    ),
+    tags=['Ágape - Familias'], 
+)
+def cadastrar_membros_familia(familia_agape_id: UUID):
+    '''Cadastra um ou mais membros em uma família ágape existente.'''
+    try:
+        dados_requisicao = MembrosAgapeCadastroRequestSchema.model_validate(flask_request.get_json())
+        
+        repository = AgapeRepository(database)
+        file_service = file_service_factory()
+
+        use_case = CadastrarMembrosFamiliaAgapeUseCase(
+            agape_repository=repository,
+            file_service=file_service
+        )
+        
+        response_data = use_case.execute(
+            familia_agape_id=familia_agape_id,
+            request_data=dados_requisicao
+        )
+        # O caso de uso já retorna ResponsePadraoSchema, então não precisa model_validate aqui.
+        return response_data.model_dump(), HTTPStatus.CREATED 
+    except Exception as exc:
         error_response = errors_handler(exc)
         return error_response
 

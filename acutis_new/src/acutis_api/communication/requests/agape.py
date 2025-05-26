@@ -8,8 +8,10 @@ from pydantic import (
     EmailStr,
     Field,
     model_validator,
+    constr, # Added constr
 )
 from pydantic_core import PydanticCustomError
+# Optional and List are already imported via 'from typing import List, Optional'
 from spectree import BaseFile
 
 from acutis_api.application.utils.funcoes_auxiliares import (
@@ -254,3 +256,21 @@ class AdicionarVoluntarioAgapeFormData(BaseModel):
     lead_id: UUID = Field(
         ..., description='ID do Lead'
     )
+
+# Schemas para cadastrar membros em uma família ágape
+class MembroAgapeCadastroItemSchema(BaseModel):
+    responsavel: bool = False
+    nome: constr(min_length=3, max_length=100, strip_whitespace=True) # type: ignore
+    email: EmailStr | None = None 
+    telefone: str | None = None 
+    cpf: str | None = None 
+    data_nascimento: date
+    funcao_familiar: constr(min_length=1, max_length=50, strip_whitespace=True) # type: ignore
+    escolaridade: constr(min_length=1, max_length=50, strip_whitespace=True) # type: ignore
+    ocupacao: constr(min_length=1, max_length=100, strip_whitespace=True) # type: ignore
+    renda: float | None = Field(default=None, ge=0)
+    beneficiario_assistencial: bool = False
+    foto_documento: str | None = None # Esperado como string base64
+
+class MembrosAgapeCadastroRequestSchema(BaseModel):
+    membros: list[MembroAgapeCadastroItemSchema]

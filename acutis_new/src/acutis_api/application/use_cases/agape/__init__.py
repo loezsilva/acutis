@@ -3,6 +3,7 @@ from .registrar import (
     RegistrarNomeAcaoAgapeUseCase as RegistrarNomeAcaoAgapeUseCase,
     RegistrarEstoqueAgapeUseCase as RegistrarEstoqueAgapeUseCase,
     RegistrarCicloAcaoAgapeUseCase as RegistrarCicloAcaoAgapeUseCase,
+    CadastrarMembrosFamiliaAgapeUseCase as CadastrarMembrosFamiliaAgapeUseCase, # Added
 )
 from .atualizar import (
     AbastecerItemEstoqueAgapeUseCase as AbastecerItemEstoqueAgapeUseCase,
@@ -56,4 +57,5 @@ __all__ = [
     'BuscarUltimaAcaoAgapeUseCase',
     'BuscarFamiliaAgapePorCpfUseCase',
     'BuscarMembroAgapePorIdUseCase',
+    'CadastrarMembrosFamiliaAgapeUseCase', # Added
 ]
