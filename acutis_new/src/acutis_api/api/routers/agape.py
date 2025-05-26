@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid # Added import
 from datetime import date, datetime
 from http import HTTPStatus
 
@@ -28,6 +29,16 @@ from acutis_api.application.use_cases.agape import (
     ListarFamiliasUseCase,
     ListarMembrosFamiliaUseCase,
     AdicionarVoluntarioAgapeUseCase,
+    BuscarEnderecoFamiliaAgapeUseCase,
+    BuscarEnderecoCicloAcaoUseCase,
+    BuscarUltimaAcaoAgapeUseCase,
+    BuscarFamiliaAgapePorCpfUseCase,
+    BuscarMembroAgapePorIdUseCase,
+    RegistrarMembrosFamiliaAgapeUseCase,
+    CardRendaFamiliarAgapeUseCase,
+    CardTotalRecebimentosAgapeUseCase,
+    CardsEstatisticasFamiliasAgapeUseCase,
+    CardsEstatisticasItensEstoqueUseCase,
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -44,6 +55,7 @@ from acutis_api.communication.requests.agape import (
     RemoverItemEstoqueAgapeFormData,
     ListarFamiliasAgapeQueryPaginada,
     AdicionarVoluntarioAgapeFormData,
+    MembrosAgapeCadastroRequestSchema,
 )
 from acutis_api.communication.responses.agape import (
     BuscarCicloAcaoAgapeResponse,
@@ -55,6 +67,15 @@ from acutis_api.communication.responses.agape import (
     RegistrarAcaoAgapeResponse,
     RegistrarItemEstoqueAgapeResponse,
     ListarFamiliasAgapeResponsePaginada,
+    EnderecoResponse,
+    EnderecoCicloAcaoResponse,
+    UltimoCicloAcaoAgapeResponse,
+    FamiliaAgapeDetalhesPorCpfResponse,
+    MembroAgapeDetalhesResponse,
+    CardRendaFamiliarAgapeResponse,
+    CardTotalRecebimentosAgapeResponse,
+    CardsEstatisticasFamiliasAgapeResponse,
+    CardsEstatisticasItensEstoqueResponse,
 )
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros
@@ -146,6 +167,27 @@ def registrar_nome_acao_agape():
 
     except Exception as exc:
         database.session.rollback()
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@agape_bp.get('/buscar-endereco-familia/<uuid:familia_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=EnderecoResponse,
+        HTTP_404=ErroPadraoResponse,
+        HTTP_422=ErroPadraoResponse
+    ),
+    tags=['Ágape - Familias'],
+)
+def buscar_endereco_familia(familia_id):
+    '''Busca o endereço de uma família ágape pelo ID da família.'''
+    try:
+        repository = AgapeRepository(database)
+        use_case = BuscarEnderecoFamiliaAgapeUseCase(agape_repository=repository)
+        endereco_response = use_case.execute(familia_id=familia_id)
+        return endereco_response, HTTPStatus.OK
+    except Exception as exc:
         error_response = errors_handler(exc)
         return error_response
 
@@ -643,4 +685,245 @@ def adicionar_voluntario_agape(lead_id):
     except Exception as exc:
         database.session.rollback()
         error_response = errors_handler(exc)
+        return error_response
+    
+@agape_bp.get('/buscar-endereco-ciclo-acao/<uuid:ciclo_acao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=EnderecoCicloAcaoResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Ações'], 
+)
+def buscar_endereco_ciclo_acao(ciclo_acao_id):
+    '''Busca o endereço de um ciclo de ação ágape pelo ID do ciclo.'''
+    try:
+        repository = AgapeRepository(database) 
+        use_case = BuscarEnderecoCicloAcaoUseCase(agape_repository=repository)
+        response_data = use_case.execute(ciclo_acao_id=ciclo_acao_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+    
+@agape_bp.get('/buscar-ultimo-ciclo-acao-agape/<uuid:nome_acao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=UltimoCicloAcaoAgapeResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Ações'], 
+)
+def buscar_ultima_acao_agape(nome_acao_id):
+    '''Busca o último ciclo de uma ação ágape 
+    (nome da ação) pelo ID do nome da ação.
+    '''
+    try:
+        repository = AgapeRepository(database) 
+        use_case = BuscarUltimaAcaoAgapeUseCase(agape_repository=repository)
+        response_data = use_case.execute(nome_acao_id=nome_acao_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get(
+    '/buscar-familia-agape-por-cpf/<string:cpf>/<uuid:ciclo_acao_id>'
+)
+@swagger.validate(
+    resp=Response(
+        HTTP_200=FamiliaAgapeDetalhesPorCpfResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Familias'], 
+)
+def buscar_familia_agape_por_cpf(cpf: str, ciclo_acao_id):
+    '''Busca os detalhes de uma família ágape pelo 
+    CPF do responsável e ID do ciclo de ação.
+    '''
+    try:
+        repository = AgapeRepository(database)
+        file_service = file_service_factory()
+
+        use_case = BuscarFamiliaAgapePorCpfUseCase(
+            agape_repository=repository,
+            file_service=file_service 
+        )
+        response_data = use_case.execute(cpf=cpf, ciclo_acao_id=ciclo_acao_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/buscar-membro/<uuid:membro_agape_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=MembroAgapeDetalhesResponse, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Familias'],
+)
+def buscar_membro_agape_por_id(membro_agape_id):
+    '''Busca os detalhes de um membro ágape pelo seu ID.'''
+    try:
+        repository = AgapeRepository(database)
+        file_service = file_service_factory()
+
+        use_case = BuscarMembroAgapePorIdUseCase(
+            agape_repository=repository,
+            file_service=file_service 
+        )
+        response_data = use_case.execute(membro_agape_id=membro_agape_id)
+        return response_data, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+    
+@agape_bp.post('/registrar-membros/<uuid:familia_agape_id>')
+@swagger.validate(
+    json=MembrosAgapeCadastroRequestSchema, # Valida o corpo da requisição
+    resp=Response(
+        HTTP_201=ResponsePadraoSchema, 
+        HTTP_400=ErroPadraoResponse,
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_409=ErroPadraoResponse,
+        HTTP_422=ErroPadraoResponse
+    ),
+    tags=['Ágape - Familias'], 
+)
+def registrar_membros_familia(familia_agape_id):
+    '''Cadastra um ou mais membros em uma família ágape existente.'''
+    try:
+        dados_requisicao = MembrosAgapeCadastroRequestSchema.model_validate(
+            flask_request.get_json()
+        )
+        
+        repository = AgapeRepository(database)
+        file_service = file_service_factory()
+
+        use_case = RegistrarMembrosFamiliaAgapeUseCase(
+            agape_repository=repository,
+            file_service=file_service
+        )
+        
+        response_data = use_case.execute(
+            familia_agape_id=familia_agape_id,
+            request_data=dados_requisicao
+        )
+        # O caso de uso já retorna ResponsePadraoSchema, 
+        # então não precisa model_validate aqui.
+        return response_data.model_dump(), HTTPStatus.CREATED
+    
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/card-renda-familiar-agape/<uuid:familia_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardRendaFamiliarAgapeResponse,
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse
+    ),
+    tags=['Ágape - Familias']
+)
+def card_renda_familiar_agape(familia_id: uuid.UUID):
+    '''
+    Retorna o card de renda familiar da família ágape pelo ID.
+    '''
+    try:
+        repository = AgapeRepository(database)
+        usecase = CardRendaFamiliarAgapeUseCase(repository)
+        
+        response_data, status_code = usecase.execute(
+            familia_id=familia_id
+        )
+        
+        return response_data, status_code
+
+    except Exception as exc:
+        # database.session.rollback() # Assuming errors_handler or a general hook handles this
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@agape_bp.get('/card-total-recebimentos/<uuid:familia_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardTotalRecebimentosAgapeResponse,
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse
+    ),
+    tags=['Ágape - Familias']
+)
+def card_total_itens_recebimentos(familia_id: uuid.UUID):
+    '''
+    Retorna o card de itens recebidos pela família ágape pelo ID.
+    '''
+    try:
+        repository = AgapeRepository(database)
+        usecase = CardTotalRecebimentosAgapeUseCase(
+            repository
+        )
+        
+        response_data, status_code = usecase.execute(
+            familia_id=familia_id
+        )
+        
+        return response_data, status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/cards-estatisticas-familias-agape')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardsEstatisticasFamiliasAgapeResponse,
+        HTTP_422=ErroPadraoResponse
+    ),
+    tags=['Ágape - Familias'] 
+)
+def cards_estatisticas_familias():
+    '''
+    Retorna as estatisticas dos cards de famílias ágape.
+    '''
+    try:
+        repository = AgapeRepository(database)
+        usecase = CardsEstatisticasFamiliasAgapeUseCase(repository)
+        
+        response_data, status_code = usecase.execute()
+        
+        return response_data, status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc) 
+        return error_response
+    
+@agape_bp.get('/cards-estatisticas-itens-estoque')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardsEstatisticasItensEstoqueResponse,
+        HTTP_422=ErroPadraoResponse # General error for unexpected issues
+    ),
+    tags=['Ágape - Estoque'] 
+)
+def cards_estatisticas_itens_estoque():
+    '''
+    Retorna as estatisticas dos cards de itens do estoque.
+    '''
+    try:
+        repository = AgapeRepository(database)
+        usecase = CardsEstatisticasItensEstoqueUseCase(repository)
+        
+        response_data, status_code = usecase.execute()
+        
+        return response_data, status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc) 
         return error_response

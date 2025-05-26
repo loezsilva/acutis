@@ -1,12 +1,12 @@
 import re
 
-from exceptions.error_types.http_bad_request import BadRequestError
+from acutis_api.exception.errors.bad_request import HttpBadRequestError
 
 
 def validate_password(password: str) -> str:
     pattern = r'\s'
     if re.search(pattern, password):
-        raise BadRequestError('A senha não pode conter espaços em branco.')
+        raise HttpBadRequestError('A senha não pode conter espaços em branco.')
 
     return password
 

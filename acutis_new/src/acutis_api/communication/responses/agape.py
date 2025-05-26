@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -8,8 +8,6 @@ from acutis_api.domain.entities.instancia_acao_agape import (
     AbrangenciaInstanciaAcaoAgapeEnum,
     StatusAcaoAgapeEnum,
 )
-from acutis_api.domain.entities.familia_agape import FamiliaAgape
-from acutis_api.application.utils.funcoes_auxiliares import calcular_idade
 
 
 class RegistrarAcaoAgapeResponse(BaseModel):
@@ -148,3 +146,93 @@ class ListarFamiliasAgapeResponsePaginada(PaginacaoResponse):
     
 class ListarMembrosFamiliaAgapeResponsePaginada(PaginacaoResponse):
     resultados: list[MembroFamiliaAgapeResponse]
+
+class EnderecoCicloAcaoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    # Campos do EnderecoResponse achatados
+    id: uuid.UUID # ID do Endereço
+    codigo_postal: str | None
+    logradouro: str | None
+    numero: str | None
+    complemento: str | None
+    bairro: str | None
+    cidade: str | None
+    estado: str | None
+    
+    # Campo específico do ciclo de ação
+    abrangencia: AbrangenciaInstanciaAcaoAgapeEnum
+
+class UltimoCicloAcaoAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID  # ID da InstanciaAcaoAgape (o ciclo)
+    abrangencia: AbrangenciaInstanciaAcaoAgapeEnum
+    status: StatusAcaoAgapeEnum # Usando o Enum diretamente
+    data_inicio: datetime | None
+    data_termino: datetime | None
+    endereco: EnderecoResponse | None
+    itens_do_ciclo: list[DoacaoAgapeResponse]
+    criado_em: datetime
+    atualizado_em: datetime
+
+class FamiliaAgapeDetalhesPorCpfResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID  # ID da FamiliaAgapeEntity
+    nome_familia: str
+    observacao: str | None
+    comprovante_residencia_url: str | None
+    criado_em: datetime 
+    ativo: bool # Derivado de FamiliaAgapeEntity.deletado_em
+    ultimo_recebimento: datetime | None # Data da última doação da família neste ciclo
+    endereco: EnderecoResponse | None
+    fotos_familia_urls: list[str]
+
+class MembroAgapeDetalhesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    familia_agape_id: uuid.UUID
+    nome: str
+    email: str | None
+    telefone: str | None
+    cpf: str | None
+    data_nascimento: date 
+    responsavel: bool
+    funcao_familiar: str
+    escolaridade: str   
+    ocupacao: str       
+    renda: float | None
+    foto_documento_url: str | None
+    beneficiario_assistencial: bool
+    criado_em: datetime
+    atualizado_em: datetime
+
+class CardRendaFamiliarAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    renda_familiar: str
+    renda_per_capta: str
+
+class CardTotalRecebimentosAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    total_itens_recebidos: str
+
+class CardsEstatisticasFamiliasAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    familias_cadastradas: str
+    renda_media: str
+    membros_por_familia: str
+    familias_ativas: str
+    familias_inativas: str
+
+
+class CardsEstatisticasItensEstoqueResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    itens_em_estoque: str
+    ultima_acao: str
+    ultima_entrada: str

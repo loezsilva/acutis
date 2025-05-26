@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
+from typing import Optional
+from datetime import datetime
 
 from acutis_api.communication.requests.agape import (
     CoordenadaFormData,
@@ -30,6 +32,15 @@ from acutis_api.domain.repositories.schemas.agape import (
     RegistrarFamiliaAgapeSchema,
     RegistrarItemEstoqueAgapeSchema,
     RegistrarNomeAcaoAgapeSchema,
+    NumeroMembrosFamiliaAgapeSchema,
+    SomaRendaFamiliarAgapeSchema,
+    TotalItensRecebidosSchema,
+    InformacoesAgregadasFamiliasSchema,
+    NumeroTotalMembrosSchema,
+    SomaTotalRendaSchema,
+    ContagemItensEstoqueSchema,
+    UltimaAcaoAgapeSchema,
+    UltimaEntradaEstoqueSchema,
 )
 
 
@@ -223,3 +234,106 @@ class AgapeRepositoryInterface(ABC):
 
     @abstractmethod
     def adicionar_voluntario_agape(self, lead_id: UUID) -> None: ...
+
+    @abstractmethod
+    def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
+        '''Busca um endereço pelo seu ID.'''
+        ...
+
+    @abstractmethod
+    def buscar_ultimo_ciclo_acao_por_nome_acao_id(
+        self, nome_acao_id: UUID
+    ) -> InstanciaAcaoAgape | None:
+        '''
+        Busca a última instância de ciclo de ação ágape 
+        (mais recente) associada a um nome de ação específico.
+        '''
+        ...
+    
+    @abstractmethod
+    def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu CPF.'''
+        ...
+
+    @abstractmethod
+    def listar_fotos_por_familia_id(
+        self, familia_id: UUID
+    ) -> list[FotoFamiliaAgape]:
+        '''Lista todas as fotos de uma família ágape.'''
+        ...
+
+    @abstractmethod
+    def buscar_data_ultimo_recebimento_familia_no_ciclo(
+        self, familia_id: UUID, ciclo_acao_id: UUID
+    ) -> datetime | None:
+        '''Busca a data da última doação recebida 
+        por uma família em um ciclo de ação específico.
+        '''
+        ...
+
+    @abstractmethod
+    def buscar_membro_agape_por_id(
+        self, membro_agape_id: UUID
+    ) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu ID.'''
+        ...
+    
+    @abstractmethod
+    def registrar_membro_agape(self, membro: MembroAgape) -> MembroAgape:
+        '''Registra um novo membro ágape na sessão do banco de dados.
+        '''
+        ...
+    
+    @abstractmethod
+    def buscar_familia_por_id(
+        self, familia_id: UUID
+    ) -> Optional[FamiliaAgape]:
+        pass
+
+    @abstractmethod
+    def numero_membros_familia_agape(
+        self, familia_id: UUID
+    ) -> NumeroMembrosFamiliaAgapeSchema:
+        pass
+
+    @abstractmethod
+    def soma_renda_familiar_agape(
+        self, familia: FamiliaAgape
+    ) -> SomaRendaFamiliarAgapeSchema:
+        pass
+
+    @abstractmethod
+    def total_itens_recebidos_por_familia(
+        self, familia: FamiliaAgape
+    ) -> TotalItensRecebidosSchema:
+        pass
+
+    @abstractmethod
+    def informacoes_agregadas_familias(
+        self
+    ) -> InformacoesAgregadasFamiliasSchema:
+        pass
+
+    @abstractmethod
+    def numero_total_membros_agape(self) -> NumeroTotalMembrosSchema:
+        pass
+
+    @abstractmethod
+    def soma_total_renda_familiar_agape(self) -> SomaTotalRendaSchema:
+        pass
+
+    @abstractmethod
+    def contagem_itens_estoque(self) -> ContagemItensEstoqueSchema:
+        pass
+
+    @abstractmethod
+    def ultima_acao_agape_com_itens(
+        self
+    ) -> Optional[UltimaAcaoAgapeSchema]:
+        pass
+
+    @abstractmethod
+    def ultima_entrada_estoque(
+        self
+    ) -> Optional[UltimaEntradaEstoqueSchema]:
+        pass

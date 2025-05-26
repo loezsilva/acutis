@@ -134,3 +134,34 @@ class FotoFamiliaAgapeSchema(BaseModel):
 
 class ListarMembrosFamiliaAgapeFiltros(PaginacaoQuery): 
     familia_id: uuid.UUID
+
+class NumeroMembrosFamiliaAgapeSchema(BaseModel):
+    quantidade: int
+
+class SomaRendaFamiliarAgapeSchema(BaseModel):
+    total: float
+
+class TotalItensRecebidosSchema(BaseModel):
+    total_recebidas: int
+
+class InformacoesAgregadasFamiliasSchema(BaseModel):
+    total_cadastradas: int
+    total_ativas: int
+    total_inativas: int
+
+class NumeroTotalMembrosSchema(BaseModel):
+    quantidade_total_membros: int
+
+class SomaTotalRendaSchema(BaseModel):
+    soma_total_renda: float
+
+class ContagemItensEstoqueSchema(BaseModel):
+    em_estoque: int
+
+class UltimaAcaoAgapeSchema(BaseModel):
+    data: date | None # Making it optional as per potential None returns
+    quantidade_itens_doados: int
+
+class UltimaEntradaEstoqueSchema(BaseModel):
+    data: date | None # Making it optional
+    quantidade: int

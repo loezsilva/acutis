@@ -1,8 +1,8 @@
 from datetime import datetime
 from uuid import UUID
-
+from typing import Optional
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, func
 
 from acutis_api.communication.requests.agape import (
     CoordenadaFormData,
@@ -27,6 +27,9 @@ from acutis_api.domain.entities.instancia_acao_agape import (
 )
 from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
 from acutis_api.domain.entities.membro_agape import MembroAgape
+from acutis_api.domain.entities.doacao_agape import DoacaoAgape 
+from acutis_api.domain.entities.aquisicao_agape import AquisicaoAgape
+from acutis_api.domain.entities.item_doacao_agape import ItemDoacaoAgape
 from acutis_api.domain.repositories.agape import (
     AgapeRepositoryInterface,
 )
@@ -44,6 +47,15 @@ from acutis_api.domain.repositories.schemas.agape import (
     RegistrarItemEstoqueAgapeSchema,
     RegistrarNomeAcaoAgapeSchema,
     ListarMembrosFamiliaAgapeFiltros,
+    NumeroMembrosFamiliaAgapeSchema,
+    SomaRendaFamiliarAgapeSchema,
+    TotalItensRecebidosSchema,
+    InformacoesAgregadasFamiliasSchema,
+    NumeroTotalMembrosSchema,
+    SomaTotalRendaSchema,
+    ContagemItensEstoqueSchema,
+    UltimaAcaoAgapeSchema,
+    UltimaEntradaEstoqueSchema,
 )
 from acutis_api.exception.errors.not_found import HttpNotFoundError
 
@@ -522,18 +534,7 @@ class AgapeRepository(AgapeRepositoryInterface):
         session.delete(instancia)
 
         return {}
-
-    def buscar_familia_por_id(self, familia_id: UUID) -> FamiliaAgape:
-        """
-        Retorna a instância da família pelo ID da instância.
-        """
-        instancia = self._database.session.get(FamiliaAgape, familia_id)
-
-        if instancia is None:
-            raise HttpNotFoundError(f'Família {familia_id} não encontrada.')
-
-        return instancia
-
+    
     def buscar_membro_familia_por_id(self, membro_id: UUID) -> FamiliaAgape:
         """
         Retorna a instância de um membro da família pelo ID da instância.
@@ -695,3 +696,273 @@ class AgapeRepository(AgapeRepositoryInterface):
         # Verifica se o voluntário já está cadastrado
         if not session.query(MembroAgape).filter_by(id=lead_id).first():
             raise HttpNotFoundError(f'Voluntário {lead_id} não encontrado.')
+    
+    def buscar_familia_por_id(self, familia_id: UUID) -> Optional[FamiliaAgape]:
+        """
+        Retorna a instância da família pelo ID da instância, 
+        se não estiver deletada.
+        """
+        instancia = self._database.session.scalar(
+            select(FamiliaAgape).where(
+                FamiliaAgape.id == familia_id,
+                FamiliaAgape.deletado_em.is_(None)
+            )
+        )
+        # No explicit error raise here as per Optional[FamiliaAgape] 
+        # return type in interface for use case
+        return instancia
+
+    def numero_membros_familia_agape(self, familia_id: UUID) -> NumeroMembrosFamiliaAgapeSchema:
+        """
+        Conta o número de membros ativos de uma família.
+        """
+        # First, check if the family itself is active
+        familia = self.buscar_familia_por_id(familia_id)
+        if not familia:
+             # Or handle as per application's error strategy for non-existent/deleted family
+            raise HttpNotFoundError(f"Família com ID {familia_id} não encontrada ou foi deletada.")
+
+        count = self._database.session.scalar(
+            select(func.count(MembroAgape.id)).where(
+                MembroAgape.fk_familia_agape_id == familia_id
+                # Assuming MembroAgape does not have a separate soft-delete field
+                # and its activeness depends on the parent FamiliaAgape.
+            )
+        ) or 0
+        return NumeroMembrosFamiliaAgapeSchema(quantidade=count)
+
+    def soma_renda_familiar_agape(
+        self, familia: FamiliaAgape
+    ) -> SomaRendaFamiliarAgapeSchema:
+        """
+        Soma a renda dos membros ativos de uma família.
+        """
+        total_sum = self._database.session.scalar(
+            select(func.sum(MembroAgape.renda)).where(
+                MembroAgape.fk_familia_agape_id == familia
+            )
+        ) or 0.0
+        return SomaRendaFamiliarAgapeSchema(total=float(total_sum))
+
+
+    def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
+        instancia = self._database.session.get(Endereco, endereco_id)
+        return instancia
+    
+    def buscar_ultimo_ciclo_acao_por_nome_acao_id(
+        self, nome_acao_id: UUID
+    ) -> InstanciaAcaoAgape | None:
+        '''Busca a última instância de ciclo de ação ágape (mais recente) 
+        associada a um nome de ação específico.
+        '''
+        instancia = (
+            self._database.session.query(InstanciaAcaoAgape)
+            .filter(InstanciaAcaoAgape.fk_acao_agape_id == nome_acao_id)
+            .order_by(desc(InstanciaAcaoAgape.criado_em))
+            .first()
+        )
+        
+        # Não levanta erro se não encontrar, 
+        # apenas retorna None. O caso de uso tratará isso.
+        return instancia
+    
+    def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu CPF.'''
+        # A entidade MembroAgapeEntity armazena CPF como string, 
+        # a comparação direta é usada.
+        # O tratamento de CPF (limpeza de caracteres) deve ocorrer 
+        # antes de chamar este método, se necessário.
+        membro = self._database.session.query(MembroAgape).filter(
+            MembroAgape.cpf == cpf
+        ).first()
+        return membro
+
+    def listar_fotos_por_familia_id(
+        self, familia_id: UUID
+    ) -> list[FotoFamiliaAgape]:
+        '''Lista todas as fotos de uma família ágape.'''
+        fotos = (
+            self._database.session.query(FotoFamiliaAgape)
+            .filter(FotoFamiliaAgape.fk_familia_agape_id == familia_id)
+            .all()
+        )
+        return fotos
+
+    def buscar_data_ultimo_recebimento_familia_no_ciclo(
+        self, familia_id: UUID, ciclo_acao_id: UUID
+    ) -> datetime | None:
+        '''Busca a data da última doação recebida por uma 
+        família em um ciclo de ação específico.
+        '''
+        data_maxima = (
+            self._database.session.query(func.max(DoacaoAgape.criado_em))
+            .join(
+                ItemDoacaoAgape, ItemDoacaoAgape.fk_doacao_agape_id 
+                == 
+                DoacaoAgape.id
+            )
+            .join(
+                ItemInstanciaAgape, ItemInstanciaAgape.id 
+                == 
+                ItemDoacaoAgape.fk_item_instancia_agape_id
+            )
+            .filter(
+                DoacaoAgape.fk_familia_agape_id == familia_id,
+                ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id
+            )
+            .scalar_one_or_none()
+        )
+        return data_maxima
+
+    def buscar_membro_agape_por_id(
+            self, membro_agape_id: UUID
+        ) -> MembroAgape | None:
+        '''Busca um membro ágape pelo seu ID, 
+        considerando soft delete se aplicável.
+        '''
+        membro = self._database.session.get(MembroAgape, membro_agape_id)
+        return membro
+
+    def registrar_membro_agape(self, membro: MembroAgape) -> MembroAgape:
+        '''Registra um novo membro ágape na sessão do banco de dados.
+        '''
+        self._database.session.add(membro)
+        return membro
+        
+    def total_itens_recebidos_por_familia(
+        self, familia: FamiliaAgape
+    ) -> TotalItensRecebidosSchema:
+
+        total_sum = self._database.session.query(
+            func.sum(ItemDoacaoAgape.quantidade)
+        ).join(
+            DoacaoAgape, ItemDoacaoAgape.fk_doacao_agape_id == DoacaoAgape.id
+        ).filter(
+            DoacaoAgape.fk_familia_agape_id == familia.id
+        ).scalar() or 0
+
+        return TotalItensRecebidosSchema(total_recebidas=int(total_sum))
+    
+    def informacoes_agregadas_familias(
+        self
+    ) -> InformacoesAgregadasFamiliasSchema:
+        """
+        Retorna informações agregadas sobre as famílias: total cadastradas,
+        total ativas e total inativas.
+        """
+        session = self._database.session
+        
+        total_cadastradas = session.query(
+            func.count(FamiliaAgape.id)
+        ).scalar() or 0
+        total_ativas = session.query(
+            func.count(FamiliaAgape.id)
+        ).filter(FamiliaAgape.deletado_em.is_(None)).scalar() or 0
+        total_inativas = session.query(
+            func.count(FamiliaAgape.id)
+        ).filter(FamiliaAgape.deletado_em.isnot(None)).scalar() or 0
+            
+        return InformacoesAgregadasFamiliasSchema(
+            total_cadastradas=total_cadastradas,
+            total_ativas=total_ativas,
+            total_inativas=total_inativas
+        )
+
+    def numero_total_membros_agape(self) -> NumeroTotalMembrosSchema:
+        """
+        Calcula o número total de membros de famílias Ágape ativas.
+        """
+        session = self._database.session
+        
+        quantidade_total_membros = session.query(
+            func.count(MembroAgape.id)
+        ).join(
+            FamiliaAgape, MembroAgape.fk_familia_agape_id == FamiliaAgape.id
+        ).filter(
+            FamiliaAgape.deletado_em.is_(None)
+        ).scalar() or 0
+        
+        return NumeroTotalMembrosSchema(
+            quantidade_total_membros=quantidade_total_membros
+        )
+
+    def soma_total_renda_familiar_agape(self) -> SomaTotalRendaSchema:
+        """
+        Calcula a soma total da renda de todos os membros de 
+        famílias Ágape ativas.
+        """
+        session = self._database.session
+        
+        soma_total_renda = session.query(
+            func.sum(MembroAgape.renda)
+        ).join(
+            FamiliaAgape, MembroAgape.fk_familia_agape_id == FamiliaAgape.id
+        ).filter(
+            FamiliaAgape.deletado_em.is_(None)
+        ).scalar() or 0.0
+        
+        return SomaTotalRendaSchema(soma_total_renda=float(soma_total_renda))
+    
+    def contagem_itens_estoque(self) -> ContagemItensEstoqueSchema:
+        """
+        Calcula a soma total de todas as quantidades de itens em estoque.
+        """
+        session = self._database.session
+        total_em_estoque = session.query(func.sum(
+            EstoqueAgape.quantidade)
+        ).scalar() or 0
+        return ContagemItensEstoqueSchema(em_estoque=int(total_em_estoque))
+
+    def ultima_acao_agape_com_itens(self) -> Optional[UltimaAcaoAgapeSchema]:
+        """
+        Encontra a última ação Ágape finalizada que teve itens doados e
+        retorna a data e a soma da quantidade desses itens.
+        """
+        session = self._database.session
+        
+        subquery = session.query(
+            ItemInstanciaAgape.fk_instancia_acao_agape_id,
+            func.sum(ItemInstanciaAgape.quantidade).label("total_itens_doados")
+        ).group_by(ItemInstanciaAgape.fk_instancia_acao_agape_id).subquery()
+
+        ultima_acao = session.query(
+            InstanciaAcaoAgape.data_termino,
+            subquery.c.total_itens_doados
+        ).join(
+            subquery, InstanciaAcaoAgape.id 
+            == 
+            subquery.c.fk_instancia_acao_agape_id
+        ).filter(
+            InstanciaAcaoAgape.status == StatusAcaoAgapeEnum.finalizado,
+            InstanciaAcaoAgape.data_termino.isnot(None)
+        ).order_by(
+            desc(InstanciaAcaoAgape.data_termino)
+        ).first()
+
+        if ultima_acao and ultima_acao.data_termino:
+            return UltimaAcaoAgapeSchema(
+                data=ultima_acao.data_termino.date(),
+                quantidade_itens_doados=int(ultima_acao.total_itens_doados)
+            )
+        return None
+
+    def ultima_entrada_estoque(self) -> Optional[UltimaEntradaEstoqueSchema]:
+        """
+        Encontra a última aquisição (entrada) de estoque e 
+        retorna sua data e quantidade.
+        """
+        session = self._database.session
+        
+        ultima_entrada = session.query(
+            AquisicaoAgape.criado_em, 
+            AquisicaoAgape.quantidade
+        ).order_by(
+            desc(AquisicaoAgape.criado_em)
+        ).first()
+
+        if ultima_entrada and ultima_entrada.criado_em:
+            return UltimaEntradaEstoqueSchema(
+                data=ultima_entrada.criado_em.date(),
+                quantidade=int(ultima_entrada.quantidade)
+            )
+        return None

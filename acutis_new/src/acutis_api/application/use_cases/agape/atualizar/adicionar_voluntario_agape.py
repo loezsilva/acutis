@@ -24,3 +24,32 @@ class AdicionarVoluntarioAgapeUseCase:
         self.__repository.salvar_alteracoes()
 
         return 
+
+    """
+    def update_user_profile_to_agape_voluntary(
+        self, fk_usuario_id: Usuario
+    ) -> None:
+        db_usuario: Usuario = self.__database.session.get(
+            Usuario, fk_usuario_id
+        )
+        if not db_usuario or db_usuario.deleted_at is not None:
+            raise NotFoundError("Usuário não encontrado.")
+
+        perfil = Perfil.query.filter_by(
+            nome=ProfilesEnum.VOLUNTARIO_AGAPE
+        ).first()
+        if not perfil:
+            raise NotFoundError("Perfil de voluntário não encontrado.")
+
+        permissao_usuario = PermissaoUsuario.query.filter_by(
+            fk_usuario_id=db_usuario.id
+        ).first()
+
+        permissao_usuario.fk_perfil_id = perfil.id
+
+        try:
+            self.__database.session.commit()
+        except Exception as exception:
+            self.__database.session.rollback()
+            raise exception
+    """
