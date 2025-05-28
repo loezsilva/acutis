@@ -38,3 +38,50 @@ from .recibo_agape import ReciboAgape as ReciboAgape
 from .sacramento_vocacional import SacramentoVocacional as SacramentoVocacional
 from .template_lp import TemplateLP as TemplateLP
 from .usuario_vocacional import UsuarioVocacional as UsuarioVocacional
+from .perfil import Perfil
+from .permissao_lead import PermissaoLead
+from .menu_sistema import MenuSistema
+from .permissao_menu import PermissaoMenu
+
+__all__ = [
+    'AcaoAgape',
+    'AquisicaoAgape',
+    'Benfeitor',
+    'CadastroVocacional',
+    'Campanha',
+    'CampanhaDoacao',
+    'CampoAdicional',
+    'CargosOficiais',
+    'Coordenada',
+    'Doacao',
+    'DoacaoAgape',
+    'Endereco',
+    'EstoqueAgape',
+    'EtapaVocacional',
+    'FamiliaAgape',
+    'FichaVocacional',
+    'FotoFamiliaAgape',
+    'HistoricoMovimentacaoAgape',
+    'InstanciaAcaoAgape',
+    'ItemDoacaoAgape',
+    'ItemInstanciaAgape',
+    'LandingPage',
+    'Lead',
+    'LeadCampanha',
+    'LembreteDoacaoRecorrente',
+    'Membro',
+    'MembroAgape',
+    'MetadadoLead',
+    'ModeloBase',
+    'Oficial',
+    'PagamentoDoacao',
+    'ProcessamentoDoacao',
+    'ReciboAgape',
+    'SacramentoVocacional',
+    'TemplateLP',
+    'UsuarioVocacional',
+    'Perfil',
+    'PermissaoLead',
+    'MenuSistema',
+    'PermissaoMenu',
+]

@@ -27,6 +27,12 @@ from acutis_api.domain.entities.instancia_acao_agape import (
 )
 from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
 from acutis_api.domain.entities.membro_agape import MembroAgape
+# Imports for adicionar_voluntario_agape
+from acutis_api.domain.entities.lead import Lead
+from acutis_api.domain.entities.perfil import Perfil
+from acutis_api.domain.entities.permissao_lead import PermissaoLead
+from acutis_api.domain.entities.enums.perfil_enum import PerfilEnum
+# End of imports for adicionar_voluntario_agape
 from acutis_api.domain.entities.doacao_agape import DoacaoAgape 
 from acutis_api.domain.entities.aquisicao_agape import AquisicaoAgape
 from acutis_api.domain.entities.item_doacao_agape import ItemDoacaoAgape
@@ -689,14 +695,46 @@ class AgapeRepository(AgapeRepositoryInterface):
 
     def adicionar_voluntario_agape(self, lead_id: UUID) -> None:
         """
-        Adiciona um voluntário ao ciclo de ação Ágape.
+        Adiciona a permissão de "Voluntario Agape" para um Lead.
         """
         session = self._database.session
 
-        # Verifica se o voluntário já está cadastrado
-        if not session.query(MembroAgape).filter_by(id=lead_id).first():
-            raise HttpNotFoundError(f'Voluntário {lead_id} não encontrado.')
-    
+        # 1. Fetch the Lead entity
+        lead = session.get(Lead, lead_id)
+        if not lead:
+            raise HttpNotFoundError("Lead não encontrado.")
+
+        # 2. Fetch the "Voluntario Agape" Perfil entity
+        voluntario_agape_perfil_nome = PerfilEnum.VOLUNTARIO_AGAPE.value
+        voluntario_agape_perfil = session.query(Perfil).filter(
+            Perfil.nome == voluntario_agape_perfil_nome
+        ).first()
+
+        if not voluntario_agape_perfil:
+            raise HttpNotFoundError(
+                f"Perfil '{voluntario_agape_perfil_nome}' não encontrado. "
+                "Configure o perfil no sistema."
+            )
+
+        # 3. Check if the lead already has the "Voluntario Agape" profile
+        existing_permissao = session.query(PermissaoLead).filter_by(
+            lead_id=lead.id,
+            perfil_id=voluntario_agape_perfil.id
+        ).first()
+
+        if existing_permissao:
+            # Lead already has the profile, no changes needed
+            # Optionally, log this information
+            return
+
+        # 4. Create and add new PermissaoLead
+        nova_permissao_lead = PermissaoLead(
+            lead_id=lead.id,
+            perfil_id=voluntario_agape_perfil.id
+        )
+        session.add(nova_permissao_lead)
+        # Commit will be handled by salvar_alteracoes() in the use case
+
     def buscar_familia_por_id(self, familia_id: UUID) -> Optional[FamiliaAgape]:
         """
         Retorna a instância da família pelo ID da instância, 

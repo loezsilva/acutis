@@ -40,6 +40,9 @@ from acutis_api.application.use_cases.agape import (
     CardsEstatisticasFamiliasAgapeUseCase,
     CardsEstatisticasItensEstoqueUseCase,
 )
+# Added imports for permission decorator and enum
+from acutis_api.application.decorators.auth import permission_required
+from acutis_api.domain.entities.enums.perfil_enum import PerfilEnum
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
 )
@@ -673,6 +676,7 @@ def listar_membros_familia_agape():
     ),
     tags=['Ágape - Familias'],
 )
+@permission_required(PerfilEnum.ADMINISTRADOR, PerfilEnum.ADMINISTRADOR_AGAPE)
 def adicionar_voluntario_agape(lead_id):
     """
     Adiciona um voluntário a uma família Ágape existente.

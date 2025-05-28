@@ -14,6 +14,7 @@ if TYPE_CHECKING:
         Membro,
         MetadadoLead,
     )
+    from acutis_api.domain.entities.permissao_lead import PermissaoLead # noqa
 
 pwd_context = PasswordHash.recommended()
 
@@ -53,6 +54,9 @@ class Lead:
     membro: Mapped['Membro'] = relationship(init=False, back_populates='lead')
     metadados: Mapped[list['MetadadoLead']] = relationship(
         init=False, backref='lead'
+    )
+    permissoes_lead: Mapped[list['PermissaoLead']] = relationship(
+        back_populates='lead', cascade='all, delete-orphan'
     )
 
     @property
