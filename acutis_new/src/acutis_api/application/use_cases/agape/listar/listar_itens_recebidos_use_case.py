@@ -1,27 +1,23 @@
 import uuid
 from http import HTTPStatus
 
-from acutis_api.domain.repositories.agape import (
-    AgapeRepositoryInterface
-)
 from acutis_api.communication.responses.agape import (
+    ItemDoadoBeneficiarioResponse,
     ListarItensDoadosBeneficiarioResponse,
-    ItemDoadoBeneficiarioResponse,     
 )
+from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+
 
 class ListarItensRecebidosUseCase:
-
     def __init__(self, agape_repository: AgapeRepositoryInterface):
         self.agape_repository = agape_repository
 
     def execute(
         self, ciclo_acao_id: uuid.UUID, doacao_id: uuid.UUID
     ) -> tuple[ListarItensDoadosBeneficiarioResponse, HTTPStatus]:
-
         itens_recebidos_data = (
             self.agape_repository.listar_itens_recebidos_por_ciclo_e_doacao_id(
-                ciclo_acao_id=ciclo_acao_id,
-                doacao_id=doacao_id
+                ciclo_acao_id=ciclo_acao_id, doacao_id=doacao_id
             )
         )
 
@@ -40,10 +36,10 @@ class ListarItensRecebidosUseCase:
                         ),
                         item_instancia_agape_id=getattr(
                             item_data, 'item_instancia_agape_id'
-                        )
+                        ),
                     )
                 )
-        
+
         return ListarItensDoadosBeneficiarioResponse(
             root=resultados_response
         ), HTTPStatus.OK

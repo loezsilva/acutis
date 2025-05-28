@@ -1,18 +1,22 @@
 from datetime import datetime
-from uuid import UUID
 from typing import Optional
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import desc, select, func
-from sqlalchemy.orm import joinedload, selectinload # Adicionado
+from uuid import UUID
 
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import desc, distinct, func, select
+from sqlalchemy.orm import aliased, selectinload
+
+from acutis_api.communication.enums.membros import PerfilEnum
 from acutis_api.communication.requests.agape import (
     CoordenadaFormData,
+    EditarEnderecoFamiliaAgapeRequest,
     EnderecoAgapeFormData,
     RegistrarItemCicloAcaoAgapeFormData,
-    EditarEnderecoFamiliaAgapeRequest,
 )
 from acutis_api.domain.entities.acao_agape import AcaoAgape
+from acutis_api.domain.entities.aquisicao_agape import AquisicaoAgape
 from acutis_api.domain.entities.coordenada import Coordenada
+from acutis_api.domain.entities.doacao_agape import DoacaoAgape
 from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.entities.estoque_agape import EstoqueAgape
 from acutis_api.domain.entities.familia_agape import FamiliaAgape
@@ -27,39 +31,44 @@ from acutis_api.domain.entities.instancia_acao_agape import (
     InstanciaAcaoAgape,
     StatusAcaoAgapeEnum,
 )
-from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
-from acutis_api.domain.entities.membro_agape import MembroAgape
-from acutis_api.domain.entities.doacao_agape import DoacaoAgape 
-from acutis_api.domain.entities.aquisicao_agape import AquisicaoAgape
 from acutis_api.domain.entities.item_doacao_agape import ItemDoacaoAgape
+from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
+from acutis_api.domain.entities.lead import Lead
+from acutis_api.domain.entities.membro_agape import MembroAgape
+from acutis_api.domain.entities.perfil import Perfil
+from acutis_api.domain.entities.permissao_lead import PermissaoLead
+from acutis_api.domain.entities.recibo_agape import ReciboAgape
 from acutis_api.domain.repositories.agape import (
     AgapeRepositoryInterface,
 )
 from acutis_api.domain.repositories.schemas.agape import (
+    ContagemItensEstoqueSchema,
+    CoordenadasSchema,
+    DadosCompletosDoacaoSchema,
+    DadosExportacaoFamiliaSchema,
     DoacaoAgapeSchema,
     EstoqueAgapeSchema,
     FotoFamiliaAgapeSchema,
+    InformacoesAgregadasFamiliasSchema,
     ListarCicloAcoesAgapeFiltros,
     ListarItensEstoqueAgapeFiltros,
+    ListarMembrosFamiliaAgapeFiltros,
     ListarNomesAcoesAgapeFiltros,
     MembroFamiliaSchema,
     NomeAcaoAgapeSchema,
+    NumeroMembrosFamiliaAgapeSchema,
+    NumeroTotalMembrosSchema,
     RegistrarCicloAcaoAgapeScheme,
     RegistrarFamiliaAgapeSchema,
     RegistrarItemEstoqueAgapeSchema,
     RegistrarNomeAcaoAgapeSchema,
-    ListarMembrosFamiliaAgapeFiltros,
-    NumeroMembrosFamiliaAgapeSchema,
     SomaRendaFamiliarAgapeSchema,
-    TotalItensRecebidosSchema,
-    InformacoesAgregadasFamiliasSchema,
-    NumeroTotalMembrosSchema,
     SomaTotalRendaSchema,
-    ContagemItensEstoqueSchema,
+    TotalItensRecebidosSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
-    CoordenadasSchema,
 )
+from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
@@ -134,15 +143,14 @@ class AgapeRepository(AgapeRepositoryInterface):
             .filter(MembroAgape.fk_familia_agape_id == familia_id)
             .all()
         )
-    
+
     def listar_membros_familia(
         self, filtros: ListarMembrosFamiliaAgapeFiltros
     ) -> tuple[list[MembroFamiliaSchema], int]:
-        
         query = self._database.session.query(MembroAgape).order_by(
             desc(MembroAgape.nome)
         )
-        
+
         if filtros.familia_id:
             query = query.filter(AcaoAgape.id == filtros.familia_id)
 
@@ -470,14 +478,11 @@ class AgapeRepository(AgapeRepositoryInterface):
         )
 
         return paginacao.items, paginacao.total
-    
-    def listar_familias(
-        self, filtros
-    ) -> tuple[list[FamiliaAgape], int]:
-        
+
+    def listar_familias(self, filtros) -> tuple[list[FamiliaAgape], int]:
         session = self._database.session
         query = session.query(FamiliaAgape)
-        
+
         # Ordenação: mais recentes primeiro
         query = query.order_by(FamiliaAgape.criado_em.desc())
 
@@ -537,7 +542,7 @@ class AgapeRepository(AgapeRepositoryInterface):
         session.delete(instancia)
 
         return {}
-    
+
     def buscar_membro_familia_por_id(self, membro_id: UUID) -> FamiliaAgape:
         """
         Retorna a instância de um membro da família pelo ID da instância.
@@ -691,41 +696,42 @@ class AgapeRepository(AgapeRepositoryInterface):
         """
         Adiciona um voluntário ao ciclo de ação Ágape.
         """
-        session = self._database.session
+        pass
 
-
-    def buscar_familia_por_id(self, familia_id: UUID) -> Optional[FamiliaAgape]:
-        """
-        Retorna a instância da família pelo ID da instância, 
-        se não estiver deletada.
-        """
+    def buscar_familia_por_id(
+        self, familia_id: UUID
+    ) -> Optional[FamiliaAgape]:
         instancia = self._database.session.scalar(
             select(FamiliaAgape).where(
                 FamiliaAgape.id == familia_id,
-                FamiliaAgape.deletado_em.is_(None)
+                FamiliaAgape.deletado_em.is_(None),
             )
         )
-        # No explicit error raise here as per Optional[FamiliaAgape] 
+        # No explicit error raise here as per Optional[FamiliaAgape]
         # return type in interface for use case
         return instancia
 
-    def numero_membros_familia_agape(self, familia_id: UUID) -> NumeroMembrosFamiliaAgapeSchema:
+    def numero_membros_familia_agape(
+        self, familia_id: UUID
+    ) -> NumeroMembrosFamiliaAgapeSchema:
         """
         Conta o número de membros ativos de uma família.
         """
         # First, check if the family itself is active
         familia = self.buscar_familia_por_id(familia_id)
         if not familia:
-             # Or handle as per application's error strategy for non-existent/deleted family
-            raise HttpNotFoundError(f"Família com ID {familia_id} não encontrada ou foi deletada.")
-
-        count = self._database.session.scalar(
-            select(func.count(MembroAgape.id)).where(
-                MembroAgape.fk_familia_agape_id == familia_id
-                # Assuming MembroAgape does not have a separate soft-delete field
-                # and its activeness depends on the parent FamiliaAgape.
+            raise HttpNotFoundError(
+                f'Família com ID {familia_id} não encontrada ou foi deletada.'
             )
-        ) or 0
+
+        count = (
+            self._database.session.scalar(
+                select(func.count(MembroAgape.id)).where(
+                    MembroAgape.fk_familia_agape_id == familia_id
+                )
+            )
+            or 0
+        )
         return NumeroMembrosFamiliaAgapeSchema(quantidade=count)
 
     def soma_renda_familiar_agape(
@@ -734,51 +740,47 @@ class AgapeRepository(AgapeRepositoryInterface):
         """
         Soma a renda dos membros ativos de uma família.
         """
-        total_sum = self._database.session.scalar(
-            select(func.sum(MembroAgape.renda)).where(
-                MembroAgape.fk_familia_agape_id == familia.id
+        total_sum = (
+            self._database.session.scalar(
+                select(func.sum(MembroAgape.renda)).where(
+                    MembroAgape.fk_familia_agape_id == familia.id
+                )
             )
-        ) or 0.0
+            or 0.0
+        )
 
         return SomaRendaFamiliarAgapeSchema(total=float(total_sum))
-
 
     def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
         instancia = self._database.session.get(Endereco, endereco_id)
         return instancia
-    
+
     def buscar_ultimo_ciclo_acao_por_nome_acao_id(
         self, nome_acao_id: UUID
     ) -> InstanciaAcaoAgape | None:
-        '''Busca a última instância de ciclo de ação ágape (mais recente) 
-        associada a um nome de ação específico.
-        '''
         instancia = (
             self._database.session.query(InstanciaAcaoAgape)
             .filter(InstanciaAcaoAgape.fk_acao_agape_id == nome_acao_id)
             .order_by(desc(InstanciaAcaoAgape.criado_em))
             .first()
         )
-        
-        # Não levanta erro se não encontrar, 
+
+        # Não levanta erro se não encontrar,
         # apenas retorna None. O caso de uso tratará isso.
         return instancia
-    
+
     def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
-        '''Busca um membro ágape pelo seu CPF.'''
-        # A entidade MembroAgapeEntity armazena CPF como string, 
-        # a comparação direta é usada.
-        # O tratamento de CPF (limpeza de caracteres) deve ocorrer 
-        # antes de chamar este método, se necessário.
-        membro = self._database.session.query(MembroAgape).filter(
-            MembroAgape.cpf == cpf
-        ).first()
+        membro = (
+            self._database.session.query(MembroAgape)
+            .filter(MembroAgape.cpf == cpf)
+            .first()
+        )
         return membro
 
     def listar_fotos_por_familia_id(
         self, familia_id: UUID
     ) -> list[FotoFamiliaAgape]:
-        '''Lista todas as fotos de uma família ágape.'''
+        """Lista todas as fotos de uma família ágape."""
         fotos = (
             self._database.session.query(FotoFamiliaAgape)
             .filter(FotoFamiliaAgape.fk_familia_agape_id == familia_id)
@@ -786,182 +788,174 @@ class AgapeRepository(AgapeRepositoryInterface):
         )
         return fotos
 
-    def buscar_data_ultimo_recebimento_familia_no_ciclo(
+    def buscar_ultimo_recebimento_familia_no_ciclo(
         self, familia_id: UUID, ciclo_acao_id: UUID
     ) -> datetime | None:
-        '''Busca a data da última doação recebida por uma 
-        família em um ciclo de ação específico.
-        '''
         data_maxima = (
             self._database.session.query(func.max(DoacaoAgape.criado_em))
             .join(
-                ItemDoacaoAgape, ItemDoacaoAgape.fk_doacao_agape_id 
-                == 
-                DoacaoAgape.id
+                ItemDoacaoAgape,
+                ItemDoacaoAgape.fk_doacao_agape_id == DoacaoAgape.id,
             )
             .join(
-                ItemInstanciaAgape, ItemInstanciaAgape.id 
-                == 
-                ItemDoacaoAgape.fk_item_instancia_agape_id
+                ItemInstanciaAgape,
+                ItemInstanciaAgape.id
+                == ItemDoacaoAgape.fk_item_instancia_agape_id,
             )
             .filter(
                 DoacaoAgape.fk_familia_agape_id == familia_id,
-                ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id
+                ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id,
             )
             .scalar_one_or_none()
         )
         return data_maxima
 
     def buscar_membro_agape_por_id(
-            self, membro_agape_id: UUID
-        ) -> MembroAgape | None:
-        '''Busca um membro ágape pelo seu ID, 
-        considerando soft delete se aplicável.
-        '''
+        self, membro_agape_id: UUID
+    ) -> MembroAgape | None:
         membro = self._database.session.get(MembroAgape, membro_agape_id)
         return membro
 
     def registrar_membro_agape(self, membro: MembroAgape) -> MembroAgape:
-        '''Registra um novo membro ágape na sessão do banco de dados.
-        '''
+        """Registra um novo membro ágape na sessão do banco de dados."""
         self._database.session.add(membro)
         return membro
-        
+
     def total_itens_recebidos_por_familia(
         self, familia: FamiliaAgape
     ) -> TotalItensRecebidosSchema:
-
-        total_sum = self._database.session.query(
-            func.sum(ItemDoacaoAgape.quantidade)
-        ).join(
-            DoacaoAgape, ItemDoacaoAgape.fk_doacao_agape_id == DoacaoAgape.id
-        ).filter(
-            DoacaoAgape.fk_familia_agape_id == familia.id
-        ).scalar() or 0
+        total_sum = (
+            self._database.session.query(func.sum(ItemDoacaoAgape.quantidade))
+            .join(
+                DoacaoAgape,
+                ItemDoacaoAgape.fk_doacao_agape_id == DoacaoAgape.id,
+            )
+            .filter(DoacaoAgape.fk_familia_agape_id == familia.id)
+            .scalar()
+            or 0
+        )
 
         return TotalItensRecebidosSchema(total_recebidas=int(total_sum))
-    
+
     def informacoes_agregadas_familias(
-        self
+        self,
     ) -> InformacoesAgregadasFamiliasSchema:
-        """
-        Retorna informações agregadas sobre as famílias: total cadastradas,
-        total ativas e total inativas.
-        """
         session = self._database.session
-        
-        total_cadastradas = session.query(
-            func.count(FamiliaAgape.id)
-        ).scalar() or 0
-        total_ativas = session.query(
-            func.count(FamiliaAgape.id)
-        ).filter(FamiliaAgape.deletado_em.is_(None)).scalar() or 0
-        total_inativas = session.query(
-            func.count(FamiliaAgape.id)
-        ).filter(FamiliaAgape.deletado_em.isnot(None)).scalar() or 0
-            
+
+        total_cadastradas = (
+            session.query(func.count(FamiliaAgape.id)).scalar() or 0
+        )
+        total_ativas = (
+            session.query(func.count(FamiliaAgape.id))
+            .filter(FamiliaAgape.deletado_em.is_(None))
+            .scalar()
+            or 0
+        )
+        total_inativas = (
+            session.query(func.count(FamiliaAgape.id))
+            .filter(FamiliaAgape.deletado_em.isnot(None))
+            .scalar()
+            or 0
+        )
+
         return InformacoesAgregadasFamiliasSchema(
             total_cadastradas=total_cadastradas,
             total_ativas=total_ativas,
-            total_inativas=total_inativas
+            total_inativas=total_inativas,
         )
 
     def numero_total_membros_agape(self) -> NumeroTotalMembrosSchema:
-        """
-        Calcula o número total de membros de famílias Ágape ativas.
-        """
+        """Calcula o número total de membros de famílias Ágape ativas."""
         session = self._database.session
-        
-        quantidade_total_membros = session.query(
-            func.count(MembroAgape.id)
-        ).join(
-            FamiliaAgape, MembroAgape.fk_familia_agape_id == FamiliaAgape.id
-        ).filter(
-            FamiliaAgape.deletado_em.is_(None)
-        ).scalar() or 0
-        
+
+        quantidade_total_membros = (
+            session.query(func.count(MembroAgape.id))
+            .join(
+                FamiliaAgape,
+                MembroAgape.fk_familia_agape_id == FamiliaAgape.id,
+            )
+            .filter(FamiliaAgape.deletado_em.is_(None))
+            .scalar()
+            or 0
+        )
+
         return NumeroTotalMembrosSchema(
             quantidade_total_membros=quantidade_total_membros
         )
 
     def soma_total_renda_familiar_agape(self) -> SomaTotalRendaSchema:
-        """
-        Calcula a soma total da renda de todos os membros de 
-        famílias Ágape ativas.
-        """
         session = self._database.session
-        
-        soma_total_renda = session.query(
-            func.sum(MembroAgape.renda)
-        ).join(
-            FamiliaAgape, MembroAgape.fk_familia_agape_id == FamiliaAgape.id
-        ).filter(
-            FamiliaAgape.deletado_em.is_(None)
-        ).scalar() or 0.0
-        
+
+        soma_total_renda = (
+            session.query(func.sum(MembroAgape.renda))
+            .join(
+                FamiliaAgape,
+                MembroAgape.fk_familia_agape_id == FamiliaAgape.id,
+            )
+            .filter(FamiliaAgape.deletado_em.is_(None))
+            .scalar()
+            or 0.0
+        )
+
         return SomaTotalRendaSchema(soma_total_renda=float(soma_total_renda))
-    
+
     def contagem_itens_estoque(self) -> ContagemItensEstoqueSchema:
-        """
-        Calcula a soma total de todas as quantidades de itens em estoque.
-        """
         session = self._database.session
-        total_em_estoque = session.query(func.sum(
-            EstoqueAgape.quantidade)
-        ).scalar() or 0
+        total_em_estoque = (
+            session.query(func.sum(EstoqueAgape.quantidade)).scalar() or 0
+        )
         return ContagemItensEstoqueSchema(em_estoque=int(total_em_estoque))
 
     def ultima_acao_agape_com_itens(self) -> Optional[UltimaAcaoAgapeSchema]:
-        """
-        Encontra a última ação Ágape finalizada que teve itens doados e
-        retorna a data e a soma da quantidade desses itens.
-        """
         session = self._database.session
-        
-        subquery = session.query(
-            ItemInstanciaAgape.fk_instancia_acao_agape_id,
-            func.sum(ItemInstanciaAgape.quantidade).label("total_itens_doados")
-        ).group_by(ItemInstanciaAgape.fk_instancia_acao_agape_id).subquery()
 
-        ultima_acao = session.query(
-            InstanciaAcaoAgape.data_termino,
-            subquery.c.total_itens_doados
-        ).join(
-            subquery, InstanciaAcaoAgape.id 
-            == 
-            subquery.c.fk_instancia_acao_agape_id
-        ).filter(
-            InstanciaAcaoAgape.status == StatusAcaoAgapeEnum.finalizado,
-            InstanciaAcaoAgape.data_termino.isnot(None)
-        ).order_by(
-            desc(InstanciaAcaoAgape.data_termino)
-        ).first()
+        subquery = (
+            session.query(
+                ItemInstanciaAgape.fk_instancia_acao_agape_id,
+                func.sum(ItemInstanciaAgape.quantidade).label(
+                    'total_itens_doados'
+                ),
+            )
+            .group_by(ItemInstanciaAgape.fk_instancia_acao_agape_id)
+            .subquery()
+        )
+
+        ultima_acao = (
+            session.query(
+                InstanciaAcaoAgape.data_termino, subquery.c.total_itens_doados
+            )
+            .join(
+                subquery,
+                InstanciaAcaoAgape.id == subquery.c.fk_instancia_acao_agape_id,
+            )
+            .filter(
+                InstanciaAcaoAgape.status == StatusAcaoAgapeEnum.finalizado,
+                InstanciaAcaoAgape.data_termino.isnot(None),
+            )
+            .order_by(desc(InstanciaAcaoAgape.data_termino))
+            .first()
+        )
 
         if ultima_acao and ultima_acao.data_termino:
             return UltimaAcaoAgapeSchema(
                 data=ultima_acao.data_termino.date(),
-                quantidade_itens_doados=int(ultima_acao.total_itens_doados)
+                quantidade_itens_doados=int(ultima_acao.total_itens_doados),
             )
         return None
 
     def ultima_entrada_estoque(self) -> Optional[UltimaEntradaEstoqueSchema]:
-        """
-        Encontra a última aquisição (entrada) de estoque e 
-        retorna sua data e quantidade.
-        """
         session = self._database.session
-        
-        ultima_entrada = session.query(
-            AquisicaoAgape.criado_em, 
-            AquisicaoAgape.quantidade
-        ).order_by(
-            desc(AquisicaoAgape.criado_em)
-        ).first()
+
+        ultima_entrada = (
+            session.query(AquisicaoAgape.criado_em, AquisicaoAgape.quantidade)
+            .order_by(desc(AquisicaoAgape.criado_em))
+            .first()
+        )
 
         if ultima_entrada and ultima_entrada.criado_em:
             return UltimaEntradaEstoqueSchema(
                 data=ultima_entrada.criado_em.date(),
-                quantidade=int(ultima_entrada.quantidade)
+                quantidade=int(ultima_entrada.quantidade),
             )
         return None
 
@@ -975,20 +969,20 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         familia.deletado_em = datetime.utcnow()
         session.add(familia)
-    
+
     def deletar_membro(self, membro_id: UUID) -> None:
         self._database.session.query(MembroAgape).filter(
             MembroAgape.id == membro_id
         ).delete(synchronize_session='fetch')
 
     def atualizar_endereco_familia(
-        self, 
-        familia: FamiliaAgape, 
-        dados_endereco: EditarEnderecoFamiliaAgapeRequest, 
-        coordenadas: Optional[CoordenadasSchema]
+        self,
+        familia: FamiliaAgape,
+        dados_endereco: EditarEnderecoFamiliaAgapeRequest,
+        coordenadas: Optional[CoordenadasSchema],
     ) -> FamiliaAgape:
         session = self._database.session
-        
+
         endereco_obj = None
         if familia.fk_endereco_id:
             endereco_obj = session.query(Endereco).get(familia.fk_endereco_id)
@@ -996,78 +990,51 @@ class AgapeRepository(AgapeRepositoryInterface):
         if not endereco_obj:
             endereco_obj = Endereco()
             session.add(endereco_obj)
-            session.flush() # Garante que endereco_obj (novo) tenha um ID
-            familia.fk_endereco_id = endereco_obj.id # Associa o novo ID à família
-            session.add(familia) # Marca a família para atualização do fk_endereco_id
+            session.flush()
+            familia.fk_endereco_id = endereco_obj.id
+            session.add(familia)
 
-        # Atualizar campos do endereco_obj
         endereco_obj.codigo_postal = dados_endereco.cep
         endereco_obj.logradouro = dados_endereco.rua
         endereco_obj.numero = dados_endereco.numero
         endereco_obj.complemento = dados_endereco.complemento
-        # ponto_referencia é ignorado pois não existe na entidade Endereco
         endereco_obj.bairro = dados_endereco.bairro
         endereco_obj.cidade = dados_endereco.cidade
         endereco_obj.estado = dados_endereco.estado
         endereco_obj.obriga_atualizar_endereco = False
-        
-        session.add(endereco_obj) 
-        
+
+        session.add(endereco_obj)
+
         if coordenadas:
-            coordenada_obj = endereco_obj.coordenada 
+            coordenada_obj = endereco_obj.coordenada
 
             if not coordenada_obj:
                 coordenada_obj = Coordenada(fk_endereco_id=endereco_obj.id)
-                # Associar à sessão se a relação não fizer isso automaticamente via cascade
-                # endereco_obj.coordenada = coordenada_obj # Se a relação tem cascade, isso pode ser suficiente
-                session.add(coordenada_obj) 
-            
+                session.add(coordenada_obj)
+
             coordenada_obj.latitude = coordenadas.latitude
             coordenada_obj.longitude = coordenadas.longitude
-            coordenada_obj.latitude_ne = coordenadas.latitude_ne 
+            coordenada_obj.latitude_ne = coordenadas.latitude_ne
             coordenada_obj.longitude_ne = coordenadas.longitude_ne
             coordenada_obj.latitude_so = coordenadas.latitude_so
             coordenada_obj.longitude_so = coordenadas.longitude_so
             session.add(coordenada_obj)
 
         return familia
-    
+
     def atualizar_membro_agape(self, membro_agape: MembroAgape) -> MembroAgape:
-        """
-        Atualiza um membro ágape no banco de dados.
-        O objeto membro_agape já deve conter as modificações.
-
-        Args:
-            membro_agape: O objeto MembroAgape com as atualizações.
-
-        Returns:
-            O objeto MembroAgape atualizado após o commit.
-        """
         try:
-            self._database.session.add(membro_agape) # Garante que o objeto está na sessão
+            self._database.session.add(membro_agape)
             self._database.session.commit()
-            self._database.session.refresh(membro_agape) # Opcional, para obter o estado mais recente do DB
+            self._database.session.refresh(membro_agape)
         except Exception as e:
             self._database.session.rollback()
-            # Adicionar log ou levantar uma exceção específica do repositório se necessário
-            raise e # Re-levantar a exceção original por enquanto
+            raise e
         return membro_agape
-    
-    def listar_familias_beneficiadas_por_ciclo_acao_id(
+
+    def listar_familias_beneficiadas_por_ciclo_id(
         self, ciclo_acao_id: UUID
     ) -> list[FamiliaAgape]:
-        """
-        Lista as famílias beneficiadas em um determinado ciclo de ação ágape.
-
-        Args:
-            ciclo_acao_id: O ID do ciclo de ação (InstanciaAcaoAgape).
-
-        Returns:
-            Uma lista de objetos FamiliaAgape com seus membros e endereços carregados.
-        """
-        # A query junta as tabelas para encontrar as famílias distintas
-        # que receberam itens (ItemDoacaoAgape) de um ItemInstanciaAgape
-        # que pertence ao ciclo_acao_id fornecido.
         instancias = (
             self._database.session.query(FamiliaAgape)
             .distinct()
@@ -1075,15 +1042,13 @@ class AgapeRepository(AgapeRepositoryInterface):
                 DoacaoAgape, FamiliaAgape.id == DoacaoAgape.fk_familia_agape_id
             )
             .join(
-                ItemDoacaoAgape, DoacaoAgape.id 
-                == 
-                ItemDoacaoAgape.fk_doacao_agape_id
+                ItemDoacaoAgape,
+                DoacaoAgape.id == ItemDoacaoAgape.fk_doacao_agape_id,
             )
             .join(
-                ItemInstanciaAgape, 
-                ItemDoacaoAgape.fk_item_instancia_agape_id 
-                == 
-                ItemInstanciaAgape.id
+                ItemInstanciaAgape,
+                ItemDoacaoAgape.fk_item_instancia_agape_id
+                == ItemInstanciaAgape.id,
             )
             .filter(
                 ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id
@@ -1092,55 +1057,47 @@ class AgapeRepository(AgapeRepositoryInterface):
                 selectinload(FamiliaAgape.membros),
             )
         )
-        
-        return instancias.all()
-    
-    def listar_familias_com_enderecos(self) -> list[FamiliaAgape]:
-        """
-        Lista todas as famílias ágape ativas que possuem endereço.
 
-        Returns:
-            Uma lista de objetos FamiliaAgape com seus endereços carregados.
-        """
+        return instancias.all()
+
+    def listar_familias_com_enderecos(self) -> list[FamiliaAgape]:
         instancias = (
             self._database.session.query(FamiliaAgape)
-            .filter(FamiliaAgape.deletado_em.is_(None)) # Apenas famílias não deletadas
-            .filter(FamiliaAgape.fk_endereco_id.isnot(None)) # Apenas famílias com endereço associado
-            .order_by(FamiliaAgape.nome_familia) # Opcional: ordenar pelo nome da família
+            .filter(FamiliaAgape.deletado_em.is_(None))
+            .filter(FamiliaAgape.fk_endereco_id.isnot(None))
+            .order_by(FamiliaAgape.nome_familia)
         )
         return instancias.all()
-    
+
     def listar_historico_movimentacoes_paginado(
-            self, pagina: int, por_pagina: int
-        ) -> tuple[list[tuple[HistoricoMovimentacaoAgape, str]], int]:
-            offset = (pagina - 1) * por_pagina
+        self, pagina: int, por_pagina: int
+    ) -> tuple[list[tuple[HistoricoMovimentacaoAgape, str]], int]:
+        offset = (pagina - 1) * por_pagina
 
-            query_dados = (
-                self._database.session.query(
-                    HistoricoMovimentacaoAgape, EstoqueAgape.item.label(
-                        'nome_item'
-                    )
-                )
-                .join(
-                    EstoqueAgape, 
-                    HistoricoMovimentacaoAgape.fk_estoque_agape_id 
-                    == 
-                    EstoqueAgape.id
-                )
-                .order_by(HistoricoMovimentacaoAgape.criado_em.desc())
-                .limit(por_pagina)
-                .offset(offset)
+        query_dados = (
+            self._database.session.query(
+                HistoricoMovimentacaoAgape,
+                EstoqueAgape.item.label('nome_item'),
             )
-            resultados = query_dados.all()
-
-            query_total = self._database.session.query(
-                func.count(HistoricoMovimentacaoAgape.id)
+            .join(
+                EstoqueAgape,
+                HistoricoMovimentacaoAgape.fk_estoque_agape_id
+                == EstoqueAgape.id,
             )
+            .order_by(HistoricoMovimentacaoAgape.criado_em.desc())
+            .limit(por_pagina)
+            .offset(offset)
+        )
+        resultados = query_dados.all()
 
-            total_itens = query_total.scalar() or 0
-            
-            return resultados, total_itens
-    
+        query_total = self._database.session.query(
+            func.count(HistoricoMovimentacaoAgape.id)
+        )
+
+        total_itens = query_total.scalar() or 0
+
+        return resultados, total_itens
+
     def listar_itens_por_doacao_agape_id(self, doacao_id: UUID) -> list:
         instancias = (
             self._database.session.query(
@@ -1150,29 +1107,27 @@ class AgapeRepository(AgapeRepositoryInterface):
                 ItemDoacaoAgape.id.label('item_doacao_agape_id'),
                 ItemDoacaoAgape.fk_item_instancia_agape_id.label(
                     'item_instancia_agape_id'
-                )
+                ),
             )
             .select_from(ItemDoacaoAgape)
             .join(
-                ItemInstanciaAgape, 
-                ItemDoacaoAgape.fk_item_instancia_agape_id 
-                == 
-                ItemInstanciaAgape.id
+                ItemInstanciaAgape,
+                ItemDoacaoAgape.fk_item_instancia_agape_id
+                == ItemInstanciaAgape.id,
             )
             .join(
-                EstoqueAgape, 
-                ItemInstanciaAgape.fk_estoque_agape_id == EstoqueAgape.id
+                EstoqueAgape,
+                ItemInstanciaAgape.fk_estoque_agape_id == EstoqueAgape.id,
             )
             .filter(ItemDoacaoAgape.fk_doacao_agape_id == doacao_id)
             .order_by(EstoqueAgape.item)
         )
-        
+
         return instancias.all()
-    
+
     def listar_itens_recebidos_por_ciclo_e_doacao_id(
         self, ciclo_acao_id: UUID, doacao_id: UUID
     ) -> list:
-        
         instancias = (
             self._database.session.query(
                 EstoqueAgape.id.label('item_id'),
@@ -1181,18 +1136,17 @@ class AgapeRepository(AgapeRepositoryInterface):
                 ItemDoacaoAgape.id.label('item_doacao_agape_id'),
                 ItemDoacaoAgape.fk_item_instancia_agape_id.label(
                     'item_instancia_agape_id'
-                )
+                ),
             )
             .select_from(ItemDoacaoAgape)
             .join(
-                ItemInstanciaAgape, 
-                ItemDoacaoAgape.fk_item_instancia_agape_id 
-                == 
-                ItemInstanciaAgape.id
+                ItemInstanciaAgape,
+                ItemDoacaoAgape.fk_item_instancia_agape_id
+                == ItemInstanciaAgape.id,
             )
             .join(
-                EstoqueAgape, 
-                ItemInstanciaAgape.fk_estoque_agape_id == EstoqueAgape.id
+                EstoqueAgape,
+                ItemInstanciaAgape.fk_estoque_agape_id == EstoqueAgape.id,
             )
             .filter(ItemDoacaoAgape.fk_doacao_agape_id == doacao_id)
             .filter(
@@ -1200,12 +1154,285 @@ class AgapeRepository(AgapeRepositoryInterface):
             )
             .order_by(EstoqueAgape.item)
         )
-        
+
         return instancias.all()
-    
-    def listar_voluntarios_agape(self) -> list[None]:
+
+    def listar_voluntarios_agape(
+        self, filtros: PaginacaoQuery
+    ) -> tuple[list[Lead], int]:
+        query = (
+            self._database.session.query(Lead)
+            .join(
+                PermissaoLead,
+                PermissaoLead.lead_id == Lead.id,
+            )
+            .join(Perfil, Perfil.id == PermissaoLead.lead_id)
+            .filter(Perfil.nome == PerfilEnum.voluntario_agape.value)
+            .order_by(Lead.nome)
+        )
+
+        paginacao = query.paginate(
+            page=filtros.pagina,
+            per_page=filtros.por_pagina,
+            error_out=False,
+        )
+
+        return paginacao.items, paginacao.total
+
+    def registrar_doacao_agape(self, doacao: DoacaoAgape) -> DoacaoAgape:
+        self._database.session.add(doacao)
+        return doacao
+
+    def registrar_item_doacao_agape(
+        self, item_doacao: ItemDoacaoAgape
+    ) -> ItemDoacaoAgape:
+        self._database.session.add(item_doacao)
+        return item_doacao
+
+    def buscar_item_instancia_agape_por_id(
+        self, item_instancia_id: UUID
+    ) -> ItemInstanciaAgape | None:
+        """Busca um item de instância de ação ágape pelo seu ID."""
+        return self._database.session.get(
+            ItemInstanciaAgape, item_instancia_id
+        )
+
+    def atualizar_item_instancia_agape(
+        self, item_instancia: ItemInstanciaAgape
+    ) -> ItemInstanciaAgape:
+        self._database.session.add(item_instancia)
+        return item_instancia
+
+    def buscar_lead_com_permissoes_por_id(self, lead_id: UUID) -> Lead | None:
+        return (
+            self._database.session.query(Lead)
+            .options(
+                selectinload(Lead.permissoes_lead).selectinload(
+                    PermissaoLead.perfil
+                )
+            )
+            .filter(Lead.id == lead_id)
+            .one_or_none()
+        )
+
+    def buscar_perfil_por_nome(self, nome_perfil: str) -> Perfil | None:
+        return (
+            self._database.session.query(Perfil)
+            .filter(Perfil.nome == nome_perfil)
+            .one_or_none()
+        )
+
+    def remover_permissao_lead(self, permissao_lead: PermissaoLead) -> None:
+        self._database.session.delete(permissao_lead)
+
+    def adicionar_permissao_lead(
+        self, lead_id: UUID, perfil_id: UUID
+    ) -> PermissaoLead:
+        nova_permissao = PermissaoLead(lead_id=lead_id, perfil_id=perfil_id)
+        self._database.session.add(nova_permissao)
+        return nova_permissao
+
+    def buscar_dados_exportacao_doacoes_ciclo(
+        self, ciclo_acao_id: UUID
+    ) -> list[DadosCompletosDoacaoSchema]:
+        MembroResponsavel = aliased(MembroAgape)
+
+        query_results = (
+            self._database.session.query(
+                InstanciaAcaoAgape.id.label('ciclo_acao_id'),
+                AcaoAgape.nome.label('ciclo_acao_nome'),
+                InstanciaAcaoAgape.data_inicio.label('ciclo_acao_data_inicio'),
+                InstanciaAcaoAgape.data_termino.label(
+                    'ciclo_acao_data_termino'
+                ),
+                FamiliaAgape.id.label('familia_id'),
+                FamiliaAgape.nome_familia.label('familia_nome'),
+                FamiliaAgape.observacao.label('familia_observacao'),
+                MembroResponsavel.nome.label('responsavel_familia_nome'),
+                MembroResponsavel.cpf.label('responsavel_familia_cpf'),
+                MembroResponsavel.telefone.label(
+                    'responsavel_familia_telefone'
+                ),
+                DoacaoAgape.id.label('doacao_id'),
+                DoacaoAgape.criado_em.label('doacao_data'),
+                EstoqueAgape.item.label('item_doado_nome'),
+                ItemDoacaoAgape.quantidade.label('item_doado_quantidade'),
+            )
+            .select_from(ItemDoacaoAgape)
+            .join(
+                DoacaoAgape,
+                DoacaoAgape.id == ItemDoacaoAgape.fk_doacao_agape_id,
+            )
+            .join(
+                FamiliaAgape,
+                FamiliaAgape.id == DoacaoAgape.fk_familia_agape_id,
+            )
+            .outerjoin(
+                MembroResponsavel,
+                (MembroResponsavel.fk_familia_agape_id == FamiliaAgape.id)
+                & (MembroResponsavel.responsavel == True),
+            )
+            .join(
+                ItemInstanciaAgape,
+                ItemInstanciaAgape.id
+                == ItemDoacaoAgape.fk_item_instancia_agape_id,
+            )
+            .join(
+                InstanciaAcaoAgape,
+                InstanciaAcaoAgape.id
+                == ItemInstanciaAgape.fk_instancia_acao_agape_id,
+            )
+            .join(
+                AcaoAgape, AcaoAgape.id == InstanciaAcaoAgape.fk_acao_agape_id
+            )
+            .join(
+                EstoqueAgape,
+                EstoqueAgape.id == ItemInstanciaAgape.fk_estoque_agape_id,
+            )
+            .filter(InstanciaAcaoAgape.id == ciclo_acao_id)
+            .order_by(
+                FamiliaAgape.nome_familia,
+                DoacaoAgape.criado_em,
+                EstoqueAgape.item,
+            )
+            .all()
+        )
+
+        resultados_schema = [
+            DadosCompletosDoacaoSchema(**row._asdict())
+            for row in query_results
+        ]
+        return resultados_schema
+
+    def buscar_dados_completos_familias_agape(
+        self,
+    ) -> list[DadosExportacaoFamiliaSchema]:
+        MembroResponsavel = aliased(MembroAgape)
+
+        query_explicit = (
+            self._database.session.query(
+                FamiliaAgape, Endereco, MembroResponsavel
+            )
+            .outerjoin(Endereco, FamiliaAgape.fk_endereco_id == Endereco.id)
+            .outerjoin(
+                MembroResponsavel,
+                (MembroResponsavel.fk_familia_agape_id == FamiliaAgape.id)
+                & (MembroResponsavel.responsavel == True),
+            )
+            .options(selectinload(FamiliaAgape.membros))
+            .filter(FamiliaAgape.deletado_em.is_(None))
+            .order_by(FamiliaAgape.nome_familia)
+        )
+
+        resultados_tuplas = query_explicit.all()
+
+        resultados_schema = []
+        for familia_ent, endereco_ent, responsavel_ent in resultados_tuplas:
+            num_membros = (
+                len(familia_ent.membros) if familia_ent.membros else 0
+            )
+            renda_total = (
+                sum(m.renda for m in familia_ent.membros if m.renda)
+                if familia_ent.membros
+                else 0.0
+            )
+
+            schema_data = DadosExportacaoFamiliaSchema(
+                familia_id=familia_ent.id,
+                familia_nome=familia_ent.nome_familia,
+                familia_data_cadastro=familia_ent.criado_em,
+                familia_status='Ativa',
+                familia_observacao=familia_ent.observacao,
+                endereco_logradouro=(
+                    endereco_ent.logradouro if endereco_ent else None
+                ),
+                endereco_numero=endereco_ent.numero if endereco_ent else None,
+                endereco_complemento=(
+                    endereco_ent.complemento if endereco_ent else None
+                ),
+                endereco_bairro=endereco_ent.bairro if endereco_ent else None,
+                endereco_cidade=endereco_ent.cidade if endereco_ent else None,
+                endereco_estado=endereco_ent.estado if endereco_ent else None,
+                endereco_cep=(
+                    endereco_ent.codigo_postal if endereco_ent else None
+                ),
+                responsavel_nome=(
+                    responsavel_ent.nome if responsavel_ent else None
+                ),
+                responsavel_cpf=(
+                    responsavel_ent.cpf if responsavel_ent else None
+                ),
+                responsavel_telefone=(
+                    responsavel_ent.telefone if responsavel_ent else None
+                ),
+                responsavel_email=(
+                    responsavel_ent.email if responsavel_ent else None
+                ),
+                responsavel_data_nascimento=(
+                    responsavel_ent.data_nascimento
+                    if responsavel_ent
+                    else None
+                ),
+                responsavel_funcao_familiar=(
+                    responsavel_ent.funcao_familiar
+                    if responsavel_ent
+                    else None
+                ),
+                responsavel_escolaridade=(
+                    responsavel_ent.escolaridade if responsavel_ent else None
+                ),
+                responsavel_ocupacao=(
+                    responsavel_ent.ocupacao if responsavel_ent else None
+                ),
+                numero_total_membros=num_membros,
+                renda_familiar_total_estimada=renda_total,
+                comprovante_residencia_url=familia_ent.comprovante_residencia,
+                cadastrada_por_usuario_id=familia_ent.cadastrada_por,
+            )
+            resultados_schema.append(schema_data)
+
+        return resultados_schema
+
+    def registrar_recibo_agape(self, recibo_agape: ReciboAgape) -> ReciboAgape:
+        self._database.session.add(recibo_agape)
+        return recibo_agape
+
+    def buscar_doacao_agape_por_id(self, doacao_id) -> DoacaoAgape | None:
         """
-        Lista todos os voluntários cadastrados no sistema Ágape.
+        Retorna uma doação ágape
         """
-        
-        pass
+        instancia = self._database.session.get(DoacaoAgape, doacao_id)
+
+        return instancia
+
+    def listar_leads_por_nomes_de_perfis(
+        self, nomes_perfis: list[str], filtros_paginacao: PaginacaoQuery
+    ) -> tuple[list[Lead], int]:
+        query = (
+            self._database.session.query(Lead)
+            .join(Lead.permissoes_lead)
+            .join(PermissaoLead.perfil)
+            .filter(Perfil.nome.in_(nomes_perfis))
+            .options(
+                selectinload(Lead.permissoes_lead).selectinload(
+                    PermissaoLead.perfil
+                )
+            )
+            .order_by(Lead.nome)
+        )
+
+        count_query = (
+            self._database.session.query(func.count(distinct(Lead.id)))
+            .join(Lead.permissoes_lead)
+            .join(PermissaoLead.perfil)
+            .filter(Perfil.nome.in_(nomes_perfis))
+        )
+        total = count_query.scalar() or 0
+
+        paginated_query = query.limit(filtros_paginacao.por_pagina).offset(
+            (filtros_paginacao.pagina - 1) * filtros_paginacao.por_pagina
+        )
+
+        leads = paginated_query.all()
+
+        return leads, total

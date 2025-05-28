@@ -262,22 +262,28 @@ def exporta_csv(data, nome_arquivo):
     except Exception as exc:
         raise errors_handler(exc)
 
-def calcular_idade(data_nascimento: Union[str, date], formato: str = "%Y-%m-%d") -> int:
+
+def calcular_idade(
+    data_nascimento: Union[str, date], formato: str = '%Y-%m-%d'
+) -> int:
     if isinstance(data_nascimento, str):
         try:
-            data_nascimento = datetime.strptime(data_nascimento, formato).date()
+            data_nascimento = datetime.strptime(
+                data_nascimento, formato
+            ).date()
         except ValueError as e:
-            raise ValueError(f"Data inválida: {e}")
+            raise ValueError(f'Data inválida: {e}')
 
     hoje = date.today()
     if data_nascimento > hoje:
-        raise ValueError("A data de nascimento não pode estar no futuro.")
+        raise ValueError('A data de nascimento não pode estar no futuro.')
 
     idade = hoje.year - data_nascimento.year
     if (hoje.month, hoje.day) < (data_nascimento.month, data_nascimento.day):
         idade -= 1
 
     return idade
+
 
 def buscar_data_valida(dia: int, mes: int, ano: int) -> date:
     ultimo_dia = monthrange(ano, mes)[1]

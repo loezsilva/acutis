@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
-from uuid import UUID
-from typing import Optional, Any
 from datetime import datetime
+from typing import Any, Optional
+from uuid import UUID
 
 from acutis_api.communication.requests.agape import (
     CoordenadaFormData,
-    RegistrarItemCicloAcaoAgapeFormData,
     EditarEnderecoFamiliaAgapeRequest,
+    RegistrarItemCicloAcaoAgapeFormData,
 )
 from acutis_api.domain.entities.acao_agape import AcaoAgape
 from acutis_api.domain.entities.coordenada import Coordenada
+from acutis_api.domain.entities.doacao_agape import DoacaoAgape
 from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.entities.estoque_agape import EstoqueAgape
 from acutis_api.domain.entities.familia_agape import FamiliaAgape
@@ -17,34 +18,40 @@ from acutis_api.domain.entities.foto_familia_agape import FotoFamiliaAgape
 from acutis_api.domain.entities.historico_movimentacao_agape import (
     HistoricoMovimentacaoAgape,
 )
-from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 from acutis_api.domain.entities.instancia_acao_agape import InstanciaAcaoAgape
+from acutis_api.domain.entities.item_doacao_agape import ItemDoacaoAgape
 from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
+from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.membro_agape import MembroAgape
+from acutis_api.domain.entities.perfil import Perfil
+from acutis_api.domain.entities.permissao_lead import PermissaoLead
+from acutis_api.domain.entities.recibo_agape import ReciboAgape
 from acutis_api.domain.repositories.schemas.agape import (
+    ContagemItensEstoqueSchema,
+    CoordenadasSchema,
+    DadosCompletosDoacaoSchema,
+    DadosExportacaoFamiliaSchema,
     DoacaoAgapeSchema,
     EnderecoScheme,
     EstoqueAgapeSchema,
     FotoFamiliaAgapeSchema,
+    InformacoesAgregadasFamiliasSchema,
     ListarItensEstoqueAgapeFiltros,
     ListarNomesAcoesAgapeFiltros,
     MembroFamiliaSchema,
     NomeAcaoAgapeSchema,
+    NumeroMembrosFamiliaAgapeSchema,
+    NumeroTotalMembrosSchema,
+    PaginacaoSchema,
     RegistrarCicloAcaoAgapeScheme,
     RegistrarFamiliaAgapeSchema,
     RegistrarItemEstoqueAgapeSchema,
     RegistrarNomeAcaoAgapeSchema,
-    NumeroMembrosFamiliaAgapeSchema,
     SomaRendaFamiliarAgapeSchema,
-    TotalItensRecebidosSchema,
-    InformacoesAgregadasFamiliasSchema,
-    NumeroTotalMembrosSchema,
     SomaTotalRendaSchema,
-    ContagemItensEstoqueSchema,
+    TotalItensRecebidosSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
-    CoordenadasSchema,
-    PaginacaoSchema,
 )
 
 
@@ -157,22 +164,20 @@ class AgapeRepositoryInterface(ABC):
         aplicando filtros de ação e status.
         """
         ...
-        
+
     @abstractmethod
-    def listar_familias(
-        self, filtros
-    ) -> tuple[list[FamiliaAgape], int]:
+    def listar_familias(self, filtros) -> tuple[list[FamiliaAgape], int]:
         """
-            Retorna lista de famílias,
+        Retorna lista de famílias,
         """
         ...
-        
+
     @abstractmethod
     def listar_membros_por_familia_id(
         self, familia_id: UUID
     ) -> list[MembroAgape]:
         """
-            Retorna lista de membros de uma família,
+        Retorna lista de membros de uma família,
         """
         ...
 
@@ -241,53 +246,43 @@ class AgapeRepositoryInterface(ABC):
 
     @abstractmethod
     def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
-        '''Busca um endereço pelo seu ID.'''
+        """Busca um endereço pelo seu ID."""
         ...
 
     @abstractmethod
     def buscar_ultimo_ciclo_acao_por_nome_acao_id(
         self, nome_acao_id: UUID
-    ) -> InstanciaAcaoAgape | None:
-        '''
-        Busca a última instância de ciclo de ação ágape 
-        (mais recente) associada a um nome de ação específico.
-        '''
-        ...
-    
+    ) -> InstanciaAcaoAgape | None: ...
+
     @abstractmethod
     def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
-        '''Busca um membro ágape pelo seu CPF.'''
+        """Busca um membro ágape pelo seu CPF."""
         ...
 
     @abstractmethod
     def listar_fotos_por_familia_id(
         self, familia_id: UUID
     ) -> list[FotoFamiliaAgape]:
-        '''Lista todas as fotos de uma família ágape.'''
+        """Lista todas as fotos de uma família ágape."""
         ...
 
     @abstractmethod
-    def buscar_data_ultimo_recebimento_familia_no_ciclo(
+    def buscar_ultimo_recebimento_familia_no_ciclo(
         self, familia_id: UUID, ciclo_acao_id: UUID
-    ) -> datetime | None:
-        '''Busca a data da última doação recebida 
-        por uma família em um ciclo de ação específico.
-        '''
-        ...
+    ) -> datetime | None: ...
 
     @abstractmethod
     def buscar_membro_agape_por_id(
         self, membro_agape_id: UUID
     ) -> MembroAgape | None:
-        '''Busca um membro ágape pelo seu ID.'''
+        """Busca um membro ágape pelo seu ID."""
         ...
-    
+
     @abstractmethod
     def registrar_membro_agape(self, membro: MembroAgape) -> MembroAgape:
-        '''Registra um novo membro ágape na sessão do banco de dados.
-        '''
+        """Registra um novo membro ágape na sessão do banco de dados."""
         ...
-    
+
     @abstractmethod
     def buscar_familia_por_id(
         self, familia_id: UUID
@@ -314,7 +309,7 @@ class AgapeRepositoryInterface(ABC):
 
     @abstractmethod
     def informacoes_agregadas_familias(
-        self
+        self,
     ) -> InformacoesAgregadasFamiliasSchema:
         pass
 
@@ -331,18 +326,15 @@ class AgapeRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def ultima_acao_agape_com_itens(
-        self
-    ) -> Optional[UltimaAcaoAgapeSchema]:
+    def ultima_acao_agape_com_itens(self) -> Optional[UltimaAcaoAgapeSchema]:
         pass
 
     @abstractmethod
-    def ultima_entrada_estoque(
-        self
-    ) -> Optional[UltimaEntradaEstoqueSchema]:
+    def ultima_entrada_estoque(self) -> Optional[UltimaEntradaEstoqueSchema]:
         pass
 
     abstractmethod
+
     def deletar_familia_e_membros(self, familia: FamiliaAgape) -> None:
         # Este método irá deletar (hard delete) os membros da família
         # e depois marcar a família como deletada (soft delete).
@@ -352,28 +344,26 @@ class AgapeRepositoryInterface(ABC):
     def deletar_membro(self, membro_id: UUID) -> None:
         # Deleta (hard delete) um membro ágape.
         pass
-    
+
     @abstractmethod
     def atualizar_endereco_familia(
-        self, 
-        familia: FamiliaAgape, 
-        dados_endereco: EditarEnderecoFamiliaAgapeRequest, 
-        coordenadas: Optional[CoordenadasSchema]
+        self,
+        familia: FamiliaAgape,
+        dados_endereco: EditarEnderecoFamiliaAgapeRequest,
+        coordenadas: Optional[CoordenadasSchema],
     ) -> FamiliaAgape:
         # Atualiza o endereço associado à família.
         # A instância 'familia' já foi buscada e validada pelo Caso de Uso.
         pass
 
     @abstractmethod
-    def atualizar_membro_agape(
-        self, membro: MembroAgape
-    ) -> MembroAgape:
+    def atualizar_membro_agape(self, membro: MembroAgape) -> MembroAgape:
         # Atualiza os dados de um membro ágape.
         # A instância 'membro' já foi buscada e validada pelo Caso de Uso.
         pass
 
     @abstractmethod
-    def listar_familias_beneficiadas_por_ciclo_acao_id(
+    def listar_familias_beneficiadas_por_ciclo_id(
         self, ciclo_acao_id: UUID
     ) -> list[FamiliaAgape]:
         # Lista as famílias beneficiadas por um ciclo de ação específico.
@@ -381,38 +371,83 @@ class AgapeRepositoryInterface(ABC):
 
     def listar_historico_movimentacoes_paginado(
         self, pagina: int, por_pagina: int
-    ) -> tuple[list[tuple[Any, str]], int]:
-        """
-        Lista o histórico de movimentações do estoque ágape de forma paginada.
-        Retorna uma tupla contendo a lista de resultados e o número total de itens.
-        Cada resultado na lista é uma tupla (entidade_historico, nome_do_item).
-        """
-        ...
+    ) -> tuple[list[tuple[Any, str]], int]: ...
 
-    def listar_itens_por_doacao_agape_id(self, doacao_id: UUID) -> list[Any]:
-        """
-        Lista os itens de uma doação ágape específica, incluindo detalhes do item.
-        Espera-se que o retorno seja uma lista de objetos ou tuplas nomeadas
-        contendo: item_id, nome_item, quantidade_doada, item_doacao_agape_id, item_instancia_agape_id.
-        """
-        ...
+    def listar_itens_por_doacao_agape_id(
+        self, doacao_id: UUID
+    ) -> list[Any]: ...
 
     def listar_itens_recebidos_por_ciclo_e_doacao_id(
         self, ciclo_acao_id: UUID, doacao_id: UUID
-    ) -> list[Any]:
-        """
-        Lista os itens de uma doação ágape específica, validando contra o ciclo de ação.
-        Espera-se que o retorno seja uma lista de objetos ou tuplas nomeadas
-        contendo: item_id, nome_item, quantidade_doada, item_doacao_agape_id, item_instancia_agape_id.
-        """
-        ...
-    
+    ) -> list[Any]: ...
+
     @abstractmethod
     def listar_voluntarios_agape(
         self, filtros: PaginacaoSchema
-    ) -> tuple[list[MembroAgape], int]:
+    ) -> tuple[list[Lead], int]:
         """
         Retorna uma lista paginada de membros ágape considerados voluntários,
         baseado em filtros (ex: perfil).
         """
         ...
+
+    @abstractmethod
+    def registrar_doacao_agape(self, doacao: DoacaoAgape) -> DoacaoAgape: ...
+
+    @abstractmethod
+    def registrar_item_doacao_agape(
+        self, item_doacao: ItemDoacaoAgape
+    ) -> ItemDoacaoAgape: ...
+
+    @abstractmethod
+    def buscar_item_instancia_agape_por_id(
+        self, item_instancia_id: UUID
+    ) -> ItemInstanciaAgape | None: ...
+
+    @abstractmethod
+    def atualizar_item_instancia_agape(
+        self, item_instancia: ItemInstanciaAgape
+    ) -> ItemInstanciaAgape: ...
+
+    @abstractmethod
+    def buscar_lead_com_permissoes_por_id(
+        self, lead_id: UUID
+    ) -> Lead | None: ...
+
+    @abstractmethod
+    def buscar_perfil_por_nome(self, nome_perfil: str) -> Perfil | None: ...
+
+    @abstractmethod
+    def remover_permissao_lead(
+        self, permissao_lead: PermissaoLead
+    ) -> None: ...
+
+    @abstractmethod
+    def adicionar_permissao_lead(
+        self, lead_id: UUID, perfil_id: UUID
+    ) -> PermissaoLead: ...
+
+    @abstractmethod
+    def buscar_dados_exportacao_doacoes_ciclo(
+        self, ciclo_acao_id: UUID
+    ) -> list[DadosCompletosDoacaoSchema]: ...
+
+    @abstractmethod
+    def buscar_dados_completos_familias_agape(
+        self,
+    ) -> list[DadosExportacaoFamiliaSchema]: ...
+
+    @abstractmethod
+    def registrar_recibo_agape(
+        self, recibo_agape: ReciboAgape
+    ) -> ReciboAgape: ...
+
+    @abstractmethod
+    def buscar_doacao_agape_por_id(
+        self, doacao_id: UUID
+    ) -> DoacaoAgape | None: ...
+
+    @abstractmethod
+    def listar_leads_por_nomes_de_perfis(
+        self, nomes_perfis: list[str], filtros_paginacao: PaginacaoSchema
+    ) -> tuple[list[Lead], int]: ...

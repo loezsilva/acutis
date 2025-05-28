@@ -22,7 +22,7 @@ class AdicionarVoluntarioAgapeUseCase:
         # Persiste as alterações
         # self.__repository.salvar_alteracoes()
 
-        return 
+        return
 
     """
     def update_user_profile_to_agape_voluntary(

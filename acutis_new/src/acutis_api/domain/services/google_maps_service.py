@@ -16,11 +16,11 @@ class GoogleMapsGeocode(BaseModel):
 
 class GoogleMapsAPI:
     def __init__(self) -> None:
-        if settings.ENVIRONMENT not in ['teste', 'development']:
+        if settings.ENVIRONMENT not in set(['teste', 'development']):
             self.__gmaps = googlemaps.Client(key=settings.GOOGLE_MAPS_API_KEY)
 
     def get_geolocation(self, endereco: str) -> GoogleMapsGeocode:
-        if settings.ENVIRONMENT in ['teste', 'development']:
+        if settings.ENVIRONMENT in set(['teste', 'development']):
             return GoogleMapsGeocode(
                 latitude=0,
                 longitude=0,

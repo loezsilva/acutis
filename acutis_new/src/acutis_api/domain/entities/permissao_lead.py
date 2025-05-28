@@ -9,10 +9,7 @@ from acutis_api.domain.database import table_registry
 from acutis_api.domain.entities.modelo_base import ModeloBase
 
 if TYPE_CHECKING:
-    from acutis_api.domain.entities import (
-        Lead,
-        Perfil
-    )
+    from acutis_api.domain.entities import Lead, Perfil
 
 
 @table_registry.mapped_as_dataclass

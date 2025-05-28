@@ -2,17 +2,15 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, func, Boolean
+from sqlalchemy import Boolean, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from acutis_api.domain.database import table_registry
 from acutis_api.domain.entities.modelo_base import ModeloBase
 
 if TYPE_CHECKING:
-    from acutis_api.domain.entities import (
-        Perfil,
-        MenuSistema
-    )
+    from acutis_api.domain.entities import MenuSistema, Perfil
+
 
 @table_registry.mapped_as_dataclass
 class PermissaoMenu(ModeloBase):
@@ -39,9 +37,7 @@ class PermissaoMenu(ModeloBase):
     acessar: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
-    criar: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
-    )
+    criar: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     editar: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
@@ -56,4 +52,3 @@ class PermissaoMenu(ModeloBase):
     atualizado_em: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )
-

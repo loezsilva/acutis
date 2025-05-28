@@ -1,13 +1,14 @@
 import uuid
 from http import HTTPStatus
 
-from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.communication.responses.agape import (
-    CardRendaFamiliarAgapeResponse
+    CardRendaFamiliarAgapeResponse,
 )
+from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 SALARIO_MINIMO = 1518.0  # Defined as float for division
+
 
 class CardRendaFamiliarAgapeUseCase:
     def __init__(self, repository: AgapeRepositoryInterface):
@@ -16,32 +17,31 @@ class CardRendaFamiliarAgapeUseCase:
     def execute(
         self, familia_id: uuid.UUID
     ) -> tuple[CardRendaFamiliarAgapeResponse, HTTPStatus]:
-        familia = self.__repository.buscar_familia_por_id(
-            familia_id
-        )
+        familia = self.__repository.buscar_familia_por_id(familia_id)
         if not familia:
             raise HttpNotFoundError(
-                f"Família com ID {familia_id} não encontrada ou foi deletada."
+                f'Família com ID {familia_id} não encontrada ou foi deletada.'
             )
 
-        membros_count_data = (
-            self.__repository.numero_membros_familia_agape(
-                familia_id
-            )
+        membros_count_data = self.__repository.numero_membros_familia_agape(
+            familia_id
         )
 
-        numero_membros = getattr(
-            membros_count_data, 'quantidade', 0
-        ) if membros_count_data else 0
-
+        numero_membros = (
+            getattr(membros_count_data, 'quantidade', 0)
+            if membros_count_data
+            else 0
+        )
 
         renda_familiar_data = self.__repository.soma_renda_familiar_agape(
             familia
         )
 
-        soma_renda = getattr(
-            renda_familiar_data, 'total', 0.0
-        ) if renda_familiar_data else 0.0
+        soma_renda = (
+            getattr(renda_familiar_data, 'total', 0.0)
+            if renda_familiar_data
+            else 0.0
+        )
         soma_renda = soma_renda or 0.0
 
         renda_per_capita_sm = 0.0
@@ -54,8 +54,8 @@ class CardRendaFamiliarAgapeUseCase:
                     soma_renda / numero_membros
                 ) / SALARIO_MINIMO
         response_data = CardRendaFamiliarAgapeResponse(
-            renda_familiar=f"{renda_total_sm:.1f} Salários mínimos",
-            renda_per_capta=f"{renda_per_capita_sm:.1f} Salários mínimos"
+            renda_familiar=f'{renda_total_sm:.1f} Salários mínimos',
+            renda_per_capta=f'{renda_per_capita_sm:.1f} Salários mínimos',
         )
 
         return response_data, HTTPStatus.OK

@@ -29,16 +29,16 @@ from .lembrete_doacao_recorrente import (
 )
 from .membro import Membro as Membro
 from .membro_agape import MembroAgape as MembroAgape
+from .menu_sistema import MenuSistema as MenuSistema
 from .metadado_lead import MetadadoLead as MetadadoLead
 from .modelo_base import ModeloBase as ModeloBase
 from .oficial import Oficial as Oficial
 from .pagamento_doacao import PagamentoDoacao as PagamentoDoacao
+from .perfil import Perfil as Perfil
+from .permissao_lead import PermissaoLead as PermissaoLead
+from .permissao_menu import PermissaoMenu as PermissaoMenu
 from .processamento_doacao import ProcessamentoDoacao as ProcessamentoDoacao
 from .recibo_agape import ReciboAgape as ReciboAgape
 from .sacramento_vocacional import SacramentoVocacional as SacramentoVocacional
 from .template_lp import TemplateLP as TemplateLP
 from .usuario_vocacional import UsuarioVocacional as UsuarioVocacional
-from .permissao_lead import PermissaoLead as PermissaoLead
-from .permissao_menu import PermissaoMenu as PermissaoMenu
-from .perfil import Perfil as Perfil
-from .menu_sistema import MenuSistema as MenuSistema

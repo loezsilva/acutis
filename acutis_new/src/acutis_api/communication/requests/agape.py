@@ -7,8 +7,8 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
-    model_validator,
     constr,
+    model_validator,
 )
 from pydantic_core import PydanticCustomError
 from spectree import BaseFile
@@ -245,145 +245,174 @@ class RegistrarOuEditarFamiliaAgapeFormData(BaseModel):
 
         return form_data
 
+
 class ListarFamiliasAgapeQueryPaginada(PaginacaoQuery):
     pass
+
 
 class ListarMembrosFamiliaAgapeQueryPaginada(PaginacaoQuery):
     pass
 
+
 class AdicionarVoluntarioAgapeFormData(BaseModel):
-    lead_id: UUID = Field(
-        ..., description='ID do Lead'
-    )
+    lead_id: UUID = Field(..., description='ID do Lead')
+
 
 # Schemas para cadastrar membros em uma família ágape
 class MembroAgapeCadastroItemSchema(BaseModel):
     responsavel: bool = False
-    nome: constr(min_length=3, max_length=100, strip_whitespace=True) # type: ignore
-    email: EmailStr | None = None 
-    telefone: str | None = None 
-    cpf: str | None = None 
+    nome: constr(min_length=3, max_length=100, strip_whitespace=True)  # type: ignore
+    email: EmailStr | None = None
+    telefone: str | None = None
+    cpf: str | None = None
     data_nascimento: date
-    funcao_familiar: constr(min_length=1, max_length=50, strip_whitespace=True) # type: ignore
-    escolaridade: constr(min_length=1, max_length=50, strip_whitespace=True) # type: ignore
-    ocupacao: constr(min_length=1, max_length=100, strip_whitespace=True) # type: ignore
+    funcao_familiar: constr(min_length=1, max_length=50, strip_whitespace=True)  # type: ignore
+    escolaridade: constr(min_length=1, max_length=50, strip_whitespace=True)  # type: ignore
+    ocupacao: constr(min_length=1, max_length=100, strip_whitespace=True)  # type: ignore
     renda: float | None = Field(default=None, ge=0)
     beneficiario_assistencial: bool = False
-    foto_documento: str | None = None # Esperado como string base64
+    foto_documento: str | None = None  # Esperado como string base64
+
 
 class MembrosAgapeCadastroRequestSchema(BaseModel):
     membros: list[MembroAgapeCadastroItemSchema]
 
+
 class EditarEnderecoFamiliaAgapeRequest(BaseModel):
-    model_config = {"extra": "forbid"} # Pydantic v2 style for ConfigDict
+    model_config = {'extra': 'forbid'}  # Pydantic v2 style for ConfigDict
 
     cep: str = Field(
-        ..., min_length=8, 
-        max_length=9, 
-        description="CEP (somente números)"
+        ..., min_length=8, max_length=9, description='CEP (somente números)'
     )
     rua: str = Field(
-        ..., 
-        min_length=3, 
-        max_length=100, 
-        description="Logradouro/Rua"
+        ..., min_length=3, max_length=100, description='Logradouro/Rua'
     )
     numero: str = Field(
-        ..., 
-        max_length=10, 
-        description="Número"
-    ) # Max length assumption
+        ..., max_length=10, description='Número'
+    )  # Max length assumption
     complemento: Optional[str] = Field(
-        None, 
-        max_length=100, 
-        description="Complemento"
-    ) # Max length assumption
+        None, max_length=100, description='Complemento'
+    )  # Max length assumption
     ponto_referencia: Optional[str] = Field(
-        None, 
-        max_length=255, 
-        description="Ponto de referência"
-    ) # Max length assumption
-    bairro: str = Field(..., min_length=3, max_length=80, description="Bairro")
-    cidade: str = Field(..., min_length=3, max_length=32, description="Cidade")
+        None, max_length=255, description='Ponto de referência'
+    )  # Max length assumption
+    bairro: str = Field(..., min_length=3, max_length=80, description='Bairro')
+    cidade: str = Field(..., min_length=3, max_length=32, description='Cidade')
     estado: str = Field(
-        ..., 
-        min_length=2, 
-        max_length=2, 
-        description="Estado (UF, ex: SP)"
+        ..., min_length=2, max_length=2, description='Estado (UF, ex: SP)'
     )
+
 
 class EditarMembroAgapeRequestData(BaseModel):
     responsavel: Optional[bool] = Field(
-        None, 
-        description="Indica se o membro é o responsável pela família"
-        )
-    nome: Optional[str] = Field(None, description="Nome completo do membro")
-    email: Optional[EmailStr] = Field(None, description="Email do membro")
-    telefone: Optional[str] = Field(None, description="Telefone do membro")
+        None, description='Indica se o membro é o responsável pela família'
+    )
+    nome: Optional[str] = Field(None, description='Nome completo do membro')
+    email: Optional[EmailStr] = Field(None, description='Email do membro')
+    telefone: Optional[str] = Field(None, description='Telefone do membro')
     cpf: Optional[str] = Field(
-        None, 
-        description="CPF do membro", 
-        pattern=r"^\d{3}\.\d{3}\.\d{3}-\d{2}$"
+        None,
+        description='CPF do membro',
+        pattern=r'^\d{3}\.\d{3}\.\d{3}-\d{2}$',
     )
     data_nascimento: Optional[date] = Field(
-        None, description="Data de nascimento do membro (YYYY-MM-DD)"
+        None, description='Data de nascimento do membro (YYYY-MM-DD)'
     )
     funcao_familiar: Optional[str] = Field(
-        None, description="Função do membro na família (ex: Pai, Mãe, Filho)"
+        None, description='Função do membro na família (ex: Pai, Mãe, Filho)'
     )
     escolaridade: Optional[str] = Field(
-        None, description="Nível de escolaridade do membro"
+        None, description='Nível de escolaridade do membro'
     )
     ocupacao: Optional[str] = Field(
-        None, description="Ocupação atual do membro"
+        None, description='Ocupação atual do membro'
     )
     renda: Optional[float] = Field(
-        None, description="Renda mensal do membro", ge=0
+        None, description='Renda mensal do membro', ge=0
     )
     foto_documento: Optional[str] = Field(
-        None, description="Foto do documento do membro (base64 ou URL)"
+        None, description='Foto do documento do membro (base64 ou URL)'
     )
     beneficiario_assistencial: Optional[bool] = Field(
-        None, 
-        description="Indica se o membro é beneficiário de \
-            algum programa assistencial"
-        )
-
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
-            "example": {
-                "responsavel": True,
-                "nome": "Fulano de Tal Atualizado",
-                "email": "fulano.atualizado@example.com",
-                "telefone": "11987654321",
-                "cpf": "12345678900",
-                "data_nascimento": "1990-01-15",
-                "funcao_familiar": "Pai",
-                "escolaridade": "Ensino Superior Completo",
-                "ocupacao": "Engenheiro de Software",
-                "renda": 5000.00,
-                "foto_documento": (
-                    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA..."
-                ),
-                "beneficiario_assistencial": False
-            }
-        }
-
-class ListarHistoricoMovimentacoesAgapeQueryPaginada(BaseModel):
-    pagina: int = Field(1, ge=1, description="Número da página desejada.")
-    por_pagina: int = Field(
-        10, 
-        ge=1, 
-        le=100, 
-        description="Quantidade de resultados por página (máximo de 100)."
+        None,
+        description='Indica se o membro é beneficiário de \
+            algum programa assistencial',
     )
 
     class Config:
         from_attributes = True
         json_schema_extra = {
-            "example": {
-                "pagina": 1,
-                "por_pagina": 20
+            'example': {
+                'responsavel': True,
+                'nome': 'Fulano de Tal Atualizado',
+                'email': 'fulano.atualizado@example.com',
+                'telefone': '11987654321',
+                'cpf': '12345678900',
+                'data_nascimento': '1990-01-15',
+                'funcao_familiar': 'Pai',
+                'escolaridade': 'Ensino Superior Completo',
+                'ocupacao': 'Engenheiro de Software',
+                'renda': 5000.00,
+                'foto_documento': (
+                    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...'
+                ),
+                'beneficiario_assistencial': False,
             }
         }
+
+
+class ListarHistoricoMovimentacoesAgapeQueryPaginada(BaseModel):
+    pagina: int = Field(1, ge=1, description='Número da página desejada.')
+    por_pagina: int = Field(
+        10,
+        ge=1,
+        le=100,
+        description='Quantidade de resultados por página (máximo de 100).',
+    )
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {'example': {'pagina': 1, 'por_pagina': 20}}
+
+
+class ItemDoacaoInputSchema(BaseModel):
+    item_instancia_id: UUID
+    quantidade: int = Field(
+        ..., gt=0, description='Quantidade do item a ser doado'
+    )
+
+
+class RegistrarDoacaoAgapeRequestSchema(BaseModel):
+    familia_id: UUID
+    ciclo_acao_id: UUID
+    itens: List[ItemDoacaoInputSchema]
+
+    @model_validator(mode='before')
+    @classmethod
+    def check_itens_not_empty(cls, values):
+        itens = values.get('itens')
+        if not itens:
+            raise ValueError('A lista de itens não pode estar vazia.')
+        return values
+
+
+class InfoPermissaoVoluntarioSchema(BaseModel):
+    lead_id: UUID
+    perfis_agape: List[str]
+
+
+class AtualizarPermissoesVoluntariosRequestSchema(BaseModel):
+    atualizacoes: List[InfoPermissaoVoluntarioSchema]
+
+
+class RegistrarRecibosRequestSchema(BaseModel):
+    recibo: str = Field(..., description='URL ou identificador do recibo')
+
+
+class RegistrarRecibosRequestScheme(BaseModel):
+    recibos: List[RegistrarRecibosRequestSchema]
+
+
+class InfoPermissaoVoluntarioSchema(BaseModel):
+    lead_id: UUID
+    perfis_agape: List[str]

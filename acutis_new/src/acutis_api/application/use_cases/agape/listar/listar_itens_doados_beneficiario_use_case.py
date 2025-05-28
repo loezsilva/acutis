@@ -1,26 +1,20 @@
 import uuid
 from http import HTTPStatus
 
-from acutis_api.domain.repositories.agape import (
-    AgapeRepositoryInterface
-)
 from acutis_api.communication.responses.agape import (
-    ListarItensDoadosBeneficiarioResponse,
     ItemDoadoBeneficiarioResponse,
+    ListarItensDoadosBeneficiarioResponse,
 )
+from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+
 
 class ListarItensDoadosBeneficiarioUseCase:
-    """
-    Caso de uso para listar os itens doados para um beneficiário (via ID da DoacaoAgape).
-    """
-
     def __init__(self, agape_repository: AgapeRepositoryInterface):
         self.agape_repository = agape_repository
 
     def execute(
         self, doacao_id: uuid.UUID
     ) -> tuple[ListarItensDoadosBeneficiarioResponse, HTTPStatus]:
-        
         itens_doados_data = (
             self.agape_repository.listar_itens_por_doacao_agape_id(
                 doacao_id=doacao_id
@@ -42,10 +36,10 @@ class ListarItensDoadosBeneficiarioUseCase:
                         ),
                         item_instancia_agape_id=getattr(
                             item_data, 'item_instancia_agape_id'
-                        )
+                        ),
                     )
                 )
-        
+
         return ListarItensDoadosBeneficiarioResponse(
             root=resultados_response
         ), HTTPStatus.OK

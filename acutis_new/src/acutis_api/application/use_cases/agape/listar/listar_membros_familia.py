@@ -1,17 +1,17 @@
 import math
 
+from acutis_api.application.utils.funcoes_auxiliares import calcular_idade
 from acutis_api.communication.responses.agape import (
-    MembroFamiliaAgapeResponse,
     ListarMembrosFamiliaAgapeResponsePaginada,
+    MembroFamiliaAgapeResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
-from acutis_api.application.utils.funcoes_auxiliares import calcular_idade
-
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros,
 )
 
-class ListarMembrosFamiliaUseCase: 
+
+class ListarMembrosFamiliaUseCase:
     """
     Caso de uso para listar as famílias cadastradas:
     """
@@ -29,7 +29,7 @@ class ListarMembrosFamiliaUseCase:
         instancias, total = self.__repository.listar_membros_familia(
             familia_id=filtros.familia_id
         )
-        
+
         # Cria resposta paginada
         pagina_atual = filtros.pagina
         paginas_total = (

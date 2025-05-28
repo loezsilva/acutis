@@ -1,18 +1,18 @@
 import math
 
+from acutis_api.application.utils.funcoes_auxiliares import calcular_idade
 from acutis_api.communication.requests.agape import (
     ListarFamiliasAgapeQueryPaginada,
 )
 from acutis_api.communication.responses.agape import (
     FamiliaAgapeResponse,
-    MembroFamiliaAgapeResponse,
     ListarFamiliasAgapeResponsePaginada,
+    MembroFamiliaAgapeResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
-from acutis_api.application.utils.funcoes_auxiliares import calcular_idade
 
 
-class ListarFamiliasUseCase: 
+class ListarFamiliasUseCase:
     """
     Caso de uso para listar as famílias cadastradas:
     """

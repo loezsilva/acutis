@@ -1,14 +1,16 @@
 import uuid
-from http import HTTPStatus
 from datetime import date
+from http import HTTPStatus
 
 from acutis_api.communication.responses.agape import (
-    ListarBeneficiariosAgapeResponse,
     BeneficiarioFamiliaResponse,
-    MembroFamiliaAgapeResponse,
     EnderecoResponse,
+    ListarBeneficiariosAgapeResponse,
+    MembroFamiliaAgapeResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+
+
 class ListarBeneficiariosAgapeUseCase:
     """
     Caso de uso para listar os beneficiários de um ciclo de ação ágape.
@@ -22,10 +24,11 @@ class ListarBeneficiariosAgapeUseCase:
             return None
         hoje = date.today()
         idade = (
-            hoje.year - data_nascimento.year - (
-                (hoje.month, hoje.day) 
-                < 
-                (data_nascimento.month, data_nascimento.day)
+            hoje.year
+            - data_nascimento.year
+            - (
+                (hoje.month, hoje.day)
+                < (data_nascimento.month, data_nascimento.day)
             )
         )
         return idade
@@ -43,8 +46,7 @@ class ListarBeneficiariosAgapeUseCase:
             Uma tupla contendo a lista de beneficiários e o status HTTP.
         """
         familias_beneficiadas = (
-            self.agape_repository.\
-                listar_familias_beneficiadas_por_ciclo_acao_id(
+            self.agape_repository.listar_familias_beneficiadas_por_ciclo_id(
                 ciclo_acao_id=ciclo_acao_id
             )
         )
@@ -53,9 +55,10 @@ class ListarBeneficiariosAgapeUseCase:
         if familias_beneficiadas:
             for familia_entity in familias_beneficiadas:
                 membros_response = []
-                if hasattr(
-                    familia_entity, 'membros'
-                ) and familia_entity.membros:
+                if (
+                    hasattr(familia_entity, 'membros')
+                    and familia_entity.membros
+                ):
                     for membro_entity in familia_entity.membros:
                         membros_response.append(
                             MembroFamiliaAgapeResponse(
@@ -71,10 +74,10 @@ class ListarBeneficiariosAgapeUseCase:
                                     getattr(
                                         membro_entity, 'data_nascimento', None
                                     )
-                                )
+                                ),
                             )
                         )
-                
+
                 endereco_response = None
                 if familia_entity.fk_endereco_id:
                     endereco_entity = (
@@ -102,7 +105,7 @@ class ListarBeneficiariosAgapeUseCase:
                         endereco=endereco_response,
                     )
                 )
-        
+
         return ListarBeneficiariosAgapeResponse(
             root=beneficiarios_response_list
         ), HTTPStatus.OK

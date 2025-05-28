@@ -66,11 +66,9 @@ class Lead:
     leads_campanhas: Mapped[list['LeadCampanha']] = relationship(
         init=False, backref='lead', cascade='all, delete-orphan'
     )
-    
+
     permissoes_lead: Mapped[list['PermissaoLead']] = relationship(
-        init=False,
-        back_populates='lead', 
-        cascade='all, delete-orphan'
+        init=False, back_populates='lead', cascade='all, delete-orphan'
     )
 
     @property
@@ -88,8 +86,9 @@ class Lead:
 
     @property
     def nomes_dos_perfis(self):
-        print("@@@@@@", self.permissoes_lead)
+        print('@@@@@@', self.permissoes_lead)
         return [
-            permissao.perfil.nome 
-            for permissao in self.permissoes_lead if permissao.perfil
+            permissao.perfil.nome
+            for permissao in self.permissoes_lead
+            if permissao.perfil
         ]

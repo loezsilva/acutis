@@ -1,9 +1,9 @@
 import uuid
 from datetime import date, datetime
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 from spectree import BaseFile
-from typing import Optional
 
 from acutis_api.domain.entities.instancia_acao_agape import StatusAcaoAgapeEnum
 from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
@@ -133,39 +133,50 @@ class FotoFamiliaAgapeSchema(BaseModel):
     foto: str
     familia_id: uuid.UUID
 
-class ListarMembrosFamiliaAgapeFiltros(PaginacaoQuery): 
+
+class ListarMembrosFamiliaAgapeFiltros(PaginacaoQuery):
     familia_id: uuid.UUID
+
 
 class NumeroMembrosFamiliaAgapeSchema(BaseModel):
     quantidade: int
 
+
 class SomaRendaFamiliarAgapeSchema(BaseModel):
     total: float
 
+
 class TotalItensRecebidosSchema(BaseModel):
     total_recebidas: int
+
 
 class InformacoesAgregadasFamiliasSchema(BaseModel):
     total_cadastradas: int
     total_ativas: int
     total_inativas: int
 
+
 class NumeroTotalMembrosSchema(BaseModel):
     quantidade_total_membros: int
+
 
 class SomaTotalRendaSchema(BaseModel):
     soma_total_renda: float
 
+
 class ContagemItensEstoqueSchema(BaseModel):
     em_estoque: int
 
+
 class UltimaAcaoAgapeSchema(BaseModel):
-    data: date | None # Making it optional as per potential None returns
+    data: date | None  # Making it optional as per potential None returns
     quantidade_itens_doados: int
 
+
 class UltimaEntradaEstoqueSchema(BaseModel):
-    data: date | None # Making it optional
+    data: date | None  # Making it optional
     quantidade: int
+
 
 class CoordenadasSchema(BaseModel):
     latitude: float
@@ -175,5 +186,56 @@ class CoordenadasSchema(BaseModel):
     latitude_so: Optional[float] = None
     longitude_so: Optional[float] = None
 
+
 class PaginacaoSchema(PaginacaoQuery):
     pass
+
+
+class DadosCompletosDoacaoSchema(BaseModel):
+    ciclo_acao_id: Optional[uuid.UUID] = None
+    ciclo_acao_nome: Optional[str] = None
+    ciclo_acao_data_inicio: Optional[datetime] = None
+    ciclo_acao_data_termino: Optional[datetime] = None
+    familia_id: Optional[uuid.UUID] = None
+    familia_nome: Optional[str] = None
+    familia_observacao: Optional[str] = None
+    responsavel_familia_nome: Optional[str] = None
+    responsavel_familia_cpf: Optional[str] = None
+    responsavel_familia_telefone: Optional[str] = None
+    doacao_id: Optional[uuid.UUID] = None
+    doacao_data: Optional[datetime] = None
+    item_doado_nome: Optional[str] = None
+    item_doado_quantidade: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DadosExportacaoFamiliaSchema(BaseModel):
+    familia_id: uuid.UUID
+    familia_nome: str
+    familia_data_cadastro: Optional[datetime] = None
+    familia_status: Optional[str] = None  # Ex: "Ativa", "Inativa"
+    familia_observacao: Optional[str] = None
+    endereco_logradouro: Optional[str] = None
+    endereco_numero: Optional[str] = None
+    endereco_complemento: Optional[str] = None
+    endereco_bairro: Optional[str] = None
+    endereco_cidade: Optional[str] = None
+    endereco_estado: Optional[str] = None
+    endereco_cep: Optional[str] = None
+    responsavel_nome: Optional[str] = None
+    responsavel_cpf: Optional[str] = None
+    responsavel_telefone: Optional[str] = None
+    responsavel_email: Optional[str] = None
+    responsavel_data_nascimento: Optional[date] = None
+    responsavel_funcao_familiar: Optional[str] = None
+    responsavel_escolaridade: Optional[str] = None
+    responsavel_ocupacao: Optional[str] = None
+    numero_total_membros: Optional[int] = None
+    renda_familiar_total_estimada: Optional[float] = None
+    comprovante_residencia_url: Optional[str] = None
+    cadastrada_por_usuario_id: Optional[uuid.UUID] = None
+
+    class Config:
+        from_attributes = True

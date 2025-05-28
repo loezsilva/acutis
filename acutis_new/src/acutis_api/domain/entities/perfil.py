@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, func, Boolean
+from sqlalchemy import Boolean, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from acutis_api.domain.database import table_registry
@@ -20,7 +20,7 @@ class Perfil(ModeloBase):
     id: Mapped[uuid.UUID] = mapped_column(
         init=False, primary_key=True, default_factory=uuid.uuid4
     )
-    
+
     permissoes_lead: Mapped[list['PermissaoLead']] = relationship(
         back_populates='perfil', cascade='all, delete-orphan'
     )
@@ -33,7 +33,7 @@ class Perfil(ModeloBase):
     super_perfil: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
-    
+
     # Relationships
 
     criado_em: Mapped[datetime] = mapped_column(
