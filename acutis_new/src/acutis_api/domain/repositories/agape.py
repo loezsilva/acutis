@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 
 from acutis_api.communication.requests.agape import (
     CoordenadaFormData,
     RegistrarItemCicloAcaoAgapeFormData,
+    EditarEnderecoFamiliaAgapeRequest,
 )
 from acutis_api.domain.entities.acao_agape import AcaoAgape
 from acutis_api.domain.entities.coordenada import Coordenada
@@ -16,6 +17,7 @@ from acutis_api.domain.entities.foto_familia_agape import FotoFamiliaAgape
 from acutis_api.domain.entities.historico_movimentacao_agape import (
     HistoricoMovimentacaoAgape,
 )
+from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 from acutis_api.domain.entities.instancia_acao_agape import InstanciaAcaoAgape
 from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
 from acutis_api.domain.entities.membro_agape import MembroAgape
@@ -41,6 +43,8 @@ from acutis_api.domain.repositories.schemas.agape import (
     ContagemItensEstoqueSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
+    CoordenadasSchema,
+    PaginacaoSchema,
 )
 
 
@@ -337,3 +341,78 @@ class AgapeRepositoryInterface(ABC):
         self
     ) -> Optional[UltimaEntradaEstoqueSchema]:
         pass
+
+    abstractmethod
+    def deletar_familia_e_membros(self, familia: FamiliaAgape) -> None:
+        # Este método irá deletar (hard delete) os membros da família
+        # e depois marcar a família como deletada (soft delete).
+        pass
+
+    @abstractmethod
+    def deletar_membro(self, membro_id: UUID) -> None:
+        # Deleta (hard delete) um membro ágape.
+        pass
+    
+    @abstractmethod
+    def atualizar_endereco_familia(
+        self, 
+        familia: FamiliaAgape, 
+        dados_endereco: EditarEnderecoFamiliaAgapeRequest, 
+        coordenadas: Optional[CoordenadasSchema]
+    ) -> FamiliaAgape:
+        # Atualiza o endereço associado à família.
+        # A instância 'familia' já foi buscada e validada pelo Caso de Uso.
+        pass
+
+    @abstractmethod
+    def atualizar_membro_agape(
+        self, membro: MembroAgape
+    ) -> MembroAgape:
+        # Atualiza os dados de um membro ágape.
+        # A instância 'membro' já foi buscada e validada pelo Caso de Uso.
+        pass
+
+    @abstractmethod
+    def listar_familias_beneficiadas_por_ciclo_acao_id(
+        self, ciclo_acao_id: UUID
+    ) -> list[FamiliaAgape]:
+        # Lista as famílias beneficiadas por um ciclo de ação específico.
+        pass
+
+    def listar_historico_movimentacoes_paginado(
+        self, pagina: int, por_pagina: int
+    ) -> tuple[list[tuple[Any, str]], int]:
+        """
+        Lista o histórico de movimentações do estoque ágape de forma paginada.
+        Retorna uma tupla contendo a lista de resultados e o número total de itens.
+        Cada resultado na lista é uma tupla (entidade_historico, nome_do_item).
+        """
+        ...
+
+    def listar_itens_por_doacao_agape_id(self, doacao_id: UUID) -> list[Any]:
+        """
+        Lista os itens de uma doação ágape específica, incluindo detalhes do item.
+        Espera-se que o retorno seja uma lista de objetos ou tuplas nomeadas
+        contendo: item_id, nome_item, quantidade_doada, item_doacao_agape_id, item_instancia_agape_id.
+        """
+        ...
+
+    def listar_itens_recebidos_por_ciclo_e_doacao_id(
+        self, ciclo_acao_id: UUID, doacao_id: UUID
+    ) -> list[Any]:
+        """
+        Lista os itens de uma doação ágape específica, validando contra o ciclo de ação.
+        Espera-se que o retorno seja uma lista de objetos ou tuplas nomeadas
+        contendo: item_id, nome_item, quantidade_doada, item_doacao_agape_id, item_instancia_agape_id.
+        """
+        ...
+    
+    @abstractmethod
+    def listar_voluntarios_agape(
+        self, filtros: PaginacaoSchema
+    ) -> tuple[list[MembroAgape], int]:
+        """
+        Retorna uma lista paginada de membros ágape considerados voluntários,
+        baseado em filtros (ex: perfil).
+        """
+        ...

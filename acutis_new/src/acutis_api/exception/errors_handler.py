@@ -12,10 +12,12 @@ from acutis_api.exception.errors.unauthorized import HttpUnauthorizedError
 from acutis_api.exception.errors.unprocessable_entity import (
     HttpUnprocessableEntityError,
 )
+from acutis_api.shared.errors.itau import ItauHttpBadRequestError
 from acutis_api.shared.errors.maxipago import (
     ErroPagamento,
     ErroRecorrenciaNaoEncontrada,
 )
+from acutis_api.shared.errors.sendgrid import HttpSendGridError
 
 
 def errors_handler(error: Exception):
@@ -28,6 +30,8 @@ def errors_handler(error: Exception):
         HttpUnprocessableEntityError,
         ErroPagamento,
         ErroRecorrenciaNaoEncontrada,
+        HttpSendGridError,
+        ItauHttpBadRequestError,
     )
 
     if isinstance(error, errors_types):

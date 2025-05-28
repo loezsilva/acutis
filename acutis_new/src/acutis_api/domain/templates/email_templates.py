@@ -1,6 +1,6 @@
 from typing import Literal
-
 from acutis_api.infrastructure.settings import settings
+
 
 TEMPLATE_HEAD = """
     <html
@@ -1964,32 +1964,607 @@ def reminder_active_account_email_template(name, token):
     return template
 
 
-def delete_account_email_template(name, token):
+def excluir_conta_email_template(name, token):
     template = (
         TEMPLATE_HEAD
         + f"""
-        <body>      
-            <div class="centro">
-                <div class="topo">
-                    <img src="https://hesedprod.blob.core.windows.net/benfeitor-public/c2c90dc1-31f4-49c2-a8fe-3f651b1b1528.png" width="200px" alt="">
-                </div>
-                <div class="body">
-                    <h4 class="subtitle">Olá, {name}.</h4>
-                    <p><b>Este é um email de confirmação para a exclusão de sua conta!</b><br/><br/></p>
-                    <p><b>Clique no botão abaixo se você realmente deseja excluir sua conta!</b></p>
-                    <p><br/><a class="botao" href="{settings.URL_FRONTEND_CADASTRO}/delete-account/{token}">Excluir Minha Conta</a><br/><br/></p>
-                    <p>Se você tiver alguma dúvida ou precisar de ajuda, não hesite em entrar em contato com nossa equipe de suporte ao cliente, que está disponível para ajudá-lo com qualquer problema ou preocupação.</p>
-                    <p><b>Equipe Instituto HeSed.</b></p><br/>
-                    <p>Caso não seja você, por favor, desconsidere este e-mail.</p>
-                    <p><br/></p>
-                </div>
-                <div class="footer">
-                    <p><b>Fale Conosco</b><br/><br/>
-                    (84) 9 9123-4567 | <a href="mailto:contato@institutohesed.org.br" style="color: #FFF; text-decoration: none;">contato@institutohesed.org.br</a></p>
-                </div>
+        <body
+            style="
+            height: 100%;
+            width: 100%;
+            font-family: roboto, 'helvetica neue', helvetica, arial, sans-serif;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            margin: 0;
+            "
+        >
+            <div
+            dir="ltr"
+            class="es-wrapper-color"
+            lang="pt"
+            style="background-color: #ffffff"
+            >
+            <table
+                class="es-wrapper"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                style="
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+                border-collapse: collapse;
+                border-spacing: 0px;
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                background-repeat: repeat;
+                background-position: center top;
+                background-image: url('https://hesed-bucket.s3.sa-east-1.amazonaws.com/templates_email/particula_plano_de_fundo.png');
+                background-color: #ffffff;
+                "
+                role="none"
+            >
+                <tr style="border-collapse: collapse">
+                <td valign="top" style="margin: 0">
+                    <table
+                    cellpadding="0"
+                    cellspacing="0"
+                    class="es-content"
+                    align="center"
+                    role="none"
+                    style="
+                        mso-table-lspace: 0pt;
+                        mso-table-rspace: 0pt;
+                        border-collapse: collapse;
+                        border-spacing: 0px;
+                        table-layout: fixed !important;
+                        width: 100%;
+                    "
+                    >
+                    <tr style="border-collapse: collapse">
+                        <td align="center" style="margin: 0">
+                        <table
+                            bgcolor="#ffffff"
+                            class="es-content-body"
+                            align="center"
+                            cellpadding="0"
+                            cellspacing="0"
+                            role="none"
+                            style="
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                            background-color: transparent;
+                            width: 700px;
+                            "
+                        >
+                            <tr style="border-collapse: collapse">
+                            <td
+                                class="es-m-p0t"
+                                align="left"
+                                style="
+                                margin: 0;
+                                background-position: center bottom;
+                                background-color: transparent;
+                                "
+                                bgcolor="transparent"
+                            >
+                                <table
+                                cellpadding="0"
+                                cellspacing="0"
+                                width="100%"
+                                role="none"
+                                style="
+                                    mso-table-lspace: 0pt;
+                                    mso-table-rspace: 0pt;
+                                    border-collapse: collapse;
+                                    border-spacing: 0px;
+                                "
+                                >
+                                <tr style="border-collapse: collapse">
+                                    <td
+                                    align="center"
+                                    valign="top"
+                                    style="margin: 0; width: 700px"
+                                    >
+                                    <table
+                                        cellpadding="0"
+                                        cellspacing="0"
+                                        width="100%"
+                                        style="
+                                        mso-table-lspace: 0pt;
+                                        mso-table-rspace: 0pt;
+                                        border-collapse: collapse;
+                                        border-spacing: 0px;
+                                        background-position: center bottom;
+                                        background-color: transparent;
+                                        "
+                                        bgcolor="transparent"
+                                        role="none"
+                                    >
+                                        <tr style="border-collapse: collapse">
+                                        <td
+                                            align="center"
+                                            style="margin: 0; display: none"
+                                        ></td>
+                                        </tr>
+                                    </table>
+                                    </td>
+                                </tr>
+                                </table>
+                            </td>
+                            </tr>
+                        </table>
+                        </td>
+                    </tr>
+                    </table>
+                    <table
+                    cellpadding="0"
+                    cellspacing="0"
+                    class="es-content"
+                    align="center"
+                    role="none"
+                    style="
+                        mso-table-lspace: 0pt;
+                        mso-table-rspace: 0pt;
+                        border-collapse: collapse;
+                        border-spacing: 0px;
+                        table-layout: fixed !important;
+                        width: 100%;
+                    "
+                    >
+                    <tr style="border-collapse: collapse">
+                        <td
+                        align="center"
+                        bgcolor="transparent"
+                        style="margin: 0; background-color: transparent"
+                        >
+                        <table
+                            bgcolor="transparent"
+                            class="es-content-body"
+                            align="center"
+                            cellpadding="0"
+                            cellspacing="0"
+                            style="
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                            background-color: transparent;
+                            width: 700px;
+                            "
+                            role="none"
+                        >
+                            <tr style="border-collapse: collapse">
+                            <td
+                                class="es-m-p20b"
+                                align="left"
+                                style="
+                                margin: 0;
+                                border-radius: 30px 30px 0px 0px;
+                                background-color: #515151;
+                                "
+                                bgcolor="#515151"
+                            >
+                                <table
+                                cellpadding="0"
+                                cellspacing="0"
+                                width="100%"
+                                role="none"
+                                style="
+                                    mso-table-lspace: 0pt;
+                                    mso-table-rspace: 0pt;
+                                    border-collapse: collapse;
+                                    border-spacing: 0px;
+                                "
+                                >
+                                <tr style="border-collapse: collapse">
+                                    <td
+                                    align="center"
+                                    valign="top"
+                                    style="margin: 0; width: 700px"
+                                    >
+                                    <table
+                                        cellpadding="0"
+                                        cellspacing="0"
+                                        width="100%"
+                                        style="
+                                        mso-table-lspace: 0pt;
+                                        mso-table-rspace: 0pt;
+                                        border-collapse: collapse;
+                                        border-spacing: 0px;
+                                        background-size: 100%;
+                                        background-position: left top;
+                                        "
+                                        role="presentation"
+                                    >
+                                        <tr style="border-collapse: collapse">
+                                        <td
+                                            align="center"
+                                            class="logo-p-t-b"
+                                            style="margin: 0; font-size: 0px"
+                                        >
+                                            <a
+                                            target="_blank"
+                                            href="https://institutohesed.org.br/"
+                                            style="
+                                                -webkit-text-size-adjust: none;
+                                                -ms-text-size-adjust: none;
+                                                mso-line-height-rule: exactly;
+                                                text-decoration: underline;
+                                                color: #000001;
+                                                font-size: 15px;
+                                            "
+                                            ><img
+                                                src="https://hesed-bucket.s3.sa-east-1.amazonaws.com/templates_email/logo_hesed.png"
+                                                alt="Foto da Logomarca do Instituto Hesed"
+                                                style="
+                                                display: block;
+                                                border: 0;
+                                                outline: none;
+                                                text-decoration: none;
+                                                -ms-interpolation-mode: bicubic;
+                                                "
+                                                height="100"
+                                                title="Foto da Logomarca do Instituto Hesed"
+                                                class="m-logo-m adapt-img"
+                                                sizes="(max-width:600px) 140px, 204px"
+                                            /></a>
+                                        </td>
+                                        </tr>
+                                        <tr style="border-collapse: collapse">
+                                        <td
+                                            align="center"
+                                            class="es-m-p30b amp-banner"
+                                            style="margin: 0; font-size: 0px"
+                                        >
+                                            <a
+                                            target="_blank"
+                                            href="https://institutohesed.org.br/"
+                                            style="
+                                                -webkit-text-size-adjust: none;
+                                                -ms-text-size-adjust: none;
+                                                mso-line-height-rule: exactly;
+                                                text-decoration: underline;
+                                                color: #000001;
+                                                font-size: 15px;
+                                            "
+                                            ><img
+                                                src="https://hesed-bucket.s3.sa-east-1.amazonaws.com/templates_email/bg_bible.jpg"
+                                                alt
+                                                style="
+                                                display: block;
+                                                border: 0;
+                                                outline: none;
+                                                text-decoration: none;
+                                                -ms-interpolation-mode: bicubic;
+                                                "
+                                                sizes="(max-width:600px) 80vw, 373px"
+                                                class="adapt-img"
+                                                width="700"
+                                            /></a>
+                                        </td>
+                                        </tr>
+                                    </table>
+                                    </td>
+                                </tr>
+                                </table>
+                            </td>
+                            </tr>
+                            <tr style="border-collapse: collapse">
+                            <td
+                                class="es-m-p20l es-m-p20r es-m-p40b m-bg-none"
+                                align="left"
+                                style="
+                                margin: 0;
+                                padding-top: 40px;
+                                background-image: url('https://hesed-bucket.s3.sa-east-1.amazonaws.com/templates_email/card_outline.jpg');
+                                background-position: center top;
+                                background-color: #ffffff;
+                                background-repeat: no-repeat;
+                                padding-right: 80px;
+                                padding-left: 80px;
+                                padding-bottom: 125px;
+                                "
+                                bgcolor="#ffffff"
+                            >
+                                <table
+                                cellpadding="0"
+                                cellspacing="0"
+                                width="100%"
+                                role="none"
+                                style="
+                                    mso-table-lspace: 0pt;
+                                    mso-table-rspace: 0pt;
+                                    border-collapse: collapse;
+                                    border-spacing: 0px;
+                                "
+                                >
+                                <tr style="border-collapse: collapse">
+                                    <td
+                                    align="center"
+                                    valign="top"
+                                    style="margin: 0; width: 540px"
+                                    >
+                                    <table
+                                        cellpadding="0"
+                                        cellspacing="0"
+                                        width="100%"
+                                        style="
+                                        mso-table-lspace: 0pt;
+                                        mso-table-rspace: 0pt;
+                                        border-collapse: collapse;
+                                        border-spacing: 0px;
+                                        background-position: center top;
+                                        "
+                                        role="presentation"
+                                    >
+                                        <tr style="border-collapse: collapse">
+                                        <td
+                                            align="center"
+                                            style="margin: 0; padding-bottom: 10px"
+                                        >
+                                            <h1
+                                            style="
+                                                margin: 0;
+                                                line-height: 43.2px;
+                                                mso-line-height-rule: exactly;
+                                                font-family: 'open sans',
+                                                'helvetica neue', helvetica, arial,
+                                                sans-serif;
+                                                font-size: 36px;
+                                                font-style: normal;
+                                                font-weight: bold;
+                                                color: #000000;
+                                            "
+                                            >
+                                            <strong>Confirmação de exclusão de conta. </strong>
+                                            </h1>
+                                        </td>
+                                        </tr>
+                                        <tr style="border-collapse: collapse">
+                                        <td
+                                            align="left"
+                                            style="margin: 0; padding-bottom: 10px"
+                                        >
+                                            &nbsp; &nbsp;
+                                            <h3
+                                            style="
+                                                margin: 0;
+                                                line-height: 21.6px;
+                                                mso-line-height-rule: exactly;
+                                                font-family: 'open sans',
+                                                'helvetica neue', helvetica, arial,
+                                                sans-serif;
+                                                font-size: 18px;
+                                                font-style: normal;
+                                                font-weight: bold;
+                                                color: #000000;
+                                            "
+                                            >
+                                            Querido(a) {name}.
+                                            </h3>
+                                            <p
+                                            style="
+                                                margin: 0;
+                                                -webkit-text-size-adjust: none;
+                                                -ms-text-size-adjust: none;
+                                                mso-line-height-rule: exactly;
+                                                font-family: roboto, 'helvetica neue',
+                                                helvetica, arial, sans-serif;
+                                                line-height: 30px;
+                                                color: #000000;
+                                                font-size: 15px;
+                                            "
+                                            >
+                                            <br />
+                                            </p>
+                                            <p
+                                            style="
+                                                margin: 0;
+                                                -webkit-text-size-adjust: none;
+                                                -ms-text-size-adjust: none;
+                                                mso-line-height-rule: exactly;
+                                                font-family: roboto, 'helvetica neue',
+                                                helvetica, arial, sans-serif;
+                                                line-height: 30px;
+                                                color: #000000;
+                                                font-size: 15px;
+                                            "
+                                            >
+                                            Caso queira realmente deletar sua conta clique em confirmar, caso contrário, apenas ignore.
+                                            <br />
+                                            </p>
+					                        <p
+                                            style="
+                                                margin: 0;
+                                                -webkit-text-size-adjust: none;
+                                                -ms-text-size-adjust: none;
+                                                mso-line-height-rule: exactly;
+                                                font-family: roboto, 'helvetica neue',
+                                                helvetica, arial, sans-serif;
+                                                line-height: 30px;
+                                                color: #000000;
+                                                font-size: 15px;
+                                            "
+                                            >
+                                            Se você tiver alguma dúvida ou precisar de ajuda, não hesite em entrar em contato com nossa equipe de suporte ao cliente, que está disponível para ajudá-lo com qualquer problema ou preocupação.
+                                            <br />
+                                            </p>
+                                            <div style="text-align: center; margin: 20px 0;">
+                                                <a href="{settings.URL_FRONTEND_CADASTRO}?token_deletar_conta={token}" target="_blank" style="display: inline-block; padding: 15px 25px; background-color: #f44336; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 0 10px;">
+                                                    Confirmar
+                                                </a>
+                                            </div>
+                                        </td>
+                                        </tr>
+                                    </table>
+                                    </td>
+                                </tr>
+                                </table>
+                            </td>
+                            </tr>
+                            <tr style="border-collapse: collapse">
+                            <td
+                                class="m-bg-auto"
+                                align="left"
+                                style="
+                                margin: 0;
+                                background-size: 100% 100%;
+                                background-color: transparent;
+                                background-position: center top;
+                                "
+                                bgcolor="transparent"
+                            >
+                                <table
+                                cellpadding="0"
+                                cellspacing="0"
+                                width="100%"
+                                role="none"
+                                style="
+                                    mso-table-lspace: 0pt;
+                                    mso-table-rspace: 0pt;
+                                    border-collapse: collapse;
+                                    border-spacing: 0px;
+                                "
+                                >
+                                <tr style="border-collapse: collapse">
+                                    <td
+                                    align="center"
+                                    valign="top"
+                                    style="margin: 0; width: 700px"
+                                    >
+                                    <table
+                                        cellpadding="0"
+                                        cellspacing="0"
+                                        width="100%"
+                                        style="
+                                        mso-table-lspace: 0pt;
+                                        mso-table-rspace: 0pt;
+                                        border-collapse: collapse;
+                                        border-spacing: 0px;
+                                        background-position: center top;
+                                        "
+                                        role="presentation"
+                                    >
+                                        <tr
+                                        class="es-visible-simple-html-only"
+                                        style="border-collapse: collapse"
+                                        >
+                                        <td
+                                            align="center"
+                                            valign="top"
+                                            style="margin: 0; width: 700px"
+                                        >
+                                            <table
+                                            cellpadding="0"
+                                            cellspacing="0"
+                                            width="100%"
+                                            style="
+                                                mso-table-lspace: 0pt;
+                                                mso-table-rspace: 0pt;
+                                                border-collapse: separate;
+                                                border-spacing: 0px;
+                                                background-position: center top;
+                                                background-color: #515151;
+                                                border-radius: 0 0 30px 30px;
+                                            "
+                                            bgcolor="#515151"
+                                            role="presentation"
+                                            >
+                                            <tr style="border-collapse: collapse">
+                                                <td
+                                                align="center"
+                                                style="margin: 0; padding-top: 20px"
+                                                >
+                                                <h2
+                                                    style="
+                                                    margin: 0;
+                                                    line-height: 28.8px;
+                                                    mso-line-height-rule: exactly;
+                                                    font-family: 'open sans',
+                                                        'helvetica neue', helvetica,
+                                                        arial, sans-serif;
+                                                    font-size: 24px;
+                                                    font-style: normal;
+                                                    font-weight: bold;
+                                                    color: #ffffff;
+                                                    "
+                                                >
+                                                    Instituto Hesed | Casa Mãe
+                                                </h2>
+                                                </td>
+                                            </tr>
+                                            <tr style="border-collapse: collapse">
+                                                <td
+                                                align="left"
+                                                style="
+                                                    margin: 0;
+                                                    padding-top: 30px;
+                                                    padding-bottom: 40px;
+                                                    padding-right: 110px;
+                                                    padding-left: 110px;
+                                                "
+                                                class="es-m-p20l es-m-p20r"
+                                                >
+                                                <p
+                                                    style="
+                                                    margin: 0;
+                                                    -webkit-text-size-adjust: none;
+                                                    -ms-text-size-adjust: none;
+                                                    mso-line-height-rule: exactly;
+                                                    font-family: roboto,
+                                                        'helvetica neue', helvetica,
+                                                        arial, sans-serif;
+                                                    line-height: 28px;
+                                                    color: #ffffff;
+                                                    font-size: 14px;
+                                                    letter-spacing: 1px;
+                                                    "
+                                                >
+                                                    Av. Dionisio Leonel Alencar, 1443 -
+                                                    Parque Santa Maria<br />Cep:
+                                                    60873-073 | Fortaleza – Ceará<br />(85)
+                                                    3274-4513 -
+                                                    contato@institutohesed.org.br
+                                                </p>
+                                                </td>
+                                            </tr>
+                                            </table>
+                                        </td>
+                                        </tr>
+                                    </table>
+                                    </td>
+                                </tr>
+                                </table>
+                            </td>
+                            </tr>
+                        </table>
+                        </td>
+                    </tr>
+                    </table>
+                    <table
+                    cellpadding="0"
+                    cellspacing="0"
+                    class="es-content"
+                    align="center"
+                    role="none"
+                    style="
+                        mso-table-lspace: 0pt;
+                        mso-table-rspace: 0pt;
+                        border-collapse: collapse;
+                        border-spacing: 0px;
+                        table-layout: fixed !important;
+                        width: 100%;
+                    "
+                    ></table>
+                </td>
+                </tr>
+            </table>
             </div>
         </body>
-    </html>
+        </html>
     """
     )
     return template

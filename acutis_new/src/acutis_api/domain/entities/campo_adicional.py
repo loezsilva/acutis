@@ -19,6 +19,10 @@ class TiposCampoEnum(str, Enum):
     date = 'date'
     datetime = 'datetime'
     arquivo = 'arquivo'
+    imagem = 'imagem'
+    textarea = 'textarea'
+    data_inicio = 'data_inicio'
+    data_fim = 'data_fim'
 
 
 @table_registry.mapped_as_dataclass

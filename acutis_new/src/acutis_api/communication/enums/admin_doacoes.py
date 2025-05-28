@@ -18,7 +18,6 @@ class StatusProcessamentoEnum(str, Enum):
     pago = 'pago'
     expirado = 'expirado'
     estornado = 'estornado'
-    sem_filtro = None
 
 
 class ListarDoacoesOrdenarPorEnum(str, Enum):

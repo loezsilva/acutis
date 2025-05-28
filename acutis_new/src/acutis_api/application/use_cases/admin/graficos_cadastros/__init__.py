@@ -10,8 +10,10 @@ from .membros_dia_atual import QuantidadeCadastrosDiaAtualUseCase
 from .membros_media_diaria import MembrosMediaDiariaUseCase
 from .membros_media_mensal import MembrosMediaMensalUseCase
 from .membros_por_dia_mes_atual import MembrosPorDiaMesAtualUseCase
+from .membros_por_estado import MembrosPorEstadoUseCase
 from .membros_por_genero import QuantidadeMembrosPorGeneroUseCase
 from .membros_por_hora_dia_atual import MembrosPorHoraDiaAtualUseCase
+from .membros_por_pais import MembrosPorPaisUseCase
 from .quantidade_leads_do_mes import QuantidadeLeadsUseCase
 from .quantidade_membros_do_mes import QuantidadeCadastrosUseCase
 from .resumo_quantidade_registros import ResumoQuantidadeRegistrosUseCase
@@ -34,4 +36,6 @@ __all__ = [
     'CadastrosPorMesUseCase',
     'CadastrosPorIdadeUseCase',
     'LeadsPorEvolucaoMensalUseCase',
+    'MembrosPorEstadoUseCase',
+    'MembrosPorPaisUseCase',
 ]

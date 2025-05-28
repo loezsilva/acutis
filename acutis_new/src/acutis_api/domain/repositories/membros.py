@@ -2,7 +2,11 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Any
 
+from acutis_api.communication.requests.membros import (
+    AtualizarDadosMembroRequest,
+)
 from acutis_api.domain.entities.campanha import Campanha
+from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
@@ -11,6 +15,9 @@ from acutis_api.domain.entities.metadado_lead import MetadadoLead
 from acutis_api.domain.entities.oficial import Oficial
 from acutis_api.domain.repositories.schemas.membros import (
     CampoAdicionalSchema,
+    CardDoacoesMembroBenfeitorSchema,
+    DoacaoMembroBenfeitorSchema,
+    HistoricoDoacaoSchema,
     RegistrarNovoEnderecoSchema,
     RegistrarNovoLeadSchema,
     RegistrarNovoMembroSchema,
@@ -19,6 +26,7 @@ from acutis_api.domain.repositories.schemas.membros_oficiais import (
     RegistraMembroOficialSchema,
     RegistrarNovoMembroOficialResponse,
 )
+from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 
 
 class MembrosRepositoryInterface(ABC):
@@ -104,3 +112,32 @@ class MembrosRepositoryInterface(ABC):
 
     @abstractmethod
     def atualizar_data_ultimo_acesso(self, lead: Lead): ...
+
+    @abstractmethod
+    def excluir_conta(self, lead: Lead) -> None: ...
+
+    @abstractmethod
+    def remove_referencias_lead_id(self, fk_lead_id: uuid.UUID) -> None: ...
+
+    @abstractmethod
+    def listar_doacoes(
+        self, filtros: PaginacaoQuery, benfeitor_id: uuid.UUID
+    ) -> tuple[list[DoacaoMembroBenfeitorSchema], int]: ...
+
+    @abstractmethod
+    def buscar_doacao_por_id(self, id: uuid.UUID) -> Doacao | None: ...
+
+    @abstractmethod
+    def buscar_historico_doacao_por_doacao_id(
+        self, filtros: PaginacaoQuery, id: uuid.UUID
+    ) -> tuple[list[HistoricoDoacaoSchema], int]: ...
+
+    @abstractmethod
+    def atualizar_dados_membro(
+        self, request: AtualizarDadosMembroRequest, membro: Membro
+    ): ...
+
+    @abstractmethod
+    def buscar_card_doacoes_membro_benfeitor(
+        self, benfeitor_id: uuid.UUID
+    ) -> CardDoacoesMembroBenfeitorSchema: ...

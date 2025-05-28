@@ -47,6 +47,7 @@ class ListarFamiliasUseCase:
                     criado_em=instancia.criado_em,
                     endereco_id=instancia.fk_endereco_id,
                     observacao=instancia.observacao,
+                    deletado_em=instancia.deletado_em,
                     membros=[
                         MembroFamiliaAgapeResponse(
                             id=membro_instancia.id,
@@ -57,21 +58,17 @@ class ListarFamiliasUseCase:
                             ocupacao=membro_instancia.ocupacao,
                             renda=membro_instancia.renda,
                             responsavel=membro_instancia.responsavel,
-                            idade=calcular_idade(membro_instancia.data_nascimento),
+                            idade=calcular_idade(
+                                membro_instancia.data_nascimento
+                            ),
                         ).model_dump()
-                        for membro_instancia in self.__repository.listar_membros_por_familia_id(familia_id=instancia.id)
+                        for membro_instancia in (
+                            self.__repository.listar_membros_por_familia_id(
+                                familia_id=instancia.id
+                            )
+                        )
                     ],
                 ).model_dump()
                 for instancia in instancias
             ],
         )
-        
-        # id: uuid.UUID
-        # cpf: str | None
-        # nome: str
-        # email: str | None
-        # telefone: str | None
-        # ocupacao: str
-        # renda: float | None
-        # responsavel: bool
-        # idade: int | None

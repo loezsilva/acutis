@@ -167,3 +167,62 @@ class RegistrarNovoLeadRequest(BaseModel):
     @classmethod
     def formatar_telefone(cls, value: str):
         return ''.join(filter(str.isdigit, value))
+
+
+class AtualizarEnderecoMembroInput(BaseModel):
+    codigo_postal: str | None = None
+    tipo_logradouro: str | None = None
+    logradouro: str | None = None
+    numero: str | None = None
+    complemento: str | None = None
+    bairro: str | None = None
+    cidade: str | None = None
+    estado: str | None = None
+    pais: str | None = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            'example': {
+                'codigo_postal': None,
+                'tipo_logradouro': None,
+                'logradouro': None,
+                'numero': None,
+                'complemento': None,
+                'bairro': None,
+                'cidade': None,
+                'estado': None,
+                'pais': None,
+            }
+        }
+    )
+
+
+class AtualizarDadosMembroRequest(BaseModel):
+    nome_social: str | None = None
+    data_nascimento: date | None = None
+    endereco: AtualizarEnderecoMembroInput | None = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            'example': {
+                'fk_lead_id': None,
+                'nome_social': None,
+                'data_nascimento': None,
+                'endereco': {
+                    'codigo_postal': None,
+                    'tipo_logradouro': None,
+                    'logradouro': None,
+                    'numero': None,
+                    'complemento': None,
+                    'bairro': None,
+                    'cidade': None,
+                    'estado': None,
+                    'pais': None,
+                },
+            }
+        }
+    )
+
+
+class AtualizarFotoMembroFormData(BaseModel):
+    foto: BaseFile = None

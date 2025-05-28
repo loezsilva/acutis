@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Date, asc, between, cast, desc, func
@@ -143,3 +144,39 @@ class AdminMembrosRepository(AdminMembrosRepositoryInterface):
     def buscar_lead_por_id(self, id: uuid.UUID) -> Lead | None:
         lead = self._database.session.get(Lead, id)
         return lead
+
+    def excluir_conta(self, lead: Lead) -> None:
+        self._database.session.delete(lead)
+        self._database.session.commit()
+
+    def buscar_total_leads(self) -> int:
+        total_leads = self._database.session.query(
+            func.count(Lead.id)
+        ).scalar()
+        return total_leads
+
+    def buscar_total_membros(self) -> int:
+        total_membros = self._database.session.query(
+            func.count(Membro.id)
+        ).scalar()
+        return total_membros
+
+    def buscar_leads_mes(self, data: datetime = datetime.now()) -> int:
+        return (
+            self._database.session.query(func.count(Lead.id))
+            .filter(
+                func.month(Lead.criado_em) == func.month(data),
+                func.year(Lead.criado_em) == func.year(data),
+            )
+            .scalar()
+        )
+
+    def buscar_membros_mes(self, data: datetime = datetime.now()) -> int:
+        return (
+            self._database.session.query(func.count(Membro.id))
+            .filter(
+                func.month(Membro.criado_em) == func.month(data),
+                func.year(Membro.criado_em) == func.year(data),
+            )
+            .scalar()
+        )

@@ -26,7 +26,7 @@ class DadosCampanhaSchema(BaseModel):
 
 class DadosDoacaoSchema(BaseModel):
     id: uuid.UUID
-    criada_em: datetime | str
+    criada_em: datetime | str | None
     cancelada_em: datetime | str | None
     pagamento_doacao_id: uuid.UUID
     valor_doacao: float

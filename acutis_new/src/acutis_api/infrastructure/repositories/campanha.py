@@ -4,14 +4,26 @@ from flask_jwt_extended import current_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, select
 
+from acutis_api.domain.entities.benfeitor import Benfeitor
 from acutis_api.domain.entities.campanha import Campanha
+from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
 from acutis_api.domain.entities.campo_adicional import CampoAdicional
+from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.landing_page import LandingPage
+from acutis_api.domain.entities.pagamento_doacao import PagamentoDoacao
+from acutis_api.domain.entities.processamento_doacao import (
+    ProcessamentoDoacao,
+    StatusProcessamentoEnum,
+)
 from acutis_api.domain.repositories.campanha import (
     CampanhaRepositoryInterface,
     ListarCampanhasQuery,
     RegistrarCampanhaSchema,
 )
+from acutis_api.domain.repositories.schemas.campanhas import (
+    ListarDoacoesCampanhaSchema,
+)
+from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 
 
 class CampanhaRepository(CampanhaRepositoryInterface):
@@ -21,7 +33,8 @@ class CampanhaRepository(CampanhaRepositoryInterface):
     def atualizar_landing_page(self, landing_page, dados_da_landing_page):
         landing_page.conteudo = dados_da_landing_page.conteudo
         landing_page.shlink = dados_da_landing_page.shlink
-        landing_page.atualiado_em = func.now()
+        landing_page.estrutura_json = dados_da_landing_page.estrutura_json
+        landing_page.atualizado_em = func.now()
         self.__database.session.flush()
 
     def atualizar_campos_adicionais(
@@ -43,6 +56,7 @@ class CampanhaRepository(CampanhaRepositoryInterface):
         campanha_para_atualizar: Campanha,
         dados_da_campanha: RegistrarCampanhaSchema,
     ) -> None:
+        campanha_para_atualizar.meta = dados_da_campanha.meta
         campanha_para_atualizar.nome = dados_da_campanha.nome
         campanha_para_atualizar.publica = dados_da_campanha.publica
         campanha_para_atualizar.ativa = dados_da_campanha.ativa
@@ -78,6 +92,7 @@ class CampanhaRepository(CampanhaRepositoryInterface):
             fk_campanha_id=fk_campanha_id,
             conteudo=dados_da_landing_page.conteudo,
             shlink=dados_da_landing_page.shlink,
+            estrutura_json=dados_da_landing_page.estrutura_json,
         )
 
         self.__database.session.add(nova_landing_page)
@@ -191,13 +206,96 @@ class CampanhaRepository(CampanhaRepositoryInterface):
         )
 
     def buscar_campanha_por_nome(self, nome_campanha: str) -> Campanha:
-        return self.__database.session.scalar(
-            self.__database.select(Campanha).filter(
-                Campanha.nome == nome_campanha
-            )
+        return (
+            self.__database.session.query(Campanha, LandingPage)
+            .outerjoin(LandingPage, LandingPage.fk_campanha_id == Campanha.id)
+            .filter(Campanha.nome == nome_campanha)
+            .first()
         )
 
     def lista_de_campanhas(self) -> Campanha:
         return self.__database.session.scalars(
             select(Campanha).order_by(Campanha.nome)
         ).all()
+
+    def buscar_landing_page_por_campanha_id(
+        self, fk_campanha_id: uuid.UUID
+    ) -> LandingPage:
+        return (
+            self.__database.session.query(LandingPage)
+            .filter(LandingPage.fk_campanha_id == fk_campanha_id)
+            .first()
+        )
+
+    def buscar_landing_page_por_id(
+        self, landing_page_id: uuid.UUID
+    ) -> LandingPage:
+        return (
+            self.__database.session.query(LandingPage)
+            .filter(LandingPage.id == landing_page_id)
+            .first()
+        )
+
+    def listar_doacoes_campanha_pelo_id(
+        self, filtros: PaginacaoQuery, id: uuid.UUID
+    ) -> tuple[list[ListarDoacoesCampanhaSchema], int]:
+        query = (
+            self.__database.session.query(
+                PagamentoDoacao.valor,
+                ProcessamentoDoacao.processado_em.label('data_doacao'),
+                ProcessamentoDoacao.forma_pagamento,
+                Benfeitor.nome,
+            )
+            .select_from(Campanha)
+            .join(CampanhaDoacao, Campanha.id == CampanhaDoacao.fk_campanha_id)
+            .join(Doacao, CampanhaDoacao.id == Doacao.fk_campanha_doacao_id)
+            .join(Benfeitor, Doacao.fk_benfeitor_id == Benfeitor.id)
+            .join(PagamentoDoacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                PagamentoDoacao.id
+                == ProcessamentoDoacao.fk_pagamento_doacao_id,
+            )
+            .where(
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                Campanha.id == id,
+            )
+            .order_by(ProcessamentoDoacao.processado_em.desc())
+        )
+
+        paginacao = query.paginate(
+            page=filtros.pagina,
+            per_page=filtros.por_pagina,
+            error_out=False,
+        )
+
+        doacoes, total = paginacao.items, paginacao.total
+
+        return doacoes, total
+
+    def registrar_campanha_doacao(
+        self, chave_pix: str, campanha_id: uuid.UUID
+    ):
+        campanha_doacao = CampanhaDoacao(
+            chave_pix=chave_pix, fk_campanha_id=campanha_id
+        )
+        self.__database.session.add(campanha_doacao)
+        self.__database.session.flush()
+
+    def atualizar_campanha_doacao(
+        self, chave_pix: str, campanha_doacao: CampanhaDoacao
+    ):
+        campanha_doacao.chave_pix = chave_pix
+        self.__database.session.add(campanha_doacao)
+        self.__database.session.flush()
+        self.__database.session.refresh(campanha_doacao)
+
+    def busca_lp_por_nome_campanha(self, nome_campanha: str):
+        return (
+            self.__database.session.query(
+                LandingPage.conteudo, LandingPage.estrutura_json
+            )
+            .join(Campanha, Campanha.id == LandingPage.fk_campanha_id)
+            .filter(Campanha.nome == nome_campanha)
+            .first()
+        )

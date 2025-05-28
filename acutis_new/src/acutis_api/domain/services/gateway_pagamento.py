@@ -3,14 +3,14 @@ from abc import ABC, abstractmethod
 from acutis_api.domain.services.schemas.gateway_pagamento import (
     BuscarPagamentoPixResponse,
     CriarPagamentoBolecodeRequest,
-    CriarPagamentoPixRequest,
+    CriarPagamentoPixSchema,
 )
 
 
 class GatewayPagamentoInterface(ABC):
     @abstractmethod
     def criar_pagamento_pix(
-        self, pagamento: CriarPagamentoPixRequest
+        self, pagamento: CriarPagamentoPixSchema
     ) -> BuscarPagamentoPixResponse: ...
 
     @abstractmethod
@@ -24,4 +24,7 @@ class GatewayPagamentoInterface(ABC):
     ): ...
 
     @abstractmethod
-    def registra_chave_pix_no_webhook(self, chave_pix: str) -> None: ...
+    def registrar_chave_pix_webhook(self, chave_pix: str) -> None: ...
+
+    @abstractmethod
+    def deletar_chave_pix_webhook(self, chave_pix: str): ...

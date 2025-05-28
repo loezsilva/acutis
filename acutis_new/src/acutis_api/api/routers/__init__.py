@@ -1,5 +1,6 @@
 from flask import Flask
 
+from .admin_benfeitores import admin_benfeitores_bp
 from .admin_campanhas import admin_campanha_bp
 from .admin_cargos_oficiais import admin_cargos_oficiais_bp
 from .admin_doacoes import admin_doacoes_bp
@@ -17,6 +18,7 @@ from .rotas_publicas import rotas_publicas_bp
 from .vocacional import vocacional_bp
 
 blueprints = [
+    admin_benfeitores_bp,
     admin_campanha_bp,
     admin_cargos_oficiais_bp,
     admin_doacoes_bp,

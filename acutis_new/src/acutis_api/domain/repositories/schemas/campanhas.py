@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -37,3 +38,10 @@ class RegistroNovoCampoAdicionalSchema(BaseModel):
     nome_campo: Optional[str]
     tipo_campo: Optional[str]
     obrigatorio: Optional[bool]
+
+
+class ListarDoacoesCampanhaSchema(BaseModel):
+    valor: float
+    data_doacao: datetime
+    forma_pagamento: str
+    nome: str

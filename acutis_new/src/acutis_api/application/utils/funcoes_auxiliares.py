@@ -28,6 +28,10 @@ from acutis_api.infrastructure.settings import settings
 class TokenSaltEnum(str, Enum):
     ativar_conta = 'active_account_confirmation'
     recuperar_senha = 'reset_password_confirmation'
+    excluir_conta = 'delete_account_confirmation'
+    gerar_novo_pagamento_recorrencia_pix = (
+        '4eed38b8-b906-4dc1-bdd6-d219b722d958'
+    )
 
 
 def gerar_token(objeto: dict, salt: str) -> str:
@@ -162,7 +166,7 @@ def valida_email(
 
 def formatar_string(texto: str | None) -> str | None:
     # Substituir "ç" por "c"
-    texto = re.sub('[ç]', 'c', texto)
+    texto = re.sub('[ç]', 'c', texto)  # NOSONAR
 
     # Remover acentos
     texto = re.sub('[áàãâä]', 'a', texto)
@@ -173,7 +177,7 @@ def formatar_string(texto: str | None) -> str | None:
 
     # Remover pontos e sinais
     texto = re.sub('[.!?,:;ºª]', '', texto)
-    texto = re.sub('[_]', ' ', texto)
+    texto = re.sub('[_]', ' ', texto)  # NOSONAR
 
     return texto
 
@@ -259,19 +263,6 @@ def exporta_csv(data, nome_arquivo):
         raise errors_handler(exc)
 
 def calcular_idade(data_nascimento: Union[str, date], formato: str = "%Y-%m-%d") -> int:
-    """
-    Calcula a idade com base na data de nascimento fornecida.
-
-    Args:
-        data_nascimento (Union[str, date]): A data de nascimento no formato date ou string.
-        formato (str): O formato esperado caso a data seja string. Padrão: "%Y-%m-%d".
-
-    Returns:
-        int: Idade em anos completos.
-
-    Raises:
-        ValueError: Se a data estiver no futuro ou for inválida.
-    """
     if isinstance(data_nascimento, str):
         try:
             data_nascimento = datetime.strptime(data_nascimento, formato).date()
@@ -287,3 +278,7 @@ def calcular_idade(data_nascimento: Union[str, date], formato: str = "%Y-%m-%d")
         idade -= 1
 
     return idade
+
+def buscar_data_valida(dia: int, mes: int, ano: int) -> date:
+    ultimo_dia = monthrange(ano, mes)[1]
+    return date(ano, mes, (min(dia, ultimo_dia)))

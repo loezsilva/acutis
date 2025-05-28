@@ -10,6 +10,7 @@ from acutis_api.communication.enums.admin_doacoes import (
     StatusProcessamentoEnum,
 )
 from acutis_api.communication.enums.admin_exportar_dados import (
+    ExportarBenfeitoresEnum,
     ExportarDoacoesEnum,
 )
 from acutis_api.communication.enums.membros import SexoEnum
@@ -30,7 +31,7 @@ class ExportaLeadsRequest(BaseModel):
     telefone: Optional[str] = None
     pais: Optional[str] = None
     nome: Optional[str] = None
-    status: Optional[StatusOficialEnum] = None
+    status: Optional[int] = None
     origem_cadastro: Optional[str] = None
     data_inicio: Optional[date] = None
     data_fim: Optional[date] = None
@@ -65,6 +66,7 @@ class ExportarDadosMembroOficialRequest(ExportarMembrosRequest):
         'criado_em','numero_documento', 'fk_membro_id', 'atualizado_por', \
         'atualizado_por', 'fk_superior_id', 'fk_cargo_oficial_id']",
     )
+    status: Optional[StatusOficialEnum] = None
     fk_superior_id: Optional[uuid.UUID] = None
     atualizado_por: Optional[uuid.UUID] = None
     fk_cargo_oficial_id: Optional[uuid.UUID] = None
@@ -101,3 +103,14 @@ class ExportarDoacoesQuery(BaseModel):  # NOSONAR
     codigo_comprovante: str | None = None
     nosso_numero: str | None = None
     status: StatusProcessamentoEnum = None  # NOSONAR
+
+
+class ExportarBenfeitoresQuery(BaseModel):
+    colunas: list[ExportarBenfeitoresEnum]
+    nome_documento: str | None = None
+    campanha_id: uuid.UUID | None = None
+    campanha_nome: str | None = None
+    registrado_em_inicio: date | None = None
+    registrado_em_fim: date = datetime.now().date()
+    ultima_doacao_inicio: date | None = None
+    ultima_doacao_fim: date = datetime.now().date()

@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, EmailStr, Field
 from spectree import BaseFile
+from typing import Optional
 
 from acutis_api.domain.entities.instancia_acao_agape import StatusAcaoAgapeEnum
 from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
@@ -165,3 +166,14 @@ class UltimaAcaoAgapeSchema(BaseModel):
 class UltimaEntradaEstoqueSchema(BaseModel):
     data: date | None # Making it optional
     quantidade: int
+
+class CoordenadasSchema(BaseModel):
+    latitude: float
+    longitude: float
+    latitude_ne: Optional[float] = None
+    longitude_ne: Optional[float] = None
+    latitude_so: Optional[float] = None
+    longitude_so: Optional[float] = None
+
+class PaginacaoSchema(PaginacaoQuery):
+    pass

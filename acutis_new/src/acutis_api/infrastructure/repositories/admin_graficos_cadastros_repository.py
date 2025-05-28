@@ -8,6 +8,7 @@ from acutis_api.application.utils.funcoes_auxiliares import (
 )
 from acutis_api.domain.entities.benfeitor import Benfeitor
 from acutis_api.domain.entities.campanha import Campanha
+from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
 from acutis_api.domain.entities.membro import Membro
@@ -397,5 +398,30 @@ class GraficosCadastrosRepository(GraficosCadastrosRepositoryInterface):
                 .label('montante_acumulado'),
             )
             .order_by(leads_por_mes.c.ano_mes)
+            .all()
+        )
+
+    def membros_por_estado(self) -> list:
+        return (
+            self.__database.session.query(
+                Endereco.estado,
+                func.count(Membro.id).label('quantidade'),
+            )
+            .join(Endereco, Membro.fk_endereco_id == Endereco.id)
+            .filter(Endereco.pais == 'brasil')
+            .group_by(Endereco.estado)
+            .order_by(func.count(Membro.id).desc())
+            .all()
+        )
+
+    def membros_por_pais(self) -> list:
+        return (
+            self.__database.session.query(
+                Endereco.pais,
+                func.count(Membro.id).label('quantidade'),
+            )
+            .join(Endereco, Membro.fk_endereco_id == Endereco.id)
+            .group_by(Endereco.pais)
+            .order_by(func.count(Membro.id).desc())
             .all()
         )

@@ -12,13 +12,13 @@ from acutis_api.domain.services.gateway_pagamento import (
 from acutis_api.domain.services.schemas.gateway_pagamento import (
     BuscarPagamentoPixResponse,
     CriarPagamentoBolecodeRequest,
-    CriarPagamentoPixRequest,
+    CriarPagamentoPixSchema,
 )
-from acutis_api.exception.errors.bad_request import HttpBadRequestError
 from acutis_api.infrastructure.settings import settings
+from acutis_api.shared.errors.itau import ItauHttpBadRequestError
 
 
-class ItauPixService(GatewayPagamentoInterface):
+class ItauPixService(GatewayPagamentoInterface):  # pragma: no cover
     def __init__(self):
         self._certificate = './archives/certificado_pix.crt'
         self._key = './archives/chave_pix.key'
@@ -46,15 +46,28 @@ class ItauPixService(GatewayPagamentoInterface):
         access_token = response.json()['access_token']
         return access_token
 
+    def _buscar_chave_pix_webhook(self, chave_pix: str) -> int:
+        token = self._buscar_token()
+        url = f'{settings.ITAU_PIX_URL}/webhook/{chave_pix}'
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',  # NOSONAR
+        }
+
+        with Client(cert=self._cert) as client:
+            response = client.get(url=url, headers=headers)
+
+        return response.status_code
+
     def criar_pagamento_pix(
-        self, pagamento: CriarPagamentoPixRequest
+        self, pagamento: CriarPagamentoPixSchema
     ) -> BuscarPagamentoPixResponse:
         token = self._buscar_token()
         transacao_id = uuid.uuid4().hex
         url = f'{settings.ITAU_PIX_URL}/cobv/{transacao_id}'
         headers = {
             'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json',  # NOSONAR
+            'Content-Type': 'application/json',
         }
 
         payload = {
@@ -218,21 +231,36 @@ class ItauPixService(GatewayPagamentoInterface):
 
         return response, transacao_id, str(nosso_numero)
 
-    def registra_chave_pix_no_webhook(self, chave_pix):
-        path = f'/webhook/{chave_pix}'
+    def registrar_chave_pix_webhook(self, chave_pix: str):
+        token = self._buscar_token()
+        url = f'{settings.ITAU_PIX_URL}/webhook/{chave_pix}'
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',
+        }
 
-        with Client(cert=self._cert) as client:
-            _, status_code = client.get(path)
+        status_code = self._buscar_chave_pix_webhook(chave_pix)
         if status_code != HTTPStatus.OK:
-            base_url_api = 'https://api-acutis.institutohesed.org.br'
-            body = {'webhookUrl': f'{base_url_api}/webhook/itau'}
-            response, status = client.put(path, body)
-            if not HTTPStatus(status).is_success:
-                logging.error(
-                    f'ERRO AO CADASTRAR A CHAVE PIX NO WEBHOOK: {response}'
-                )
-                razao = 'A chave pix é inválida.'
-                raise HttpBadRequestError(
-                    razao,
-                    response.get('status', 400),
-                )
+            with Client(cert=self._cert) as client:
+                payload = {'webhookUrl': settings.ACUTIS_WEBHOOK_ITAU_URL}
+                response = client.put(url=url, json=payload, headers=headers)
+                if not HTTPStatus(response.status_code).is_success:
+                    logging.error(response.text)
+                    raise ItauHttpBadRequestError('A chave pix é inválida.')
+
+    def deletar_chave_pix_webhook(self, chave_pix: str):
+        token = self._buscar_token()
+        url = f'{settings.ITAU_PIX_URL}/webhook/{chave_pix}'
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',
+        }
+
+        status_code = self._buscar_chave_pix_webhook(chave_pix)
+        if status_code == HTTPStatus.OK:
+            with Client(cert=self._cert) as client:
+                response = client.delete(url=url, headers=headers)
+
+            if not HTTPStatus(response.status_code).is_success:
+                logging.error(response.text)
+                raise ItauHttpBadRequestError('A chave pix é inválida.')

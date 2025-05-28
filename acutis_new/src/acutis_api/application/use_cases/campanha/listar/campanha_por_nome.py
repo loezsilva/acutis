@@ -11,13 +11,14 @@ class BuscaCampanhaPorNomeUseCase:
         self.__repository = membro_repository
 
     def execute(self, nome_campanha: str) -> ListaCampanhaPorNomeResponse:
-        busca_campanha_por_nome = self.__repository.buscar_campanha_por_nome(
+        busca_campanha = self.__repository.buscar_campanha_por_nome(
             nome_campanha
         )
-        if busca_campanha_por_nome is None:
+
+        if busca_campanha is None:
             raise HttpNotFoundError('Campanha não encontrada')
 
-        campanha = busca_campanha_por_nome
+        campanha, landing_page = busca_campanha
 
         campos_adicionais = self.__repository.buscar_campos_adicionais(
             campanha.id
@@ -43,6 +44,7 @@ class BuscaCampanhaPorNomeUseCase:
             publica=campanha.publica,
             fk_cargo_oficial_id=campanha.fk_cargo_oficial_id,
             campos_adicionais=campos_adicionais_response,
+            landingpage_id=landing_page.id if landing_page else None,
         ).model_dump()
 
         return campanha_response

@@ -32,7 +32,7 @@ class NovaSenhaUseCase:
         if usuario is None:
             raise HttpNotFoundError('Usuário não encontrado')
 
-        if usuario.status is not False:
+        if usuario.status is False:
             self.__membros_repository.ativa_conta_com_senha(
                 pwd_context.hash(nova_senha), usuario
             )

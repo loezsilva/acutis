@@ -14,6 +14,7 @@ from acutis_api.domain.entities.processamento_doacao import (
     StatusProcessamentoEnum,
 )
 from acutis_api.domain.repositories.enums.admin_exportar_dados import (
+    ExportarBenfeitoresEnum,
     ExportarDoacoesEnum,
 )
 
@@ -86,3 +87,14 @@ class ExportarDoacoesSchema(BaseModel):  # NOSONAR
     codigo_comprovante: str | None = None
     nosso_numero: str | None = None
     status: StatusProcessamentoEnum = None  # NOSONAR
+
+
+class ExportarBenfeitoresSchema(BaseModel):
+    colunas: list[ExportarBenfeitoresEnum]
+    nome_documento: str | None = None
+    campanha_id: uuid.UUID | None = None
+    campanha_nome: str | None = None
+    registrado_em_inicio: date | None = None
+    registrado_em_fim: date = datetime.now().date()
+    ultima_doacao_inicio: date | None = None
+    ultima_doacao_fim: date = datetime.now().date()

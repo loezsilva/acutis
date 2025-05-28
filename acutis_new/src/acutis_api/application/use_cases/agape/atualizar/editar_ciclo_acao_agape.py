@@ -58,7 +58,7 @@ class EditarCicloAcaoAgapeUseCase:
             str_endereco = generate_address_string(
                 dados.endereco, dados.abrangencia
             )
-            print('🚀 ~ str_endereco:', str_endereco)
+
             endereco.codigo_postal = dados.endereco.cep
             endereco.logradouro = dados.endereco.rua
             endereco.bairro = dados.endereco.bairro

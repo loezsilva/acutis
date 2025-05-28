@@ -129,3 +129,10 @@ class DoacoesRepository(DoacoesRepositoryInterface):
         processamento_doacao.pagamento_doacao.ativo = False
         self._database.session.add(processamento_doacao)
         self._database.session.flush()
+
+    def atualizar_doacao_pix_recorrente(
+        self, processamento_doacao: ProcessamentoDoacao, codigo_transacao: str
+    ):
+        processamento_doacao.codigo_transacao = codigo_transacao
+        self._database.session.add(processamento_doacao)
+        self._database.session.flush()

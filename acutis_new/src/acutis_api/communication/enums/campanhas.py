@@ -16,3 +16,6 @@ class TiposCampoEnum(str, Enum):
     datetime = 'datetime'
     arquivo = 'arquivo'
     imagem = 'imagem'
+    textarea = 'textarea'
+    data_inicio = 'data_inicio'
+    data_fim = 'data_fim'

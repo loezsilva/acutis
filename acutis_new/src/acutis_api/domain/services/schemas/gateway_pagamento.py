@@ -8,7 +8,7 @@ class TipoDocumentoEnum(str, Enum):
     CNPJ = 'cnpj'
 
 
-class CriarPagamentoPixRequest(BaseModel):
+class CriarPagamentoPixSchema(BaseModel):
     data_vencimento: str
     tipo_documento: TipoDocumentoEnum
     numero_documento: str

@@ -38,3 +38,7 @@ from .recibo_agape import ReciboAgape as ReciboAgape
 from .sacramento_vocacional import SacramentoVocacional as SacramentoVocacional
 from .template_lp import TemplateLP as TemplateLP
 from .usuario_vocacional import UsuarioVocacional as UsuarioVocacional
+from .permissao_lead import PermissaoLead as PermissaoLead
+from .permissao_menu import PermissaoMenu as PermissaoMenu
+from .perfil import Perfil as Perfil
+from .menu_sistema import MenuSistema as MenuSistema

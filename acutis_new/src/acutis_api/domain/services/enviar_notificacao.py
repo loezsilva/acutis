@@ -9,6 +9,7 @@ class AssuntosEmailEnum(str, Enum):
     membro_oficial = 'Instituto HeSed - Membro Oficial'
     agradecimento_doacao = 'Instituto HeSed - Agradecemos Sua Doação'
     recuperar_senha = 'Instituto HeSed - Confirmação de redefinição de senha'
+    excluir_conta = 'Instituto HeSed - Confirmar exclusão de conta'
 
 
 class EnviarNotificacaoInterface(ABC):

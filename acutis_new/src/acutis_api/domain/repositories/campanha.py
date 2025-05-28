@@ -1,13 +1,18 @@
+import uuid
 from abc import ABC, abstractmethod
 from uuid import UUID
 
 from acutis_api.domain.entities.campanha import Campanha
+from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
+from acutis_api.domain.entities.landing_page import LandingPage
 from acutis_api.domain.repositories.schemas.campanhas import (
     ListarCampanhasQuery,
+    ListarDoacoesCampanhaSchema,
     RegistrarCampanhaSchema,
     RegistrarNovaLandingPageSchema,
     RegistroNovoCampoAdicionalSchema,
 )
+from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 
 
 class CampanhaRepositoryInterface(ABC):
@@ -63,7 +68,7 @@ class CampanhaRepositoryInterface(ABC):
         self,
         campanha_para_atualizar: Campanha,
         dados_da_campanha: RegistrarCampanhaSchema,
-    ) -> None: ...
+    ) -> Campanha: ...
 
     @abstractmethod
     def buscar_campanha_por_id(self, fk_campanha_id: UUID) -> Campanha: ...
@@ -73,3 +78,28 @@ class CampanhaRepositoryInterface(ABC):
 
     @abstractmethod
     def lista_de_campanhas(self) -> Campanha: ...
+
+    @abstractmethod
+    def buscar_landing_page_por_campanha_id(
+        self, fk_campanha_id: uuid.UUID
+    ) -> LandingPage: ...
+
+    @abstractmethod
+    def buscar_landing_page_por_id(
+        self, landing_page_id: uuid.UUID
+    ) -> LandingPage: ...
+
+    @abstractmethod
+    def listar_doacoes_campanha_pelo_id(
+        self, filtros: PaginacaoQuery, id: uuid.UUID
+    ) -> tuple[list[ListarDoacoesCampanhaSchema], int]: ...
+
+    @abstractmethod
+    def registrar_campanha_doacao(
+        self, chave_pix: str, campanha_id: uuid.UUID
+    ): ...
+
+    @abstractmethod
+    def atualizar_campanha_doacao(
+        self, chave_pix: str, campanha_doacao: CampanhaDoacao
+    ): ...

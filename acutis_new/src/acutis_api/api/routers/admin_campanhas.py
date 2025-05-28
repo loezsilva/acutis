@@ -1,3 +1,4 @@
+import uuid
 from http import HTTPStatus
 
 from flask import Blueprint
@@ -5,12 +6,15 @@ from flask import request as flask_request
 from flask_jwt_extended import jwt_required
 from spectree import Response
 
+from acutis_api.application.use_cases.campanha.atualizar import (
+    AtualizarLandPageCampanhaUseCase,
+)
 from acutis_api.application.use_cases.campanha.atualizar.campanha import (
     AtualizarCampanhaUseCase,
 )
 from acutis_api.application.use_cases.campanha.listar import (
-    BuscaCampanhaPorNomeUseCase,
     ListaDeCampanhasUseCase,
+    ListarDoacoesCampanhaUseCase,
 )
 from acutis_api.application.use_cases.campanha.listar.campanha_por_id import (
     BuscaCampanhaPorIdUseCase,
@@ -18,32 +22,33 @@ from acutis_api.application.use_cases.campanha.listar.campanha_por_id import (
 from acutis_api.application.use_cases.campanha.listar.campanhas import (
     ListarCampanhasUseCase,
 )
-from acutis_api.application.use_cases.campanha.registrar.cadastro_por_campanha import (  # noqa
+from acutis_api.application.use_cases.campanha.registrar import (  # noqa
     CadastroPorCampanhaUseCase,
+    SalvarLandPageCampanhaUseCase,
 )
 from acutis_api.application.use_cases.campanha.registrar.campanha import (
     RegistrarCampanhaUseCase,
 )
 from acutis_api.communication.requests.campanha import (
-    CadastroPorCampanhaFormData,
+    AtualizarLandpageRequest,
     ListarCampanhasQuery,
     RegistrarNovaCampanhaFormData,
+    SalvarLandpageRequest,
 )
+from acutis_api.communication.requests.paginacao import PaginacaoQuery
 from acutis_api.communication.responses.campanha import (
     ListaCampanhaPorIdResponse,
-    ListaCampanhaPorNomeResponse,
     ListaDeCampanhasResponse,
     ListagemCompletaDeCampanhaResponse,
+    ListarDoacoesCampanhaResponse,
     RegistrarNovaCampanhaResponse,
 )
 from acutis_api.communication.responses.padrao import (
-    ErroPadraoResponse,
     ResponsePadraoSchema,
 )
 from acutis_api.exception.errors_handler import errors_handler
 from acutis_api.infrastructure.extensions import database, swagger
 from acutis_api.infrastructure.repositories.campanha import CampanhaRepository
-from acutis_api.infrastructure.repositories.membros import MembrosRepository
 from acutis_api.infrastructure.services.factories import file_service_factory
 from acutis_api.infrastructure.services.itau import ItauPixService
 
@@ -56,7 +61,7 @@ admin_campanha_bp = Blueprint(
 @swagger.validate(
     form=RegistrarNovaCampanhaFormData,
     resp=Response(HTTP_201=RegistrarNovaCampanhaResponse),
-    tags=['Campanhas'],
+    tags=['Admin - Campanhas'],
 )
 @jwt_required()
 def registrar_campanha():
@@ -67,18 +72,13 @@ def registrar_campanha():
         request = RegistrarNovaCampanhaFormData(
             dados_da_campanha=flask_request.form['dados_da_campanha'],
             campos_adicionais=flask_request.form.get('campos_adicionais'),
-            dados_da_landing_page=flask_request.form.get(
-                'dados_da_landing_page'
-            ),
             foto_capa=flask_request.files.get('foto_capa'),
         )
 
         s3_service = file_service_factory()
-        payment_service = ItauPixService()
+        itau_api = ItauPixService()
         repository = CampanhaRepository(database)
-        usecase = RegistrarCampanhaUseCase(
-            repository, s3_service, payment_service
-        )
+        usecase = RegistrarCampanhaUseCase(repository, s3_service, itau_api)
         response = usecase.execute(request)
         return response, HTTPStatus.CREATED
     except Exception as exc:
@@ -90,7 +90,7 @@ def registrar_campanha():
 @swagger.validate(
     query=ListarCampanhasQuery,
     resp=Response(HTTP_200=ListagemCompletaDeCampanhaResponse),
-    tags=['Campanhas'],
+    tags=['Admin - Campanhas'],
 )
 @jwt_required()
 def listar_campanhas():
@@ -113,7 +113,7 @@ def listar_campanhas():
 @swagger.validate(
     form=RegistrarNovaCampanhaFormData,
     resp=Response(HTTP_201=RegistrarNovaCampanhaResponse),
-    tags=['Campanhas'],
+    tags=['Admin - Campanhas'],
 )
 @jwt_required()
 def atualizar_campanha(fk_campanha_id):
@@ -125,28 +125,24 @@ def atualizar_campanha(fk_campanha_id):
             dados_da_campanha=flask_request.form.get('dados_da_campanha'),
             campos_adicionais=flask_request.form.get('campos_adicionais'),
             foto_capa=flask_request.files.get('foto_capa'),
-            dados_da_landing_page=flask_request.form.get(
-                'dados_da_landing_page'
-            ),
         )
 
         s3_service = file_service_factory()
-        payment_service = ItauPixService()
+        itau_api = ItauPixService()
         repository = CampanhaRepository(database)
-        usecase = AtualizarCampanhaUseCase(
-            repository, s3_service, payment_service
-        )
+        usecase = AtualizarCampanhaUseCase(repository, s3_service, itau_api)
         response = usecase.execute(request, fk_campanha_id)
         return response, HTTPStatus.OK
     except Exception as exc:
+        database.session.rollback()
         error_response = errors_handler(exc)
         return error_response
 
 
 @admin_campanha_bp.get('/buscar-campanha-por-id/<uuid:fk_campanha_id>')
 @swagger.validate(
-    resp=Response(HTTP_201=ListaCampanhaPorIdResponse),
-    tags=['Campanhas'],
+    resp=Response(HTTP_200=ListaCampanhaPorIdResponse),
+    tags=['Admin - Campanhas'],
 )
 @jwt_required()
 def busca_campanha_por_id(fk_campanha_id):
@@ -162,66 +158,10 @@ def busca_campanha_por_id(fk_campanha_id):
         return errors_handler(exc)
 
 
-@admin_campanha_bp.get('/buscar-campanha-por-nome/<string:nome_campanha>')
-@swagger.validate(
-    resp=Response(HTTP_200=ListaCampanhaPorNomeResponse),
-    tags=['Campanhas'],
-)
-def busca_campanha_por_nome(nome_campanha):
-    """
-    Busca campanha por nome
-    """
-    try:
-        repository = CampanhaRepository(database)
-        usecase = BuscaCampanhaPorNomeUseCase(repository)
-        return usecase.execute(nome_campanha), HTTPStatus.OK
-    except Exception as exc:
-        return errors_handler(exc)
-
-
-@admin_campanha_bp.post('/cadastro-por-campanha/<uuid:campanha_id>')
-@swagger.validate(
-    form=CadastroPorCampanhaFormData,
-    resp=Response(HTTP_201=ResponsePadraoSchema, HTTP_500=ErroPadraoResponse),
-    tags=['Campanhas'],
-)
-@jwt_required(optional=True)
-def cadastro_por_campanha(campanha_id):
-    """
-    Realiza o cadastro de um membro por meio de uma campanha
-    """
-    try:
-        request = CadastroPorCampanhaFormData(
-            nome=flask_request.form.get('nome'),
-            nome_social=flask_request.form.get('nome_social'),
-            email=flask_request.form.get('email'),
-            numero_documento=flask_request.form.get('numero_documento'),
-            pais=flask_request.form.get('pais'),
-            telefone=flask_request.form.get('telefone'),
-            data_nascimento=flask_request.form.get('data_nascimento'),
-            sexo=flask_request.form.get('sexo'),
-            origem_cadastro=flask_request.form.get('origem_cadastro'),
-            senha=flask_request.form.get('senha'),
-            foto=flask_request.files.get('foto'),
-            endereco=flask_request.form.get('endereco'),
-            superior=flask_request.form.get('superior'),
-            campos_adicionais=flask_request.form.get('campos_adicionais'),
-        )
-        s3_service = file_service_factory()
-        membro_repository = MembrosRepository(database)
-        usecase = CadastroPorCampanhaUseCase(membro_repository, s3_service)
-        response = usecase.execute(request, campanha_id)
-        return response, HTTPStatus.CREATED
-    except Exception as exc:
-        database.session.rollback()
-        error_response = errors_handler(exc)
-        return error_response
-
-
 @admin_campanha_bp.get('/lista-de-campanhas')
 @swagger.validate(
     resp=Response(HTTP_200=ListaDeCampanhasResponse),
-    tags=['Campanhas'],
+    tags=['Admin - Campanhas'],
 )
 def lista_de_campanhas():
     """
@@ -233,3 +173,72 @@ def lista_de_campanhas():
         return usecase.execute(), HTTPStatus.OK
     except Exception as exc:
         return errors_handler(exc)
+
+
+@admin_campanha_bp.post('/registrar-landingpage')
+@swagger.validate(
+    json=SalvarLandpageRequest,
+    resp=Response(HTTP_200=ResponsePadraoSchema),
+    tags=['Admin - Campanhas'],
+)
+@jwt_required()
+def salvar_landpage():
+    """
+    Salva a landpage da campanha
+    """
+    try:
+        request = SalvarLandpageRequest.model_validate(
+            flask_request.get_json()
+        )
+        repository = CampanhaRepository(database)
+        usecase = SalvarLandPageCampanhaUseCase(repository)
+        usecase.execute(request)
+        return {'msg': 'Landpage salva com sucesso.'}, HTTPStatus.CREATED
+    except Exception as exc:
+        database.session.rollback()
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_campanha_bp.put('/atualizar-landingpage')
+@swagger.validate(
+    json=AtualizarLandpageRequest,
+    resp=Response(HTTP_200=ResponsePadraoSchema),
+    tags=['Admin - Campanhas'],
+)
+@jwt_required()
+def atualizar_landpage():
+    try:
+        repository = CampanhaRepository(database)
+        request = AtualizarLandpageRequest.model_validate(
+            flask_request.get_json()
+        )
+        usecase = AtualizarLandPageCampanhaUseCase(repository)
+        usecase.execute(request)
+        return {'msg': 'Landpage atualizada com sucesso.'}, HTTPStatus.OK
+    except Exception as exc:
+        database.session.rollback()
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_campanha_bp.get('/listar-doacoes-campanha/<uuid:campanha_id>')
+@swagger.validate(
+    query=PaginacaoQuery,
+    resp=Response(HTTP_200=ListarDoacoesCampanhaResponse),
+    tags=['Admin - Campanhas'],
+)
+@jwt_required()
+def listar_doacoes_campanha(campanha_id: uuid.UUID):
+    """Lista todas as doações pagas feitas para a campanha pelo ID"""
+    try:
+        filtros = PaginacaoQuery.model_validate(flask_request.args.to_dict())
+
+        repository = CampanhaRepository(database)
+        usecase = ListarDoacoesCampanhaUseCase(repository)
+
+        response = usecase.execute(filtros, campanha_id)
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response

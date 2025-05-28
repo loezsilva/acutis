@@ -137,3 +137,7 @@ class LeadsPorEvolucaoMensalSchema(BaseModel):
 
 class LeadsPorEvolucaoMensalResponse(RootModel):
     root: list[LeadsPorEvolucaoMensalSchema]
+
+
+class MembrosPorLocalidadeResponse(RootModel):
+    root: dict[str, int]

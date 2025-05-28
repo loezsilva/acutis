@@ -55,7 +55,13 @@ class Membro:
     benfeitor: Mapped['Benfeitor'] = relationship(
         init=False, back_populates='membro'
     )
-    endereco: Mapped['Endereco'] = relationship(init=False, backref='membro')
+
+    endereco: Mapped['Endereco'] = relationship(
+        init=False,
+        backref='membro',
+        cascade='all, delete-orphan',
+        single_parent=True,
+    )
 
 
 ix_membros_fk_benfeitor_id = Index(

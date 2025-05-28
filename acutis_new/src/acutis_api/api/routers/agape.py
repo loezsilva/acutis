@@ -6,8 +6,10 @@ from http import HTTPStatus
 
 from flask import Blueprint
 from flask import request as flask_request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import current_user, jwt_required
 from spectree import Response
+from acutis_api.communication.enums.membros import PerfilEnum
+from acutis_api.exception.errors.forbidden import HttpForbiddenError
 
 from acutis_api.application.use_cases.agape import (
     AbastecerItemEstoqueAgapeUseCase,
@@ -39,6 +41,16 @@ from acutis_api.application.use_cases.agape import (
     CardTotalRecebimentosAgapeUseCase,
     CardsEstatisticasFamiliasAgapeUseCase,
     CardsEstatisticasItensEstoqueUseCase,
+    DeletarFamiliaAgapeUseCase,
+    DeletarMembroAgapeUseCase,
+    EditarEnderecoFamiliaAgapeUseCase,
+    EditarMembroAgapeUseCase,
+    ListarBeneficiariosAgapeUseCase,
+    ListarEnderecosFamiliasAgapeUseCase,
+    ListarGeolocalizacoesBeneficiariosUseCase,
+    ListarHistoricoMovimentacoesAgapeUseCase,
+    ListarItensDoadosBeneficiarioUseCase,
+    ListarItensRecebidosUseCase,
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -56,6 +68,9 @@ from acutis_api.communication.requests.agape import (
     ListarFamiliasAgapeQueryPaginada,
     AdicionarVoluntarioAgapeFormData,
     MembrosAgapeCadastroRequestSchema,
+    EditarEnderecoFamiliaAgapeRequest,
+    EditarMembroAgapeRequestData,
+    ListarHistoricoMovimentacoesAgapeQueryPaginada,
 )
 from acutis_api.communication.responses.agape import (
     BuscarCicloAcaoAgapeResponse,
@@ -76,6 +91,11 @@ from acutis_api.communication.responses.agape import (
     CardTotalRecebimentosAgapeResponse,
     CardsEstatisticasFamiliasAgapeResponse,
     CardsEstatisticasItensEstoqueResponse,
+    ListarBeneficiariosAgapeResponse,
+    ListarEnderecosFamiliasAgapeResponse,
+    ListarGeolocalizacoesBeneficiariosResponse,
+    ListarHistoricoMovimentacoesAgapeResponsePaginada,
+    ListarItensDoadosBeneficiarioResponse,
 )
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros
@@ -663,7 +683,6 @@ def listar_membros_familia_agape():
         database.session.rollback()
         return errors_handler(exc)
     
-
 @agape_bp.put('/adicionar-voluntario/<uuid:lead_id>')
 @swagger.validate(
     form=AdicionarVoluntarioAgapeFormData,
@@ -678,6 +697,10 @@ def adicionar_voluntario_agape(lead_id):
     Adiciona um voluntário a uma família Ágape existente.
     """
     try:
+        if PerfilEnum.administrador_agape not in current_user.nomes_dos_perfis:
+            raise HttpForbiddenError(
+                "Você não tem permissão para realizar esta ação."
+            )
         repository = AgapeRepository(database)
         usecase = AdicionarVoluntarioAgapeUseCase(repository)
         response = usecase.execute(lead_id)
@@ -686,7 +709,7 @@ def adicionar_voluntario_agape(lead_id):
         database.session.rollback()
         error_response = errors_handler(exc)
         return error_response
-    
+
 @agape_bp.get('/buscar-endereco-ciclo-acao/<uuid:ciclo_acao_id>')
 @swagger.validate(
     resp=Response(
@@ -926,4 +949,314 @@ def cards_estatisticas_itens_estoque():
 
     except Exception as exc:
         error_response = errors_handler(exc) 
+        return error_response
+    
+@agape_bp.delete('/deletar-familia/<uuid:familia_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_204=None,  # Sucesso, sem conteúdo
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Familias'] 
+)
+def deletar_familia(familia_id: uuid.UUID):
+    '''
+    Deleta (soft delete) uma família ágape e seus membros (hard delete).
+    '''
+    try:
+        repository = AgapeRepository(database) 
+        usecase = DeletarFamiliaAgapeUseCase(repository)
+        
+        _, status_code = usecase.execute(familia_id=familia_id)
+        
+        return {}, status_code
+
+    except Exception as exc:
+        database.session.rollback() # Rollback em caso de exceção
+        error_response = errors_handler(exc) 
+        return error_response
+
+@agape_bp.delete('/deletar-membro/<uuid:membro_agape_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_204=None,  # Sucesso, sem conteúdo
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Familias'] 
+)
+def deletar_membro_agape(membro_agape_id: uuid.UUID):
+    '''
+    Deleta (hard delete) um membro ágape pelo ID.
+    '''
+    try:
+        repository = AgapeRepository(database) 
+        usecase = DeletarMembroAgapeUseCase(repository)
+        
+        _, status_code = usecase.execute(membro_agape_id=membro_agape_id)
+        
+        database.session.commit()
+
+        return {}, status_code
+
+    except Exception as exc:
+        database.session.rollback() 
+        error_response = errors_handler(exc) 
+        return error_response
+
+@agape_bp.put('/editar-endereco-familia/<uuid:familia_id>')
+@swagger.validate(
+    json=EditarEnderecoFamiliaAgapeRequest, # Validação do corpo da requisição
+    resp=Response(
+        HTTP_200=ResponsePadraoSchema, 
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse, # For Pydantic validation errors
+        HTTP_400=ErroPadraoResponse  # For EnderecoInvalidoError
+    ),
+    tags=['Ágape - Familias'] 
+)
+def editar_endereco_familia(familia_id: uuid.UUID):
+    '''
+    Edita o endereço de uma família ágape pelo ID.
+    '''
+    try:
+        dados_request = EditarEnderecoFamiliaAgapeRequest.model_validate(
+            flask_request.get_json()
+        )
+        
+        repository = AgapeRepository(database)
+        gmaps_service = GoogleMapsAPI() 
+        usecase = EditarEnderecoFamiliaAgapeUseCase(repository, gmaps_service)
+        
+        response_data, status_code = usecase.execute(
+            familia_id=familia_id, 
+            dados_endereco=dados_request
+        )
+        
+        database.session.commit()
+
+        return response_data, status_code
+
+    except Exception as exc:
+        database.session.rollback() 
+        error_response = errors_handler(exc) 
+        return error_response
+    
+@agape_bp.put('/editar-membro/<uuid:membro_agape_id>')
+@swagger.validate(
+    json=EditarMembroAgapeRequestData,
+    resp=Response(
+        HTTP_200=ResponsePadraoSchema,
+        HTTP_404=ErroPadraoResponse,  # Para o caso de membro não encontrado
+        HTTP_422=ErroPadraoResponse   # Para erros de validação
+    ),
+    tags=['Ágape - Familias'], # Ajustando a tag conforme a instrução mais recente
+)
+def editar_membro_agape(membro_agape_id: uuid.UUID):
+    """
+    Edita um membro ágape pelo ID.
+    """
+    try:
+        dados_requisicao = EditarMembroAgapeRequestData.model_validate(
+            flask_request.get_json()
+        )
+
+        repository = AgapeRepository(database) 
+        use_case = EditarMembroAgapeUseCase(agape_repository=repository)
+
+        response_data, status_code = use_case.execute(
+            membro_agape_id=membro_agape_id,
+            dados_edicao=dados_requisicao
+        )
+
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/listar-beneficiarios/<uuid:ciclo_acao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=ListarBeneficiariosAgapeResponse,
+        HTTP_404=ErroPadraoResponse,  # Caso o ciclo_acao_id não exista ou não tenha beneficiários (se o UseCase levantar NotFoundError)
+        HTTP_422=ErroPadraoResponse   # Para erros de validação do path parameter
+    ),
+    tags=['Ágape - Ações'], # Ou uma tag mais específica como 'Ágape - Beneficiários'
+)
+def listar_beneficiarios_ciclo_acao(ciclo_acao_id: uuid.UUID):
+    """
+    Lista os beneficiários de um ciclo de ação ágape pelo ID do ciclo.
+    """
+    try:
+        repository = AgapeRepository(database) # Instancia o repositório
+        use_case = ListarBeneficiariosAgapeUseCase(agape_repository=repository) # Instancia o caso de uso
+
+        response_data, status_code = use_case.execute(
+            ciclo_acao_id=ciclo_acao_id
+        )
+
+        # O ListarBeneficiariosAgapeResponse é um RootModel, então response_data.model_dump()
+        # deve retornar a lista diretamente se o schema estiver configurado corretamente.
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/listar-enderecos-familias-agape')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=ListarEnderecosFamiliasAgapeResponse,
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Familias'], 
+)
+def listar_enderecos_familias_agape():
+    """
+    Lista todos os endereços das famílias ágape.
+    """
+    try:
+        repository = AgapeRepository(database) 
+        use_case = ListarEnderecosFamiliasAgapeUseCase(
+            agape_repository=repository
+        )
+
+        response_data, status_code = use_case.execute()
+
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+    
+@agape_bp.get(
+    '/listar-geolocalizacoes-beneficiarios-ciclo-acao/<uuid:ciclo_acao_id>'
+)
+@swagger.validate(
+    resp=Response(
+        HTTP_200=ListarGeolocalizacoesBeneficiariosResponse,
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse
+    ),
+    tags=['Ágape - Familias'],
+)
+def listar_geolocalizacoes_beneficiarios_ciclo_acao(ciclo_acao_id: uuid.UUID):
+    """
+    Lista a geolocalização dos beneficiários de um ciclo de ação ágape pelo ID do ciclo.
+    """
+    try:
+        repository = AgapeRepository(database) 
+        use_case = ListarGeolocalizacoesBeneficiariosUseCase(
+            agape_repository=repository
+        )
+
+        response_data, status_code = use_case.execute(
+            ciclo_acao_id=ciclo_acao_id
+        )
+
+        # O ListarGeolocalizacoesBeneficiariosResponse é um RootModel, 
+        # então response_data.model_dump() deve retornar a lista diretamente.
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/listar-historico-movimentacoes')
+@swagger.validate(
+    query=ListarHistoricoMovimentacoesAgapeQueryPaginada, # Valida os query params de paginação
+    resp=Response(
+        HTTP_200=ListarHistoricoMovimentacoesAgapeResponsePaginada,
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Estoque'], # Ou uma tag mais específica como 'Ágape - Histórico'
+)
+def listar_historico_movimentacoes_agape(): # Nome da função do endpoint alterado para evitar conflito
+    """
+    Lista o histórico de movimentações do estoque da ação ágape com paginação.
+    """
+    try:
+        # Os query params são validados pelo swagger e acessados via flask_request.context.query
+        # ou podem ser construídos diretamente do flask_request.args
+        query_params = (
+            ListarHistoricoMovimentacoesAgapeQueryPaginada.model_validate(
+            flask_request.args.to_dict()
+            )
+        )
+
+        repository = AgapeRepository(database) 
+
+        use_case = ListarHistoricoMovimentacoesAgapeUseCase(
+            agape_repository=repository
+        )
+
+        response_data, status_code = use_case.execute(filtros=query_params)
+        
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+    
+@agape_bp.get('/listar-itens-doados-beneficiario/<uuid:doacao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=ListarItensDoadosBeneficiarioResponse,
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse 
+    ),
+    tags=['Ágape - Doações'], 
+)
+def listar_itens_doados_beneficiario(doacao_id: uuid.UUID):
+    """
+    Lista os itens doados para um beneficiário pelo ID da doação (DoacaoAgape).
+    """
+    try:
+        repository = AgapeRepository(database) 
+        use_case = ListarItensDoadosBeneficiarioUseCase(
+            agape_repository=repository
+        )
+
+        response_data, status_code = use_case.execute(
+            doacao_id=doacao_id
+        )
+        
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+    
+@agape_bp.get('/listar-itens-recebidos/<uuid:ciclo_acao_id>/<uuid:doacao_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=ListarItensDoadosBeneficiarioResponse, # Reutilizando o schema
+        HTTP_404=ErroPadraoResponse, 
+        HTTP_422=ErroPadraoResponse
+    ),
+    tags=['Ágape - Doações'], 
+)
+def listar_itens_recebidos(
+    ciclo_acao_id: uuid.UUID, doacao_id: uuid.UUID
+):
+    """
+    Lista os itens recebidos por um beneficiário em um ciclo de ação específico.
+    """
+    try:
+        repository = AgapeRepository(database) 
+        use_case = ListarItensRecebidosUseCase(
+            agape_repository=repository
+        )
+
+        response_data, status_code = use_case.execute(
+            ciclo_acao_id=ciclo_acao_id,
+            doacao_id=doacao_id
+        )
+        
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        error_response = errors_handler(exc)
         return error_response

@@ -1,10 +1,18 @@
 import uuid
 from datetime import datetime
+from types import NoneType
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, RootModel, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    RootModel,
+    field_validator,
+    model_validator,
+)
 
 from acutis_api.communication.enums.campanhas import ObjetivosCampanhaEnum
+from acutis_api.communication.responses.padrao import PaginacaoResponse
 
 
 def formatar_data(data: datetime) -> str:
@@ -30,6 +38,7 @@ class CampanhaResponse(BaseModel):
     criado_em: str
     criado_por: uuid.UUID
     atualizado_em: Optional[str]
+    fk_cargo_oficial_id: Optional[uuid.UUID]
 
     @model_validator(mode='before')
     @classmethod
@@ -45,48 +54,19 @@ class CampanhaResponse(BaseModel):
 
 class CampoAdicionalResponse(BaseModel):
     id: uuid.UUID
-    fk_campanha_id: uuid.UUID
     nome_campo: str
     tipo_campo: str
     obrigatorio: bool
-    criado_em: str
-    atualizado_em: Optional[str]
-
-    @model_validator(mode='before')
-    @classmethod
-    def formatar_datas(cls, data: dict) -> dict:
-        if 'criado_em' in data and isinstance(data['criado_em'], datetime):
-            data['criado_em'] = formatar_data(data['criado_em'])
-        if 'atualizado_em' in data and isinstance(
-            data['atualizado_em'], datetime
-        ):
-            data['atualizado_em'] = formatar_data(data['atualizado_em'])
-        return data
 
 
 class LandingPageResponse(BaseModel):
     id: uuid.UUID
-    fk_campanha_id: uuid.UUID
-    conteudo: str
-    shlink: Optional[str]
-    criado_em: str
-    atualizado_em: Optional[str]
-
-    @model_validator(mode='before')
-    @classmethod
-    def formatar_datas(cls, data: dict) -> dict:
-        if 'criado_em' in data and isinstance(data['criado_em'], datetime):
-            data['criado_em'] = formatar_data(data['criado_em'])
-        if 'atualizado_em' in data and isinstance(
-            data['atualizado_em'], datetime
-        ):
-            data['atualizado_em'] = formatar_data(data['atualizado_em'])
-        return data
 
 
 class CampanhaCompletaResponse(BaseModel):
     campanha: CampanhaResponse
     landing_page: Optional[LandingPageResponse]
+    campos_adicionais: Optional[List[CampoAdicionalResponse]]
 
 
 class ListagemCompletaDeCampanhaResponse(BaseModel):
@@ -97,8 +77,8 @@ class ListagemCompletaDeCampanhaResponse(BaseModel):
     por_pagina: int
 
 
-class ListaCampanhaPorIdResponse(BaseModel):
-    campanha: CampanhaCompletaResponse
+class ListaCampanhaPorIdResponse(RootModel):
+    root: CampanhaCompletaResponse
 
 
 class CampoAdicionalSemDataResponse(BaseModel):
@@ -116,6 +96,7 @@ class ListaCampanhaPorNomeResponse(BaseModel):
     publica: bool
     fk_cargo_oficial_id: uuid.UUID | None
     campos_adicionais: List[CampoAdicionalSemDataResponse] | None
+    landingpage_id: Optional[uuid.UUID]
 
 
 class ListaDeCampanhasSchema(BaseModel):
@@ -125,3 +106,24 @@ class ListaDeCampanhasSchema(BaseModel):
 
 class ListaDeCampanhasResponse(RootModel):
     root: list[ListaDeCampanhasSchema]
+
+
+class ListarDoacoesCampanhaSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    valor: float
+    data_doacao: datetime | str | None
+    forma_pagamento: str
+    nome: str
+
+    @field_validator('data_doacao')
+    @classmethod
+    def formatar_datetime(cls, value: datetime):
+        if isinstance(value, (str, NoneType)):
+            return value
+
+        return value.strftime('%d/%m/%Y - %H:%M:%S')
+
+
+class ListarDoacoesCampanhaResponse(PaginacaoResponse):
+    doacoes: list[ListarDoacoesCampanhaSchema]

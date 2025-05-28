@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, EmailStr, SecretStr
@@ -44,3 +44,23 @@ class RegistrarNovoEnderecoSchema(BaseModel):
 class CampoAdicionalSchema(BaseModel):
     campo_adicional_id: uuid.UUID
     valor_campo: Any
+
+
+class DoacaoMembroBenfeitorSchema(BaseModel):
+    nome_campanha: str
+    foto_campanha: str | None
+    tipo_doacao: str
+    doacao_id: uuid.UUID
+
+
+class HistoricoDoacaoSchema(BaseModel):
+    data_doacao: datetime
+    forma_pagamento: str
+    status_processamento: str
+    valor_doacao: float
+
+
+class CardDoacoesMembroBenfeitorSchema(BaseModel):
+    ultima_doacao: datetime | None
+    quantidade_doacoes: int
+    valor_doado: float

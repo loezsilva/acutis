@@ -16,7 +16,9 @@ from acutis_api.application.use_cases.admin.graficos_cadastros import (
     MembrosMediaDiariaUseCase,
     MembrosMediaMensalUseCase,
     MembrosPorDiaMesAtualUseCase,
+    MembrosPorEstadoUseCase,
     MembrosPorHoraDiaAtualUseCase,
+    MembrosPorPaisUseCase,
     QuantidadeCadastrosDiaAtualUseCase,
     QuantidadeCadastrosUseCase,
     QuantidadeLeadsPorHoraUseCase,
@@ -38,6 +40,7 @@ from acutis_api.communication.responses.admin_graficos_cadastros import (
     MembrosMediaMensalResponse,
     MembrosPorGeneroResponse,
     MembrosPorHoraDiaAtualResponse,
+    MembrosPorLocalidadeResponse,
     QuantidadeCadastrosDiaAtualResponse,
     QuantidadeCadastrosMesAtualResponse,
     QuantidadeLeadsMesAtualResponse,
@@ -396,6 +399,46 @@ def leads_por_evolucao_mensal():
     try:
         repository = GraficosCadastrosRepository(database)
         usecase = LeadsPorEvolucaoMensalUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        return errors_handler(exc)
+
+
+@admin_graficos_cadastros_bp.get('/membros-por-estado')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=MembrosPorLocalidadeResponse,
+        HTTP_500=ErroPadraoResponse,
+    ),
+    tags=['Admin - Dashboard Cadastros'],
+)
+@jwt_required()
+def membros_por_estado():
+    """Retorna quantidade de leads por estado"""
+    try:
+        repository = GraficosCadastrosRepository(database)
+        usecase = MembrosPorEstadoUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        return errors_handler(exc)
+
+
+@admin_graficos_cadastros_bp.get('/membros-por-pais')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=MembrosPorLocalidadeResponse,
+        HTTP_500=ErroPadraoResponse,
+    ),
+    tags=['Admin - Dashboard Cadastros'],
+)
+@jwt_required()
+def membros_por_pais():
+    """Retorna quantidade de leads por estado"""
+    try:
+        repository = GraficosCadastrosRepository(database)
+        usecase = MembrosPorPaisUseCase(repository)
         response = usecase.execute()
         return response, HTTPStatus.OK
     except Exception as exc:

@@ -47,5 +47,6 @@ class Oficial:
     )
 
     atualizado_por: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey('membros.id')
+        ForeignKey('membros.id'),
+        nullable=True,  # nosonar
     )

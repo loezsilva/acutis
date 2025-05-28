@@ -87,3 +87,21 @@ class BuscarDetalhesDoLeadResponse(BaseModel):
     dados_membro: MembroSchema | None
     dados_endereco: EnderecoSchema | None
     campanhas_registradas: list[CampanhasRegistradasSchema]
+
+
+class BuscarTotalLeadsResponse(BaseModel):
+    total_leads: int
+
+
+class BuscarTotalMembrosResponse(BaseModel):
+    total_membros: int
+
+
+class BuscarLeadsMesResponse(BaseModel):
+    leads_mes: int
+    porcentagem_crescimento: float
+
+
+class BuscarMembrosMesResponse(BaseModel):
+    membros_mes: int
+    porcentagem_crescimento: float

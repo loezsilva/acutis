@@ -1,10 +1,11 @@
 from acutis_api.communication.requests.campanha import (
+    RegistrarCampanhaSchema,
     RegistrarNovaCampanhaFormData,
 )
 from acutis_api.communication.responses.campanha import (
     RegistrarNovaCampanhaResponse,
 )
-from acutis_api.domain.entities.campanha import ObjetivosCampanhaEnum
+from acutis_api.domain.entities.campanha import Campanha, ObjetivosCampanhaEnum
 from acutis_api.domain.repositories.campanha import CampanhaRepositoryInterface
 from acutis_api.domain.services.file_service import FileServiceInterface
 from acutis_api.domain.services.gateway_pagamento import (
@@ -20,10 +21,11 @@ class AtualizarCampanhaUseCase:
         self,
         campanha_repository: CampanhaRepositoryInterface,
         s3_service: FileServiceInterface,
-        payment_service: GatewayPagamentoInterface,
+        itau_api: GatewayPagamentoInterface,
     ):
         self.__campanha_repository = campanha_repository
         self.__s3_service = s3_service
+        self._itau_api = itau_api
 
     def execute(  # NOSONAR
         self,
@@ -31,7 +33,6 @@ class AtualizarCampanhaUseCase:
         fk_campanha_id: int,
     ) -> dict:
         dados_da_campanha = dados_da_requisicao.dados_da_campanha
-        dados_da_landing_page = dados_da_requisicao.dados_da_landing_page
         foto_capa = dados_da_requisicao.foto_capa
         campos_adicionais = dados_da_requisicao.campos_adicionais
         campanha_id = fk_campanha_id
@@ -39,8 +40,6 @@ class AtualizarCampanhaUseCase:
         buscar_campanha = self.__campanha_repository.buscar_campanha_por_id(
             campanha_id
         )
-
-        # adicionar tratamento de iformações bancárias caso campanha de doação
 
         if buscar_campanha is None:
             raise HttpNotFoundError('Campanha não encontrada')
@@ -62,33 +61,19 @@ class AtualizarCampanhaUseCase:
                 foto_capa
             )
 
-        if dados_da_campanha.objetivo in {
-            ObjetivosCampanhaEnum.cadastro,
-            ObjetivosCampanhaEnum.pre_cadastro,
-            ObjetivosCampanhaEnum.oficiais,
-        }:
-            if dados_da_landing_page is None or (
-                dados_da_landing_page.conteudo is None
-            ):
+        if dados_da_campanha.objetivo == ObjetivosCampanhaEnum.oficiais:
+            if dados_da_campanha.fk_cargo_oficial_id is None:
                 raise HttpBadRequestError(
-                    'É necessário informar o conteúdo da ladpage'
+                    'Deve ser informado um cargo oficial.'
                 )
-
-            if dados_da_campanha.objetivo == ObjetivosCampanhaEnum.oficiais:
-                if dados_da_campanha.fk_cargo_oficial_id is None:
-                    raise HttpBadRequestError(
-                        'Deve ser informado um cargo oficial.'
-                    )
 
         campanha = self.__campanha_repository.atualizar_campanha(
             dados_da_campanha=dados_da_campanha,
             campanha_para_atualizar=campanha_para_atualizar,
         )
 
-        if dados_da_landing_page is not None:
-            self.__campanha_repository.atualizar_landing_page(
-                landing_page_para_atualizar, dados_da_landing_page
-            )
+        if dados_da_campanha.objetivo == ObjetivosCampanhaEnum.doacao:
+            self._atualizar_campanha_doacao(campanha, dados_da_campanha)
 
         campos_adicionais_da_campanha = (
             self.__campanha_repository.buscar_campos_adicionais(
@@ -118,3 +103,22 @@ class AtualizarCampanhaUseCase:
         ).model_dump()
 
         return response
+
+    def _atualizar_campanha_doacao(
+        self, campanha: Campanha, dados_da_campanha: RegistrarCampanhaSchema
+    ):
+        if not dados_da_campanha.chave_pix:
+            raise HttpBadRequestError(
+                'A chave pix é obrigatória para campanhas com o objetivo de doação.'  # noqa
+            )
+
+        if campanha.campanha_doacao.chave_pix != dados_da_campanha.chave_pix:
+            self._itau_api.deletar_chave_pix_webhook(campanha.chave_pix)
+            self._itau_api.registrar_chave_pix_webhook(
+                dados_da_campanha.chave_pix
+            )
+
+            self.__campanha_repository.atualizar_campanha_doacao(
+                dados_da_campanha.chave_pix,
+                campanha.campanha_doacao,
+            )

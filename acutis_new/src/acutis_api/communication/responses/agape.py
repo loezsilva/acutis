@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime, date
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator, RootModel
+from typing import Optional
 
 from acutis_api.communication.responses.padrao import PaginacaoResponse
 from acutis_api.domain.entities.instancia_acao_agape import (
@@ -9,6 +10,11 @@ from acutis_api.domain.entities.instancia_acao_agape import (
     StatusAcaoAgapeEnum,
 )
 
+from acutis_api.domain.entities.historico_movimentacao_agape import (
+    TipoMovimentacaoEnum,
+    HistoricoOrigemEnum,
+    HistoricoDestinoEnum,
+)
 
 class RegistrarAcaoAgapeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -139,6 +145,7 @@ class FamiliaAgapeResponse(BaseModel):
     endereco_id: uuid.UUID
     observacao: str | None
     criado_em: datetime | None
+    deletado_em: datetime | None
     membros: list[MembroFamiliaAgapeResponse]
 
 class ListarFamiliasAgapeResponsePaginada(PaginacaoResponse):
@@ -236,3 +243,238 @@ class CardsEstatisticasItensEstoqueResponse(BaseModel):
     itens_em_estoque: str
     ultima_acao: str
     ultima_entrada: str
+
+# Schemas para listagem de beneficiários (famílias com membros e endereço)
+class BeneficiarioFamiliaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID  # ID da FamiliaAgape
+    nome_familia: str
+    observacao: Optional[str] = None
+    membros: list[MembroFamiliaAgapeResponse] = []
+    endereco: Optional[EnderecoResponse] = None
+
+class ListarBeneficiariosAgapeResponse(RootModel[
+    list[BeneficiarioFamiliaResponse]]
+):
+    root: list[BeneficiarioFamiliaResponse]
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": [
+                {
+                    "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                    "nome_familia": "Família Silva",
+                    "observacao": "Necessitam de atenção especial.",
+                    "membros": [
+                        {
+                            "id": "b1c2d3e4-f5a6-b7c8-d9e0-f1a2b3c4d5e6",
+                            "cpf": "111.222.333-44",
+                            "nome": "João Silva",
+                            "email": "joao.silva@example.com",
+                            "telefone": "11999998888",
+                            "ocupacao": "Autônomo",
+                            "renda": 1200.50,
+                            "responsavel": True,
+                            "idade": 35
+                        }
+                    ],
+                    "endereco": {
+                        "id": "c1d2e3f4-a5b6-c7d8-e9f0-a1b2c3d4e5f6",
+                        "codigo_postal": "01001-000",
+                        "logradouro": "Praça da Sé",
+                        "bairro": "Sé",
+                        "cidade": "São Paulo",
+                        "estado": "SP",
+                        "numero": "100",
+                        "complemento": "Apto 10"
+                    }
+                }
+            ]
+        }
+
+class EnderecoFamiliaAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    familia_id: uuid.UUID
+    nome_familia: str
+    # Campos do EnderecoResponse original
+    endereco_id: uuid.UUID # ID do Endereço em si
+    codigo_postal: Optional[str] = None
+    logradouro: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
+
+
+class ListarEnderecosFamiliasAgapeResponse(RootModel[list[
+    EnderecoFamiliaAgapeResponse
+]]):
+    root: list[EnderecoFamiliaAgapeResponse]
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": [
+                {
+                    "familia_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                    "nome_familia": "Família Exemplo 1",
+                    "endereco_id": "e1f2a3b4-c5d6-e7f8-a9b0-c1d2e3f4a5b6",
+                    "codigo_postal": "12345-678",
+                    "logradouro": "Rua das Palmeiras",
+                    "bairro": "Centro",
+                    "cidade": "Cidade Exemplo",
+                    "estado": "EX",
+                    "numero": "100",
+                    "complemento": "Apto 1"
+                },
+                {
+                    "familia_id": "b2c3d4e5-f6a7-8901-2345-678901bcdef0",
+                    "nome_familia": "Família Modelo 2",
+                    "endereco_id": "f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7",
+                    "codigo_postal": "98765-432",
+                    "logradouro": "Avenida Principal",
+                    "bairro": "Vila Nova",
+                    "cidade": "Outra Cidade",
+                    "estado": "OC",
+                    "numero": "250B"
+                }
+            ]
+        }
+
+class GeolocalizacaoBeneficiarioResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    familia_id: uuid.UUID
+    nome_familia: str
+    latitude: float
+    longitude: float
+    endereco_id: uuid.UUID # ID do endereço ao qual a geolocalização pertence
+
+
+class ListarGeolocalizacoesBeneficiariosResponse(RootModel[
+    list[GeolocalizacaoBeneficiarioResponse]
+]):
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": [
+                {
+                    "familia_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                    "nome_familia": "Família Silva",
+                    "latitude": -23.550520,
+                    "longitude": -46.633308,
+                    "endereco_id": "e1f2a3b4-c5d6-e7f8-a9b0-c1d2e3f4a5b6"
+                },
+                {
+                    "familia_id": "b2c3d4e5-f6a7-8901-2345-678901bcdef0",
+                    "nome_familia": "Família Santos",
+                    "latitude": -22.906847,
+                    "longitude": -43.172896,
+                    "endereco_id": "f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7"
+                }
+            ]
+        }
+
+class HistoricoMovimentacaoItemAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    item_id: uuid.UUID
+    nome_item: str
+    quantidade: int
+    tipo_movimentacao: TipoMovimentacaoEnum
+    origem: Optional[HistoricoOrigemEnum] = None
+    destino: Optional[HistoricoDestinoEnum] = None
+    ciclo_acao_id: Optional[uuid.UUID] = None
+    data_movimentacao: datetime
+
+
+class ListarHistoricoMovimentacoesAgapeResponsePaginada(PaginacaoResponse):
+    resultados: list[HistoricoMovimentacaoItemAgapeResponse]
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "pagina": 1,
+                "paginas": 5,
+                "total": 50,
+                "resultados": [
+                    {
+                        "id": "d1e2f3a4...",
+                        "item_id": "a1b2c3d4...",
+                        "nome_item": "Arroz Tipo 1",
+                        "quantidade": 100,
+                        "tipo_movimentacao": "entrada",
+                        "origem": "aquisicao",
+                        "destino": "estoque",
+                        "ciclo_acao_id": None,
+                        "data_movimentacao": "2023-10-26T10:00:00Z"
+                    },
+                    {
+                        "id": "e2f3a4b5...",
+                        "item_id": "b2c3d4e5...",
+                        "nome_item": "Feijão Carioca",
+                        "quantidade": 50,
+                        "tipo_movimentacao": "saida",
+                        "origem": "estoque",
+                        "destino": "acao",
+                        "ciclo_acao_id": "c3d4e5f6...",
+                        "data_movimentacao": "2023-10-27T14:30:00Z"
+                    }
+                ]
+            }
+        }
+
+# Schemas para Itens Doados a um Beneficiário em um Ciclo de Ação
+class ItemDoadoBeneficiarioResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    item_id: uuid.UUID  # ID do EstoqueAgape (fk_estoque_agape_id de ItemInstanciaAgape)
+    nome_item: str      # Nome do item (EstoqueAgape.item)
+    quantidade_doada: int # Quantidade de ItemDoacaoAgape.quantidade
+    item_doacao_agape_id: uuid.UUID # ID do registro ItemDoacaoAgape
+    item_instancia_agape_id: uuid.UUID # ID do ItemInstanciaAgape
+
+
+class ListarItensDoadosBeneficiarioResponse(RootModel[
+    list[ItemDoadoBeneficiarioResponse
+]]): 
+    root: list[ItemDoadoBeneficiarioResponse]
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": [
+                {
+                    "item_id": "a1b2c3d4...",
+                    "nome_item": "Arroz Parboilizado - 5kg",
+                    "quantidade_doada": 2,
+                    "item_doacao_agape_id": "d1e2f3a4...",
+                    "item_instancia_agape_id": "c1d2e3f4..."
+                },
+                {
+                    "item_id": "b2c3d4e5...",
+                    "nome_item": "Feijão Preto - 1kg",
+                    "quantidade_doada": 3,
+                    "item_doacao_agape_id": "d2e3f4a5...",
+                    "item_instancia_agape_id": "c2d3e4f5..."
+                }
+            ]
+        }
+
+class VoluntarioAgapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    nome: str
+    email: str | None
+    telefone: str | None
+    perfil: str | None
+
+class ListarVoluntariosAgapeResponse(PaginacaoResponse):
+    resultados: list[VoluntarioAgapeResponse]

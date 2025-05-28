@@ -20,9 +20,10 @@ class CardRendaFamiliarAgapeUseCase:
             familia_id
         )
         if not familia:
-            # Or handle as per application's error strategy for non-existent/deleted family
-            raise HttpNotFoundError(f"Família com ID {familia} não encontrada ou foi deletada.")
-        
+            raise HttpNotFoundError(
+                f"Família com ID {familia_id} não encontrada ou foi deletada."
+            )
+
         membros_count_data = (
             self.__repository.numero_membros_familia_agape(
                 familia_id
@@ -32,6 +33,7 @@ class CardRendaFamiliarAgapeUseCase:
         numero_membros = getattr(
             membros_count_data, 'quantidade', 0
         ) if membros_count_data else 0
+
 
         renda_familiar_data = self.__repository.soma_renda_familiar_agape(
             familia
@@ -51,7 +53,6 @@ class CardRendaFamiliarAgapeUseCase:
                 renda_per_capita_sm = (
                     soma_renda / numero_membros
                 ) / SALARIO_MINIMO
-
         response_data = CardRendaFamiliarAgapeResponse(
             renda_familiar=f"{renda_total_sm:.1f} Salários mínimos",
             renda_per_capta=f"{renda_per_capita_sm:.1f} Salários mínimos"

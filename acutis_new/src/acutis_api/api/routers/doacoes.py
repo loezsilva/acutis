@@ -13,9 +13,11 @@ from acutis_api.application.use_cases.doacoes.atualizar import (
 from acutis_api.application.use_cases.doacoes.registrar import (
     RegistrarDoacaoBoletoUseCase,
     RegistrarDoacaoCartaoCreditoUseCase,
+    RegistrarDoacaoNovoPixRecorrenteUseCase,
     RegistrarDoacaoPixUseCase,
 )
 from acutis_api.communication.requests.doacoes import (
+    PagamentoPixRecorrenteTokenQuery,
     RegistrarDoacaoBoletoRequest,
     RegistrarDoacaoCartaoCreditoRequest,
     RegistrarDoacaoPixRequest,
@@ -75,6 +77,7 @@ def efetuar_doacao_via_cartao_credito():
     tags=['Doações'],
 )
 @jwt_required()
+@limiter.limit('1 per 5 seconds')
 def cancelar_recorrencia_doacao(doacao_id: uuid.UUID):
     """Cancela a recorrencia da doação pelo ID da doação"""
     try:
@@ -97,6 +100,7 @@ def cancelar_recorrencia_doacao(doacao_id: uuid.UUID):
     resp=Response(HTTP_200=ResponsePadraoSchema), tags=['Doações']
 )
 @jwt_required()
+@limiter.limit('1 per 5 seconds')
 def estornar_doacao_cartao_credito(processamento_doacao_id: uuid.UUID):
     """Realiza o estorno da doação via cartão de crédito pelo ID"""
     try:
@@ -122,6 +126,7 @@ def estornar_doacao_cartao_credito(processamento_doacao_id: uuid.UUID):
     tags=['Doações'],
 )
 @jwt_required()
+@limiter.limit('1 per 5 seconds')
 def efetuar_doacao_via_pix():
     """Realiza uma doação via pix"""
     try:
@@ -133,6 +138,32 @@ def efetuar_doacao_via_pix():
         usecase = RegistrarDoacaoPixUseCase(repository, itau, file_service)
 
         response = usecase.execute(request, current_user)
+        return response, HTTPStatus.CREATED
+    except Exception as exc:
+        database.session.rollback()
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@doacoes_bp.post('/pagamento/pix/recorrencia')
+@swagger.validate(
+    query=PagamentoPixRecorrenteTokenQuery,
+    resp=Response(HTTP_201=RegistrarDoacaoPixResponse),
+    tags=['Doações'],
+)
+@limiter.limit('1 per 5 seconds')
+def pagamento_pix_recorrente():
+    """Gera o pagamento recorrente via pix pelo token"""
+    try:
+        query = PagamentoPixRecorrenteTokenQuery.model_validate(
+            flask_request.args.to_dict()
+        )
+
+        repository = DoacoesRepository(database)
+        itau = ItauPixService()
+        usecase = RegistrarDoacaoNovoPixRecorrenteUseCase(repository, itau)
+
+        response = usecase.execute(query)
         return response, HTTPStatus.CREATED
     except Exception as exc:
         database.session.rollback()

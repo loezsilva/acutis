@@ -52,3 +52,7 @@ class RegistrarDoacaoPixRequest(DadosDoacaoBase): ...
 
 
 class RegistrarDoacaoBoletoRequest(DadosDoacaoBase): ...
+
+
+class PagamentoPixRecorrenteTokenQuery(BaseModel):
+    token: str

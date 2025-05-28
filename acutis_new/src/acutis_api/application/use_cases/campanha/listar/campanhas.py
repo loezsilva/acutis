@@ -25,7 +25,6 @@ class ListarCampanhasUseCase:
         )
 
         campanhas_completas = []
-
         for campanha in resultado_paginado.items:
             campanha_response = CampanhaResponse(
                 id=campanha.id,
@@ -41,22 +40,19 @@ class ListarCampanhasUseCase:
                 criado_em=campanha.criado_em,
                 criado_por=campanha.criado_por,
                 atualizado_em=campanha.atualizado_em,
+                fk_cargo_oficial_id=campanha.fk_cargo_oficial_id,
             )
 
             landing_page_response = None
             if campanha.landing_page:
                 landing_page_response = LandingPageResponse(
                     id=campanha.landing_page.id,
-                    fk_campanha_id=campanha.landing_page.fk_campanha_id,
-                    conteudo=campanha.landing_page.conteudo,
-                    shlink=campanha.landing_page.shlink,
-                    criado_em=campanha.landing_page.criado_em,
-                    atualizado_em=campanha.landing_page.atualizado_em,
                 )
 
             campanha_completa = CampanhaCompletaResponse(
                 campanha=campanha_response,
                 landing_page=landing_page_response,
+                campos_adicionais=[],
             )
 
             campanhas_completas.append(campanha_completa)
@@ -67,4 +63,4 @@ class ListarCampanhasUseCase:
             total=resultado_paginado.total,
             paginas=resultado_paginado.pages,
             por_pagina=resultado_paginado.per_page,
-        )
+        ).model_dump()

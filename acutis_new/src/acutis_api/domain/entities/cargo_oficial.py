@@ -20,15 +20,16 @@ class CargosOficiais:
     fk_cargo_superior_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey('cargos_oficiais.id'), nullable=True
     )
-    criado_por: Mapped[uuid.UUID] = mapped_column(
+    criado_por: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey('membros.id'),
-        nullable=False,  # nosonar
+        nullable=True,  # nosonar
     )
     criado_em: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )
     atualizado_por: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey('membros.id')  # nosonar
+        ForeignKey('membros.id'),
+        nullable=True,  # nosonar
     )
     atualizado_em: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()

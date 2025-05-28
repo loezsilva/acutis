@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.repositories.schemas.admin_exportar_dados import (
+    ExportarBenfeitoresSchema,
     ExportarDoacoesSchema,
     ExportarMembrosSchema,
     ExportMembrosOficiaisSchema,
@@ -32,4 +33,9 @@ class ExportarDadosRepositoryInterface(ABC):
     @abstractmethod
     def exportar_doacoes(  # NOSONAR
         self, colunas, request: ExportarDoacoesSchema
+    ): ...
+
+    @abstractmethod
+    def exportar_benfeitores(
+        self, colunas, request: ExportarBenfeitoresSchema
     ): ...

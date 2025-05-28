@@ -48,3 +48,6 @@ class GraficosCadastrosRepositoryInterface(ABC):
 
     @abstractmethod
     def leads_por_evolucao_mensal(self) -> list: ...
+
+    @abstractmethod
+    def membros_por_estado(self) -> list: ...

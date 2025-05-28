@@ -1,4 +1,3 @@
-from acutis_api.communication.responses.agape import ItemEstoqueAgapeResponse
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 
 
@@ -21,7 +20,7 @@ class AdicionarVoluntarioAgapeUseCase:
         self.__repository.adicionar_voluntario_agape(lead_id)
 
         # Persiste as alterações
-        self.__repository.salvar_alteracoes()
+        # self.__repository.salvar_alteracoes()
 
         return 
 

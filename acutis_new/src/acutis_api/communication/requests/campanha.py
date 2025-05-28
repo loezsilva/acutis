@@ -80,7 +80,6 @@ class RegistrarNovaCampanhaFormData(BaseModel):
 
     dados_da_campanha: RegistrarCampanhaSchema
     foto_capa: Optional[BaseFile]
-    dados_da_landing_page: Optional[RegistrarNovaLandingPageSchema]
     campos_adicionais: Optional[List[RegistroNovoCampoAdicionalSchema]]
 
     @model_validator(mode='before')
@@ -102,15 +101,6 @@ class RegistrarNovaCampanhaFormData(BaseModel):
                 )
             else:
                 form_data['campos_adicionais'] = None
-
-            if 'dados_da_landing_page' in form_data and isinstance(
-                form_data['dados_da_landing_page'], str
-            ):
-                form_data['dados_da_landing_page'] = json.loads(
-                    form_data['dados_da_landing_page']
-                )
-            else:
-                form_data['dados_da_landing_page'] = None
 
             if 'foto_capa' not in form_data or not isinstance(
                 form_data['foto_capa'], FileStorage
@@ -296,3 +286,25 @@ class CadastroPorCampanhaFormData(BaseModel):
         ):
             return None
         return form_data[field_name]
+
+
+class SalvarLandpageRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    nome_campanha: str = Field(..., description='Nome da campanha')
+    conteudo: str = Field(..., description='Conteúdo da landing page')
+    shlink: Optional[str] = Field(None, description='Link encurtado')
+    estrutura_json: str = Field(
+        ..., description='Estrutura JSON da landing page'
+    )
+
+
+class AtualizarLandpageRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    fk_landingpage_id: uuid.UUID = Field(..., description='ID da Landig page')
+    conteudo: str = Field(..., description='Conteúdo da landing page')
+    shlink: Optional[str] = Field(None, description='Link encurtado')
+    estrutura_json: str = Field(
+        ..., description='Estrutura JSON da landing page'
+    )

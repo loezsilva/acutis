@@ -36,3 +36,14 @@ class ExportarDoacoesEnum(str, Enum):  # NOSONAR
     codigo_comprovante = 'codigo_comprovante'
     nosso_numero = 'nosso_numero'
     status_processamento = 'status_processamento'
+
+
+class ExportarBenfeitoresEnum(str, Enum):
+    benfeitor_id = 'benfeitor_id'
+    nome = 'nome'
+    registrado_em = 'registrado_em'
+    numero_documento = 'numero_documento'
+    quantidade_doacoes = 'quantidade_doacoes'
+    montante = 'montante'
+    ultima_doacao = 'ultima_doacao'
+    nome_campanha = 'nome_campanha'

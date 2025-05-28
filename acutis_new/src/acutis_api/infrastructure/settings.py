@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     JWT_COOKIE_SECURE: bool = True
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    JWT_COOKIE_SAMESITE: str = 'Strict'
 
     DATABASE_HOST: str | None = None
     DATABASE_USERNAME: str | None = None
@@ -42,6 +43,7 @@ class Settings(BaseSettings):
     ITAU_PIX_URL: str | None = None
     ITAU_BOLETO_URL: str | None = None
     ITAU_BOLECODE_URL: str | None = None
+    ACUTIS_WEBHOOK_ITAU_URL: str | None = None
     ITAU_PIX_CLIENT_ID: str | None = None
     ITAU_PIX_CLIENT_SECRET: str | None = None
     ITAU_BOLETO_CLIENT_ID: str | None = None
@@ -59,6 +61,10 @@ class Settings(BaseSettings):
     AWS_BUCKET_NAME: str | None = None
 
     GOOGLE_MAPS_API_KEY: str | None = None
+    URL_FRONTEND_DOE: str | None = None
+    URL_FRONTEND_CADASTRO: str | None = None
+    MAILHOG_HOST: str | None = None
+    MAILHOG_PORT: str | None = None
 
 
 settings = Settings()
@@ -74,7 +80,7 @@ class Config:
     JWT_COOKIE_SECURE = settings.JWT_COOKIE_SECURE
     JWT_COOKIE_CSRF_PROTECT = True
     JWT_CSRF_IN_COOKIES = True
-    JWT_COOKIE_SAMESITE = 'None'
+    JWT_COOKIE_SAMESITE = settings.JWT_COOKIE_SAMESITE
     JWT_REFRESH_COOKIE_PATH = '/autenticacao/refresh'
 
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(

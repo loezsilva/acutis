@@ -12,10 +12,14 @@ from .atualizar import (
     IniciarCicloAcaoAgapeUseCase,
     RemoverItemEstoqueAgapeUseCase,
     AdicionarVoluntarioAgapeUseCase,
+    EditarEnderecoFamiliaAgapeUseCase,
+    EditarMembroAgapeUseCase,
 )
 from .deletar import (
     DeletarCicloAcaoAgapeUseCase,
     ExcluirItemEstoqueAgapeUseCase,
+    DeletarFamiliaAgapeUseCase,
+    DeletarMembroAgapeUseCase,
 )
 from .listar import (
     BuscarCicloAcaoAgapeUseCase,
@@ -25,6 +29,12 @@ from .listar import (
     ListarNomesAcoesAgapeUseCase,
     ListarFamiliasUseCase,
     ListarMembrosFamiliaUseCase,
+    ListarBeneficiariosAgapeUseCase,
+    ListarEnderecosFamiliasAgapeUseCase,
+    ListarGeolocalizacoesBeneficiariosUseCase,
+    ListarHistoricoMovimentacoesAgapeUseCase,
+    ListarItensDoadosBeneficiarioUseCase,
+    ListarItensRecebidosUseCase,
 )
 from .buscar import (
     BuscarEnderecoFamiliaAgapeUseCase,
@@ -70,4 +80,14 @@ __all__ = [
     'CardTotalRecebimentosAgapeUseCase',
     'CardsEstatisticasFamiliasAgapeUseCase',
     'CardsEstatisticasItensEstoqueUseCase',
+    'DeletarFamiliaAgapeUseCase',
+    'DeletarMembroAgapeUseCase',
+    'EditarEnderecoFamiliaAgapeUseCase',
+    'EditarMembroAgapeUseCase',
+    'ListarBeneficiariosAgapeUseCase',
+    'ListarEnderecosFamiliasAgapeUseCase',
+    'ListarGeolocalizacoesBeneficiariosUseCase',
+    'ListarHistoricoMovimentacoesAgapeUseCase',
+    'ListarItensDoadosBeneficiarioUseCase',
+    'ListarItensRecebidosUseCase',
 ]

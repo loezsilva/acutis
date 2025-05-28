@@ -38,5 +38,5 @@ class Endereco:
     )
 
     coordenada: Mapped['Coordenada'] = relationship(
-        init=False, backref='endereco'
+        init=False, backref='endereco', cascade='all, delete-orphan'
     )

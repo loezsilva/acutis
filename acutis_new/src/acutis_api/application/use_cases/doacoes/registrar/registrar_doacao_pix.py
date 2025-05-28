@@ -30,7 +30,7 @@ from acutis_api.domain.services.gateway_pagamento import (
     GatewayPagamentoInterface,
 )
 from acutis_api.domain.services.schemas.gateway_pagamento import (
-    CriarPagamentoPixRequest,
+    CriarPagamentoPixSchema,
 )
 from acutis_api.exception.errors.unprocessable_entity import (
     HttpUnprocessableEntityError,
@@ -74,7 +74,7 @@ class RegistrarDoacaoPixUseCase(BaseRegistrarDoacaoUseCase):
                 'Você precisa ter um CPF ou CNPJ cadastrado para doar por este meio de pagamento.'  # noqa
             )
 
-        dados_pagamento = CriarPagamentoPixRequest(
+        dados_pagamento = CriarPagamentoPixSchema(
             data_vencimento=data_vencimento,
             tipo_documento=tipo_documento,
             numero_documento=lead.membro.numero_documento,

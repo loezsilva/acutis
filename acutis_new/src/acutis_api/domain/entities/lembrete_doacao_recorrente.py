@@ -17,8 +17,8 @@ class LembreteDoacaoRecorrente:
     fk_processamento_doacao_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey('processamentos_doacoes.id'), index=True
     )
-    criado_por: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey('membros.id'), index=True
+    criado_por: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey('membros.id'), index=True, nullable=True
     )
     criado_em: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now()

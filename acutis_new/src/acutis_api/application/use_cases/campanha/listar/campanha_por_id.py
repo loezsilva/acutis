@@ -20,7 +20,7 @@ class BuscaCampanhaPorIdUseCase:
         self.__repository = repository
         self.__s3_service = s3_service
 
-    def execute(self, fk_campanha_id: uuid.UUID) -> dict:
+    def execute(self, fk_campanha_id: uuid.UUID):
         busca_campanha_por_id = self.__repository.buscar_campanha_por_id(
             fk_campanha_id
         )
@@ -47,6 +47,7 @@ class BuscaCampanhaPorIdUseCase:
             criado_em=campanha.criado_em,
             criado_por=campanha.criado_por,
             atualizado_em=campanha.atualizado_em,
+            fk_cargo_oficial_id=campanha.fk_cargo_oficial_id,
         )
 
         campos_adicionais_response = []
@@ -55,12 +56,9 @@ class BuscaCampanhaPorIdUseCase:
                 campos_adicionais_response.append(
                     CampoAdicionalResponse(
                         id=campo.id,
-                        fk_campanha_id=campo.fk_campanha_id,
                         nome_campo=campo.nome_campo,
                         tipo_campo=campo.tipo_campo,
                         obrigatorio=campo.obrigatorio,
-                        criado_em=campo.criado_em,
-                        atualizado_em=campo.atualizado_em,
                     )
                 )
 
@@ -68,17 +66,10 @@ class BuscaCampanhaPorIdUseCase:
         if campanha.landing_page:
             landing_page_response = LandingPageResponse(
                 id=landing_page.id,
-                fk_campanha_id=landing_page.fk_campanha_id,
-                conteudo=landing_page.conteudo,
-                shlink=landing_page.shlink,
-                criado_em=landing_page.criado_em,
-                atualizado_em=landing_page.atualizado_em,
             )
 
-        campanha_por_id = CampanhaCompletaResponse(
+        return CampanhaCompletaResponse(
             campanha=campanha_response,
             campos_adicionais=campos_adicionais_response,
             landing_page=landing_page_response,
-        )
-
-        return {'campanhas': campanha_por_id.model_dump()}
+        ).model_dump()

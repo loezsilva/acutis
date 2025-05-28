@@ -25,3 +25,4 @@ class LandingPage:
     atualizado_em: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )
+    estrutura_json: Mapped[str] = mapped_column(UnicodeText)

@@ -1,12 +1,13 @@
 from http import HTTPStatus
 
 from acutis_api.communication.requests.campanha import (
+    RegistrarCampanhaSchema,
     RegistrarNovaCampanhaFormData,
 )
 from acutis_api.communication.responses.campanha import (
     RegistrarNovaCampanhaResponse,
 )
-from acutis_api.domain.entities.campanha import ObjetivosCampanhaEnum
+from acutis_api.domain.entities.campanha import Campanha, ObjetivosCampanhaEnum
 from acutis_api.domain.repositories.campanha import CampanhaRepositoryInterface
 from acutis_api.domain.services.file_service import FileServiceInterface
 from acutis_api.domain.services.gateway_pagamento import (
@@ -21,16 +22,16 @@ class RegistrarCampanhaUseCase:
         self,
         campanha_repository: CampanhaRepositoryInterface,
         s3_service: FileServiceInterface,
-        payment_service: GatewayPagamentoInterface,
+        itau_api: GatewayPagamentoInterface,
     ):
         self.__campanha_repository = campanha_repository
         self.__s3_service = s3_service
+        self._itau_api = itau_api
 
     def execute(
         self, dados_da_requisicao: RegistrarNovaCampanhaFormData
     ) -> tuple[dict, HTTPStatus]:
         dados_da_campanha = dados_da_requisicao.dados_da_campanha
-        dados_da_landing_page = dados_da_requisicao.dados_da_landing_page
         foto_capa = dados_da_requisicao.foto_capa
         campos_adicionais = dados_da_requisicao.campos_adicionais
 
@@ -48,34 +49,15 @@ class RegistrarCampanhaUseCase:
             )
             dados_da_campanha.foto_capa = foto_capa_salva_no_bucket
 
-        # adicionar tratamento de iformações bancárias caso campanha de doação
-
-        if dados_da_campanha.objetivo in {
-            ObjetivosCampanhaEnum.cadastro,
-            ObjetivosCampanhaEnum.pre_cadastro,
-            ObjetivosCampanhaEnum.oficiais,
-        }:
-            if dados_da_landing_page is None or (
-                dados_da_landing_page.conteudo is None
-            ):
-                raise HttpBadRequestError(
-                    'É necessário informar o conteúdo da landing page'
-                )
-
-            if dados_da_campanha.objetivo == ObjetivosCampanhaEnum.oficiais:
-                if dados_da_campanha.fk_cargo_oficial_id is None:
-                    raise HttpBadRequestError(
-                        'Deve ser informado um cargo oficial.'
-                    )
+        if (
+            dados_da_campanha.objetivo == ObjetivosCampanhaEnum.oficiais
+            and dados_da_campanha.fk_cargo_oficial_id is None
+        ):
+            raise HttpBadRequestError('Deve ser informado um cargo oficial.')
 
         campanha = self.__campanha_repository.registrar_nova_campanha(
             dados_da_campanha=dados_da_campanha
         )
-
-        if dados_da_landing_page is not None:
-            self.__campanha_repository.criar_landing_page(
-                campanha.id, dados_da_landing_page
-            )
 
         if campos_adicionais is not None:
             self.__campanha_repository.criar_campos_adicionais(
@@ -89,3 +71,18 @@ class RegistrarCampanhaUseCase:
         ).model_dump()
 
         return response
+
+    def _cadastrar_campanha_doacao(
+        self, campanha: Campanha, dados_da_campanha: RegistrarCampanhaSchema
+    ):
+        if not dados_da_campanha.chave_pix:
+            raise HttpBadRequestError(
+                'A chave pix é obrigatória para campanhas com o objetivo de doação.'  # noqa
+            )
+
+        self._itau_api.registrar_chave_pix_webhook(dados_da_campanha.chave_pix)
+
+        self.__campanha_repository.registrar_campanha_doacao(
+            dados_da_campanha.chave_pix,
+            campanha.id,
+        )

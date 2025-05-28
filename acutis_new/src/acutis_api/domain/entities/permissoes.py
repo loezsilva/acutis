@@ -24,53 +24,53 @@ class OrigemCadastroEnum(str, Enum):
     google = 'google'
 
 
-@table_registry.mapped_as_dataclass
-class Permissao:
-    __tablename__ = 'permissoes'
+# @table_registry.mapped_as_dataclass
+# class Permissao:
+#     __tablename__ = 'permissoes'
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        init=False, primary_key=True, default_factory=uuid.uuid4
-    )
-    nome: Mapped[str] = mapped_column(String(100), index=True)
-    email: Mapped[str] = mapped_column(String(100), index=True, unique=True)
-    telefone: Mapped[str]
-    pais: Mapped[str] = mapped_column(String(100), index=True)
-    password_hashed: Mapped[str] = mapped_column(
-        String(500), init=False, index=True, repr=False
-    )
-    origem_cadastro: Mapped[OrigemCadastroEnum] = mapped_column(
-        String(50), index=True
-    )
-    status: Mapped[bool | None] = mapped_column(default=False, index=True)
-    ultimo_acesso: Mapped[datetime | None] = mapped_column(default=None)
-    criado_em: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
-    atualizado_em: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now(), onupdate=func.now()
-    )
+#     id: Mapped[uuid.UUID] = mapped_column(
+#         init=False, primary_key=True, default_factory=uuid.uuid4
+#     )
+#     nome: Mapped[str] = mapped_column(String(100), index=True)
+#     email: Mapped[str] = mapped_column(String(100), index=True, unique=True)
+#     telefone: Mapped[str]
+#     pais: Mapped[str] = mapped_column(String(100), index=True)
+#     password_hashed: Mapped[str] = mapped_column(
+#         String(500), init=False, index=True, repr=False
+#     )
+#     origem_cadastro: Mapped[OrigemCadastroEnum] = mapped_column(
+#         String(50), index=True
+#     )
+#     status: Mapped[bool | None] = mapped_column(default=False, index=True)
+#     ultimo_acesso: Mapped[datetime | None] = mapped_column(default=None)
+#     criado_em: Mapped[datetime] = mapped_column(
+#         init=False, server_default=func.now()
+#     )
+#     atualizado_em: Mapped[datetime] = mapped_column(
+#         init=False, server_default=func.now(), onupdate=func.now()
+#     )
 
-    membro: Mapped['Membro'] = relationship(init=False, back_populates='lead')
-    metadados: Mapped[list['MetadadoLead']] = relationship(
-        init=False, backref='lead'
-    )
+#     membro: Mapped['Membro'] = relationship(init=False, back_populates='lead')
+#     metadados: Mapped[list['MetadadoLead']] = relationship(
+#         init=False, backref='lead'
+#     )
 
-    permissao: Mapped['Permissao'] = relationship(
-        'Permissao',
-        backref='leads',
-        lazy='dynamic',
-        cascade='all, delete',
-    )
+#     permissao: Mapped['Permissao'] = relationship(
+#         'Permissao',
+#         backref='leads',
+#         lazy='dynamic',
+#         cascade='all, delete',
+#     )
 
-    @property
-    def senha(self):
-        raise AttributeError(
-            'Senha não é um atributo acessível.'
-        )  # pragma: no cover
+#     @property
+#     def senha(self):
+#         raise AttributeError(
+#             'Senha não é um atributo acessível.'
+#         )  # pragma: no cover
 
-    @senha.setter
-    def senha(self, senha: str):
-        self.password_hashed = pwd_context.hash(senha)
+#     @senha.setter
+#     def senha(self, senha: str):
+#         self.password_hashed = pwd_context.hash(senha)
 
-    def verificar_senha(self, senha: str) -> bool:
-        return pwd_context.verify(senha, self.password_hashed)
+#     def verificar_senha(self, senha: str) -> bool:
+#         return pwd_context.verify(senha, self.password_hashed)

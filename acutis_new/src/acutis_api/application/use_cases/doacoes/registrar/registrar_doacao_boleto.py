@@ -92,7 +92,7 @@ class RegistrarDoacaoBoletoUseCase(BaseRegistrarDoacaoUseCase):
             benfeitor_id=lead.membro.benfeitor.id,
             campanha_doacao_id=campanha.campanha_doacao.id,
             valor_doacao=request.valor_doacao,
-            recorrente=request.recorrente,
+            recorrente=False,
             forma_pagamento=FormaPagamentoEnum.boleto,
             anonimo=False,
             gateway=GatewayPagamentoEnum.itau,

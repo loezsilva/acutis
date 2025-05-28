@@ -2,15 +2,31 @@ import uuid
 from typing import Any
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, select
+from sqlalchemy import case, func, or_, select
 
+from acutis_api.communication.requests.membros import (
+    AtualizarDadosMembroRequest,
+)
+from acutis_api.domain.entities.benfeitor import Benfeitor
 from acutis_api.domain.entities.campanha import Campanha
+from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
+from acutis_api.domain.entities.cargo_oficial import CargosOficiais
+from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
+from acutis_api.domain.entities.lembrete_doacao_recorrente import (
+    LembreteDoacaoRecorrente,
+)
 from acutis_api.domain.entities.membro import Membro
 from acutis_api.domain.entities.metadado_lead import MetadadoLead
 from acutis_api.domain.entities.oficial import Oficial
+from acutis_api.domain.entities.pagamento_doacao import PagamentoDoacao
+from acutis_api.domain.entities.processamento_doacao import (
+    ProcessamentoDoacao,
+    StatusProcessamentoEnum,
+)
+from acutis_api.domain.entities.template_lp import TemplateLP
 from acutis_api.domain.repositories.enums.membros_oficiais import (
     StatusMembroOficialEnum,
 )
@@ -19,6 +35,9 @@ from acutis_api.domain.repositories.membros import (
 )
 from acutis_api.domain.repositories.schemas.membros import (
     CampoAdicionalSchema,
+    CardDoacoesMembroBenfeitorSchema,
+    DoacaoMembroBenfeitorSchema,
+    HistoricoDoacaoSchema,
     RegistrarNovoEnderecoSchema,
     RegistrarNovoLeadSchema,
     RegistrarNovoMembroSchema,
@@ -26,6 +45,7 @@ from acutis_api.domain.repositories.schemas.membros import (
 from acutis_api.domain.repositories.schemas.membros_oficiais import (
     RegistraMembroOficialSchema,
 )
+from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 
 
 class MembrosRepository(MembrosRepositoryInterface):
@@ -214,3 +234,168 @@ class MembrosRepository(MembrosRepositoryInterface):
     def atualizar_data_ultimo_acesso(self, lead: Lead):
         lead.ultimo_acesso = func.now()
         self._database.session.add(lead)
+
+    def excluir_conta(self, lead: Lead) -> None:
+        self._database.session.delete(lead)
+
+    def remove_referencias_lead_id(self, fk_lead_id: uuid.UUID) -> None:
+        modelo_colunas_map = {
+            CargosOficiais: [
+                CargosOficiais.criado_por,
+                CargosOficiais.atualizado_por,
+            ],
+            Campanha: [Campanha.criado_por],
+            LembreteDoacaoRecorrente: [LembreteDoacaoRecorrente.criado_por],
+            TemplateLP: [TemplateLP.criado_por],
+            Oficial: [Oficial.atualizado_por],
+        }
+
+        for modelo, colunas in modelo_colunas_map.items():
+            filtros = [coluna == fk_lead_id for coluna in colunas]
+
+            self._database.session.query(modelo).filter(or_(*filtros)).update(
+                {coluna: None for coluna in colunas}, synchronize_session=False
+            )
+
+    def listar_doacoes(
+        self, filtros: PaginacaoQuery, benfeitor_id: uuid.UUID
+    ) -> tuple[list[DoacaoMembroBenfeitorSchema], int]:
+        query = (
+            self._database.session.query(
+                Campanha.nome.label('nome_campanha'),
+                Campanha.capa.label('foto_campanha'),
+                case(
+                    (PagamentoDoacao.recorrente == True, 'Recorrente'),
+                    else_='Única',
+                ).label('tipo_doacao'),
+                Doacao.id.label('doacao_id'),
+            )
+            .select_from(Benfeitor)
+            .join(Membro, Benfeitor.id == Membro.fk_benfeitor_id)
+            .join(Lead, Membro.fk_lead_id == Lead.id)
+            .join(Doacao, Benfeitor.id == Doacao.fk_benfeitor_id)
+            .join(
+                CampanhaDoacao,
+                Doacao.fk_campanha_doacao_id == CampanhaDoacao.id,
+            )
+            .join(
+                Campanha,
+                CampanhaDoacao.fk_campanha_id == Campanha.id,
+            )
+            .join(PagamentoDoacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                PagamentoDoacao.id
+                == ProcessamentoDoacao.fk_pagamento_doacao_id,
+            )
+            .filter(
+                Benfeitor.contabilizar,
+                Doacao.contabilizar,
+                PagamentoDoacao.anonimo == False,
+                Benfeitor.id == benfeitor_id,
+            )
+            .order_by(Doacao.criado_em.desc())
+        )
+
+        doacoes_paginate = query.paginate(
+            page=filtros.pagina, per_page=filtros.por_pagina, error_out=False
+        )
+
+        doacoes, total = doacoes_paginate.items, doacoes_paginate.total
+
+        return doacoes, total
+
+    def buscar_doacao_por_id(self, id: uuid.UUID) -> Doacao | None:
+        doacao = self._database.session.get(Doacao, id)
+        return doacao
+
+    def buscar_historico_doacao_por_doacao_id(
+        self, filtros: PaginacaoQuery, id: uuid.UUID
+    ) -> tuple[list[HistoricoDoacaoSchema], int]:
+        query = (
+            self._database.session.query(
+                case(
+                    (
+                        ProcessamentoDoacao.processado_em.isnot(None),
+                        ProcessamentoDoacao.processado_em,
+                    ),
+                    else_=ProcessamentoDoacao.criado_em,
+                ).label('data_doacao'),
+                ProcessamentoDoacao.forma_pagamento,
+                ProcessamentoDoacao.status.label('status_processamento'),
+                PagamentoDoacao.valor.label('valor_doacao'),
+            )
+            .select_from(Doacao)
+            .join(PagamentoDoacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                PagamentoDoacao.id
+                == ProcessamentoDoacao.fk_pagamento_doacao_id,
+            )
+            .filter(Doacao.id == id)
+            .order_by('data_doacao')
+        )
+
+        query_paginate = query.paginate(
+            page=filtros.pagina, per_page=filtros.por_pagina, error_out=False
+        )
+
+        historico_doacoes, total = query_paginate.items, query_paginate.total
+
+        return historico_doacoes, total
+
+    def atualizar_dados_membro(
+        self, request: AtualizarDadosMembroRequest, membro: Membro
+    ):
+        if request.nome_social is not None:
+            membro.nome_social = request.nome_social
+
+        if request.data_nascimento is not None:
+            membro.data_nascimento = request.data_nascimento
+
+        if request.endereco is not None:
+            membro.endereco.codigo_postal = request.endereco.codigo_postal
+            membro.endereco.tipo_logradouro = request.endereco.tipo_logradouro
+            membro.endereco.logradouro = request.endereco.logradouro
+            membro.endereco.numero = request.endereco.numero
+            membro.endereco.complemento = request.endereco.complemento
+            membro.endereco.bairro = request.endereco.bairro
+            membro.endereco.cidade = request.endereco.cidade
+            membro.endereco.estado = request.endereco.estado
+            membro.endereco.pais = request.endereco.pais
+
+        membro.cadastro_atualizado_em = func.now()
+        self._database.session.add(membro)
+
+    def buscar_card_doacoes_membro_benfeitor(
+        self, benfeitor_id: uuid.UUID
+    ) -> CardDoacoesMembroBenfeitorSchema:
+        query = self._database.session.execute(
+            select(
+                func.max(ProcessamentoDoacao.processado_em).label(
+                    'ultima_doacao'
+                ),
+                func.count(ProcessamentoDoacao.id).label('quantidade_doacoes'),
+                func.coalesce(func.sum(PagamentoDoacao.valor), 0.0).label(
+                    'valor_doado'
+                ),
+            )
+            .select_from(Doacao)
+            .join(Benfeitor, Doacao.fk_benfeitor_id == Benfeitor.id)
+            .join(PagamentoDoacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                PagamentoDoacao.id
+                == ProcessamentoDoacao.fk_pagamento_doacao_id,
+            )
+            .where(
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                Benfeitor.contabilizar == True,
+                Doacao.contabilizar == True,
+                PagamentoDoacao.anonimo == False,
+                Doacao.fk_benfeitor_id == benfeitor_id,
+            )
+        )
+
+        card_doacoes = query.first()
+        return card_doacoes

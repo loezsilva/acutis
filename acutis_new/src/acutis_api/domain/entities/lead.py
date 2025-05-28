@@ -11,8 +11,10 @@ from acutis_api.domain.database import table_registry
 
 if TYPE_CHECKING:
     from acutis_api.domain.entities import (  # pragma: no cover
+        LeadCampanha,
         Membro,
         MetadadoLead,
+        PermissaoLead,
     )
 
 pwd_context = PasswordHash.recommended()
@@ -50,9 +52,25 @@ class Lead:
         init=False, server_default=func.now(), onupdate=func.now()
     )
 
-    membro: Mapped['Membro'] = relationship(init=False, back_populates='lead')
+    membro: Mapped['Membro'] = relationship(
+        init=False,
+        back_populates='lead',
+        cascade='all, delete-orphan',  # NOSONAR
+        single_parent=True,
+    )
+
     metadados: Mapped[list['MetadadoLead']] = relationship(
-        init=False, backref='lead'
+        init=False, backref='lead', cascade='all, delete-orphan'
+    )
+
+    leads_campanhas: Mapped[list['LeadCampanha']] = relationship(
+        init=False, backref='lead', cascade='all, delete-orphan'
+    )
+    
+    permissoes_lead: Mapped[list['PermissaoLead']] = relationship(
+        init=False,
+        back_populates='lead', 
+        cascade='all, delete-orphan'
     )
 
     @property
@@ -67,3 +85,11 @@ class Lead:
 
     def verificar_senha(self, senha: str) -> bool:
         return pwd_context.verify(senha, self.password_hashed)
+
+    @property
+    def nomes_dos_perfis(self):
+        print("@@@@@@", self.permissoes_lead)
+        return [
+            permissao.perfil.nome 
+            for permissao in self.permissoes_lead if permissao.perfil
+        ]

@@ -41,7 +41,7 @@ class LoginUseCase:
     def execute(self, request: LoginRequest, query: UsarHttpOnlyQuery):
         lead = self._repository.buscar_lead_por_email(request.email)
         if not lead:
-            raise HttpNotFoundError('Ops, o email ou a senha está incorreta.')
+            raise HttpNotFoundError('Ops, email ou senha incorretos.')
 
         if settings.ENVIRONMENT != 'development':
             if not lead.status:
@@ -56,7 +56,7 @@ class LoginUseCase:
                 )
 
         if not lead.verificar_senha(request.senha.get_secret_value()):
-            raise HttpNotFoundError('Ops, o email ou a senha está incorreta.')
+            raise HttpNotFoundError('Ops, email ou senha incorretos.')
 
         self._repository.atualizar_data_ultimo_acesso(lead)
         self._repository.salvar_alteracoes()
