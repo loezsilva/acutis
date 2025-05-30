@@ -17,3 +17,12 @@ class ListaDeCargosOficiaisSchema(BaseModel):
 
 class ListaDeCargosOficiaisResponse(RootModel):
     root: list[ListaDeCargosOficiaisSchema]
+
+
+class ObterTotalCadastrosCargoOficialSchema(BaseModel):
+    nome_cargo: str
+    total_cadastros_cargo: int
+
+
+class ObterTotalCadastrosCargoOficialResponse(RootModel):
+    root: list[ObterTotalCadastrosCargoOficialSchema]

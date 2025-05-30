@@ -13,8 +13,10 @@ from acutis_api.application.use_cases.campanha.atualizar.campanha import (
     AtualizarCampanhaUseCase,
 )
 from acutis_api.application.use_cases.campanha.listar import (
+    CadastrosCampanhaPorPeriodoUseCase,
     ListaDeCampanhasUseCase,
     ListarDoacoesCampanhaUseCase,
+    PainelCampanhasUseCase,
 )
 from acutis_api.application.use_cases.campanha.listar.campanha_por_id import (
     BuscaCampanhaPorIdUseCase,
@@ -32,15 +34,18 @@ from acutis_api.application.use_cases.campanha.registrar.campanha import (
 from acutis_api.communication.requests.campanha import (
     AtualizarLandpageRequest,
     ListarCampanhasQuery,
+    PainelCampanhasRequest,
     RegistrarNovaCampanhaFormData,
     SalvarLandpageRequest,
 )
 from acutis_api.communication.requests.paginacao import PaginacaoQuery
 from acutis_api.communication.responses.campanha import (
+    CadastrosCampanhaPorPeriodoResponse,
     ListaCampanhaPorIdResponse,
     ListaDeCampanhasResponse,
     ListagemCompletaDeCampanhaResponse,
     ListarDoacoesCampanhaResponse,
+    PainelCampanhasResponse,
     RegistrarNovaCampanhaResponse,
 )
 from acutis_api.communication.responses.padrao import (
@@ -175,6 +180,26 @@ def lista_de_campanhas():
         return errors_handler(exc)
 
 
+@admin_campanha_bp.post('/painel-campanhas')
+@swagger.validate(
+    form=PainelCampanhasRequest,
+    resp=Response(HTTP_200=PainelCampanhasResponse),
+    tags=['Admin - Campanhas'],
+)
+@jwt_required()
+def painel_campanhas():
+    """
+    Busca campanhas para o painel
+    """
+    try:
+        request = PainelCampanhasRequest.model_validate(flask_request.json)
+        repository = CampanhaRepository(database)
+        usecase = PainelCampanhasUseCase(repository)
+        return usecase.execute(request), HTTPStatus.OK
+    except Exception as exc:
+        return errors_handler(exc)
+
+
 @admin_campanha_bp.post('/registrar-landingpage')
 @swagger.validate(
     json=SalvarLandpageRequest,
@@ -238,6 +263,28 @@ def listar_doacoes_campanha(campanha_id: uuid.UUID):
         usecase = ListarDoacoesCampanhaUseCase(repository)
 
         response = usecase.execute(filtros, campanha_id)
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_campanha_bp.get('/cadastros-campanha-por-periodo/<uuid:campanha_id>')
+@swagger.validate(
+    resp=Response(HTTP_200=CadastrosCampanhaPorPeriodoResponse),
+    tags=['Admin - Campanhas'],
+)
+@jwt_required()
+def cadastros_campanha_por_periodo(campanha_id: uuid.UUID):
+    """
+    Lista a quantidade de cadastros de uma campanha nas últimas 24h,
+    últimos 7 dias, e último mês.
+    """
+    try:
+        repository = CampanhaRepository(database)
+        usecase = CadastrosCampanhaPorPeriodoUseCase(repository)
+
+        response = usecase.execute(campanha_id)
         return response, HTTPStatus.OK
     except Exception as exc:
         error_response = errors_handler(exc)

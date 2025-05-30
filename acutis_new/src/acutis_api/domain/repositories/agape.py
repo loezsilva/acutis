@@ -245,6 +245,9 @@ class AgapeRepositoryInterface(ABC):
     def adicionar_voluntario_agape(self, lead_id: UUID) -> None: ...
 
     @abstractmethod
+    def buscar_lead_por_id(self, id: UUID) -> Lead | None: ...
+
+    @abstractmethod
     def buscar_endereco_por_id(self, endereco_id: UUID) -> Endereco | None:
         """Busca um endereço pelo seu ID."""
         ...
@@ -451,3 +454,8 @@ class AgapeRepositoryInterface(ABC):
     def listar_leads_por_nomes_de_perfis(
         self, nomes_perfis: list[str], filtros_paginacao: PaginacaoSchema
     ) -> tuple[list[Lead], int]: ...
+
+    @abstractmethod
+    def buscar_permissoes_por_lead_id(
+        self, lead_id: UUID
+    ) -> PermissaoLead | None: ...

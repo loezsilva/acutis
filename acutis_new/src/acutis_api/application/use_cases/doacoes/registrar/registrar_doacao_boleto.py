@@ -10,6 +10,9 @@ from acutis_api.application.utils.funcoes_auxiliares import (
 from acutis_api.communication.requests.doacoes import (
     RegistrarDoacaoBoletoRequest,
 )
+from acutis_api.communication.responses.doacoes import (
+    RegistrarDoacaoBoletoResponse,
+)
 from acutis_api.domain.entities import Campanha, Lead
 from acutis_api.domain.entities.pagamento_doacao import (
     FormaPagamentoEnum,
@@ -102,4 +105,28 @@ class RegistrarDoacaoBoletoUseCase(BaseRegistrarDoacaoUseCase):
         )
         self._repository.registrar_doacao(dados_doacao)
 
-        return response
+        dado_boleto = response['dado_boleto']
+        dados_boleto_individual = dado_boleto['dados_individuais_boleto'][0]
+        dados_qrcode = response['dados_qrcode']
+        beneficiario = response['beneficiario']
+
+        return RegistrarDoacaoBoletoResponse(
+            numero_linha_digitavel=dados_boleto_individual[
+                'numero_linha_digitavel'
+            ],
+            qrcode=dados_qrcode['base64'],
+            nome_cobranca=beneficiario['nome_cobranca'],
+            nosso_numero=dados_boleto_individual['numero_nosso_numero'],
+            dac_titulo=dados_boleto_individual['dac_titulo'],
+            numero_documento_empresa=beneficiario['tipo_pessoa'][
+                'numero_cadastro_nacional_pessoa_juridica'
+            ],
+            data_vencimento=dados_boleto_individual['data_vencimento'],
+            valor_doacao=dados_boleto_individual['valor_titulo'],
+            nome_benfeitor=dado_boleto['pagador']['pessoa']['nome_pessoa'],
+            data_emissao=dado_boleto['data_emissao'],
+            codigo_carteira=dado_boleto['codigo_carteira'],
+            codigo_especie=dado_boleto['codigo_especie'],
+            codigo_barras=dados_boleto_individual['codigo_barras'],
+            msg=response['msg'],
+        ).model_dump()

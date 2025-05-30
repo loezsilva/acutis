@@ -1,6 +1,11 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Date, asc, between, cast, desc
+import uuid
 
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Date, asc, between, cast, desc, func
+
+from acutis_api.communication.enums.admin_doacoes import (
+    StatusProcessamentoEnum,
+)
 from acutis_api.domain.entities import (
     Benfeitor,
     Campanha,
@@ -24,6 +29,9 @@ from acutis_api.domain.repositories.schemas.admin_doacoes import (
 class AdminDoacoesRepository(AdminDoacoesRepositoryInterface):
     def __init__(self, database: SQLAlchemy):
         self._database = database
+
+    def salvar_alteracoes(self):
+        self._database.session.commit()
 
     def listar_doacoes(  # NOSONAR
         self, filtros: ListarDoacoesQuery
@@ -54,6 +62,7 @@ class AdminDoacoesRepository(AdminDoacoesRepositoryInterface):
                 ProcessamentoDoacao.codigo_comprovante,
                 ProcessamentoDoacao.nosso_numero,
                 ProcessamentoDoacao.status,
+                Doacao.contabilizar,
             )
             .select_from(Benfeitor)
             .outerjoin(Membro, Benfeitor.id == Membro.fk_benfeitor_id)
@@ -177,12 +186,187 @@ class AdminDoacoesRepository(AdminDoacoesRepositoryInterface):
             Doacao.contabilizar,
         )
 
-        paginacao = query.paginate(
+        valor_total = (
+            query.order_by(None)
+            .with_entities(func.sum(PagamentoDoacao.valor))
+            .scalar()
+            or 0
+        )
+
+        response = query.paginate(
             page=filtros.pagina,
             per_page=filtros.por_pagina,
             error_out=False,
         )
 
-        doacoes, total = paginacao.items, paginacao.total
+        return response, valor_total
 
-        return doacoes, total
+    def busca_doacao_por_id(self, fk_doacao_id: uuid.UUID):
+        return (
+            self._database.session.query(Doacao)
+            .where(Doacao.id == fk_doacao_id)
+            .scalar()
+        )
+
+    def alterar_considerar_doacao(self, doacao: Doacao):
+        doacao.contabilizar = not doacao.contabilizar
+
+        return doacao
+
+    def card_doacoes_dia_atual(self):
+        quantidade_hoje = (
+            self._database.session.query(func.count(PagamentoDoacao.id))
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(
+                Doacao.contabilizar == True,
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                func.extract('month', ProcessamentoDoacao.criado_em)
+                == func.extract('month', func.now()),
+                func.extract('day', ProcessamentoDoacao.criado_em)
+                == func.extract('day', func.now()),
+                func.extract('year', ProcessamentoDoacao.criado_em)
+                == func.extract('year', func.now()),
+            )
+            .scalar()
+            or 0
+        )
+
+        consulta_base = (
+            self._database.session.query(func.sum(PagamentoDoacao.valor))
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(Doacao.contabilizar == True)
+        )
+
+        total_hoje = (
+            consulta_base.filter(
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                func.extract('month', ProcessamentoDoacao.criado_em)
+                == func.extract('month', func.now()),
+                func.extract('day', ProcessamentoDoacao.criado_em)
+                == func.extract('day', func.now()),
+                func.extract('year', ProcessamentoDoacao.criado_em)
+                == func.extract('year', func.now()),
+            ).scalar()
+            or 0
+        )
+
+        primeira_doacao = (
+            self._database.session.query(ProcessamentoDoacao.criado_em)
+            .filter(ProcessamentoDoacao.status == StatusProcessamentoEnum.pago)
+            .order_by(ProcessamentoDoacao.criado_em)
+            .first()
+        )
+
+        total_doado = (
+            consulta_base.filter(
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+            ).scalar()
+            or 0
+        )
+
+        return (
+            round(total_hoje, 2),
+            primeira_doacao,
+            round(total_doado, 2),
+            quantidade_hoje,
+        )
+
+    def card_doacoes_mes_atual(self):
+        quantidade_mes = (
+            self._database.session.query(func.count(PagamentoDoacao.id))
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(
+                Doacao.contabilizar == True,
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                func.extract('month', ProcessamentoDoacao.criado_em)
+                == func.extract('month', func.now()),
+                func.extract('year', ProcessamentoDoacao.criado_em)
+                == func.extract('year', func.now()),
+            )
+            .scalar()
+            or 0
+        )
+
+        consulta_base = (
+            self._database.session.query(func.sum(PagamentoDoacao.valor))
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(Doacao.contabilizar == True)
+        )
+
+        total_mes = (
+            consulta_base.filter(
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                func.extract('month', ProcessamentoDoacao.criado_em)
+                == func.extract('month', func.now()),
+                func.extract('year', ProcessamentoDoacao.criado_em)
+                == func.extract('year', func.now()),
+            ).scalar()
+            or 0
+        )
+
+        primeira_doacao = (
+            self._database.session.query(ProcessamentoDoacao.criado_em)
+            .filter(ProcessamentoDoacao.status == StatusProcessamentoEnum.pago)
+            .order_by(ProcessamentoDoacao.criado_em)
+            .first()
+        )
+
+        total_doado = (
+            consulta_base.filter(
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+            ).scalar()
+            or 0
+        )
+
+        return (
+            round(total_mes, 2),
+            primeira_doacao,
+            round(total_doado, 2),
+            quantidade_mes,
+        )
+
+    def soma_total_doacoes(self):
+        total_doacao = (
+            self._database.session.query(func.sum(PagamentoDoacao.valor))
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(Doacao.contabilizar == True)
+            .filter(
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+            )
+            .scalar()
+            or 0
+        )
+
+        primeira_doacao = (
+            self._database.session.query(ProcessamentoDoacao.criado_em)
+            .filter(ProcessamentoDoacao.status == StatusProcessamentoEnum.pago)
+            .order_by(ProcessamentoDoacao.criado_em)
+            .first()
+        )
+
+        return (total_doacao, primeira_doacao)

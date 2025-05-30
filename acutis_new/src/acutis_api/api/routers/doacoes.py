@@ -23,6 +23,7 @@ from acutis_api.communication.requests.doacoes import (
     RegistrarDoacaoPixRequest,
 )
 from acutis_api.communication.responses.doacoes import (
+    RegistrarDoacaoBoletoResponse,
     RegistrarDoacaoPixResponse,
 )
 from acutis_api.communication.responses.padrao import (
@@ -174,7 +175,9 @@ def pagamento_pix_recorrente():
 @doacoes_bp.post('/pagamento/boleto')
 @swagger.validate(
     json=RegistrarDoacaoBoletoRequest,
-    resp=Response(HTTP_201=None, HTTP_422=ErroPadraoResponse),
+    resp=Response(
+        HTTP_201=RegistrarDoacaoBoletoResponse, HTTP_422=ErroPadraoResponse
+    ),
     tags=['Doações'],
 )
 @jwt_required()

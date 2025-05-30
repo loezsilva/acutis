@@ -1,5 +1,6 @@
 import uuid
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.repositories.schemas.admin_membros import (
@@ -27,7 +28,9 @@ class AdminMembrosRepositoryInterface(ABC):
     def buscar_total_membros(self) -> int: ...
 
     @abstractmethod
-    def buscar_leads_mes(self) -> int: ...
+    def buscar_leads_periodo(self, inicio: datetime, fim: datetime) -> int: ...
 
     @abstractmethod
-    def buscar_membros_mes(self) -> int: ...
+    def buscar_membros_periodo(
+        self, inicio: datetime, fim: datetime
+    ) -> int: ...

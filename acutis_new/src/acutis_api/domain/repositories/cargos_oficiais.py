@@ -44,3 +44,6 @@ class CargosOficiaisRepositoryInterface(ABC):
 
     @abstractmethod
     def lista_de_cargos_oficiais(self) -> CargosOficiais: ...
+
+    @abstractmethod
+    def obter_total_cadastros_cargo_oficial(self): ...

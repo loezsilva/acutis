@@ -4081,7 +4081,9 @@ def send_email_cadastro_membro_oficial_recebido(name):
     return template
 
 
-def obrigado_pela_doacao_template(name, nome_campanha, foto_campanha):
+def obrigado_pela_doacao_template(
+    nome: str, nome_campanha: str, foto_campanha: str
+):
     template = (
         TEMPLATE_HEAD
         + f"""
@@ -4461,7 +4463,7 @@ def obrigado_pela_doacao_template(name, nome_campanha, foto_campanha):
                                                 color: #000000;
                                             "
                                             >
-                                            Querido(a) {name}.
+                                            Querido(a) {nome}.
                                             <br />Agradecemos sua generosa
                                             contribuição!
                                             </h3>

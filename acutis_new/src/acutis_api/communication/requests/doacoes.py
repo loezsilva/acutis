@@ -12,7 +12,6 @@ class DadosDoacaoBase(BaseModel):
 
     valor_doacao: float = Field(..., ge=10)
     campanha_id: uuid.UUID
-    recorrente: bool
 
     @field_validator('valor_doacao', mode='before')
     @classmethod
@@ -31,6 +30,7 @@ class RegistrarDoacaoCartaoCreditoRequest(DadosDoacaoBase):
     codigo_seguranca: str = Field(..., min_length=3, max_length=4)
     nome_titular: str
     numero_documento: str
+    recorrente: bool
 
     @field_validator('numero_cartao', 'numero_documento', mode='after')
     @classmethod
@@ -48,7 +48,8 @@ class RegistrarDoacaoCartaoCreditoRequest(DadosDoacaoBase):
         return value.title()
 
 
-class RegistrarDoacaoPixRequest(DadosDoacaoBase): ...
+class RegistrarDoacaoPixRequest(DadosDoacaoBase):
+    recorrente: bool
 
 
 class RegistrarDoacaoBoletoRequest(DadosDoacaoBase): ...

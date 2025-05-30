@@ -53,7 +53,6 @@ class RegistrarDoacaoCartaoCreditoUseCase(BaseRegistrarDoacaoUseCase):
         self._vincular_ou_registrar_benfeitor(lead)
 
         self._realizar_doacao(request, campanha, lead)
-        self._repository.salvar_alteracoes()
 
         self._enviar_email_agradecimento(campanha, lead)
 
@@ -107,6 +106,21 @@ class RegistrarDoacaoCartaoCreditoUseCase(BaseRegistrarDoacaoUseCase):
             status=StatusProcessamentoEnum.pago,
         )
         self._repository.registrar_doacao(dados_doacao)
+
+        try:
+            self._repository.salvar_alteracoes()
+        except Exception as exc:
+            self._maxipago.estornar_pagamento(
+                pagamento_response.orderID,
+                pagamento_response.referenceNum,
+                request.valor_doacao,
+            )
+
+            if request.recorrente:
+                self._maxipago.cancelar_pagamento_recorrente(
+                    pagamento_response.orderID
+                )
+            raise exc
 
     def _enviar_email_agradecimento(self, campanha: Campanha, lead: Lead):
         foto_campanha = self._file_service.buscar_url_arquivo(campanha.capa)

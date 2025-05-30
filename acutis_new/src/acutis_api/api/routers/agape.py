@@ -5,7 +5,6 @@ from datetime import date, datetime
 from http import HTTPStatus
 
 from flask import Blueprint
-from flask import Response as FlaskResponse
 from flask import request as flask_request
 from flask_jwt_extended import current_user, jwt_required
 from spectree import Response
@@ -1258,10 +1257,12 @@ def listar_itens_recebidos(ciclo_acao_id: uuid.UUID, doacao_id: uuid.UUID):
 def adicionar_voluntario_agape(lead_id):
     """Adiciona um voluntário ágape"""
     try:
+
         if PerfilEnum.administrador_agape not in current_user.nomes_dos_perfis:
             raise HttpForbiddenError(
                 'Você não tem permissão para realizar esta ação.'
             )
+        
         repository = AgapeRepository(database)
         usecase = AdicionarVoluntarioAgapeUseCase(repository)
         response = usecase.execute(lead_id)
@@ -1408,16 +1409,9 @@ def exportar_doacoes_beneficiados(ciclo_acao_id: uuid.UUID):
         repository = AgapeRepository(database)
         usecase = ExportarDoacoesBeneficiadosUseCase(repository)
 
-        csv_data = usecase.execute(ciclo_acao_id=ciclo_acao_id)
+        dados = usecase.execute(ciclo_acao_id=ciclo_acao_id)
 
-        return FlaskResponse(
-            csv_data,
-            mimetype='text/csv',
-            headers={
-                'Content-Disposition': f'attachment; \
-                    filename=doacoes_ciclo_{ciclo_acao_id}.csv'
-            },
-        )
+        return dados
 
     except Exception as exc:
         error_response = errors_handler(exc)
@@ -1437,16 +1431,9 @@ def exportar_familias_agape_route():
         repository = AgapeRepository(database)
         usecase = ExportarFamiliasAgapeUseCase(repository)
 
-        csv_data = usecase.execute()
+        dados = usecase.execute()
 
-        return FlaskResponse(
-            csv_data,
-            mimetype='text/csv',
-            headers={
-                'Content-Disposition': 'attachment; \
-                    filename=familias_agape.csv'
-            },
-        )
+        return dados
 
     except Exception as exc:
         error_response = errors_handler(exc)

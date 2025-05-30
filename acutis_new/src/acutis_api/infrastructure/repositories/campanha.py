@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from flask_jwt_extended import current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +11,7 @@ from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
 from acutis_api.domain.entities.campo_adicional import CampoAdicional
 from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.landing_page import LandingPage
+from acutis_api.domain.entities.lead_campanha import LeadCampanha
 from acutis_api.domain.entities.pagamento_doacao import PagamentoDoacao
 from acutis_api.domain.entities.processamento_doacao import (
     ProcessamentoDoacao,
@@ -217,6 +219,51 @@ class CampanhaRepository(CampanhaRepositoryInterface):
         return self.__database.session.scalars(
             select(Campanha).order_by(Campanha.nome)
         ).all()
+
+    def buscar_valor_arrecadado_periodo(
+        self,
+        fk_campanha_id: uuid.UUID,
+        inicio: datetime,
+        fim: datetime,
+    ):
+        return (
+            self.__database.session.query(func.sum(PagamentoDoacao.valor))
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                CampanhaDoacao,
+                CampanhaDoacao.id == Doacao.fk_campanha_doacao_id,
+            )
+            .join(Campanha, Campanha.id == CampanhaDoacao.fk_campanha_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(
+                Campanha.id == fk_campanha_id,
+                PagamentoDoacao.criado_em >= inicio,
+                PagamentoDoacao.criado_em <= fim,
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                Doacao.contabilizar == True,
+            )
+            .scalar()
+        ) or 0
+
+    def buscar_cadastros_campanha_periodo(
+        self,
+        fk_campanha_id: uuid.UUID,
+        inicio: datetime,
+        fim: datetime,
+    ):
+        return (
+            self.__database.session.query(func.count(LeadCampanha.id))
+            .filter(
+                LeadCampanha.fk_campanha_id == fk_campanha_id,
+                LeadCampanha.criado_em >= inicio,
+                LeadCampanha.criado_em <= fim,
+            )
+            .scalar()
+        ) or 0
 
     def buscar_landing_page_por_campanha_id(
         self, fk_campanha_id: uuid.UUID

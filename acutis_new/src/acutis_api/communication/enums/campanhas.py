@@ -19,3 +19,9 @@ class TiposCampoEnum(str, Enum):
     textarea = 'textarea'
     data_inicio = 'data_inicio'
     data_fim = 'data_fim'
+
+
+class PeriodicidadePainelCampanhasEnum(str, Enum):
+    diario = 'diario'
+    semanal = 'semanal'
+    mensal = 'mensal'

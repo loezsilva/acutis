@@ -19,6 +19,7 @@ from werkzeug.datastructures import FileStorage
 
 from acutis_api.communication.enums.campanhas import (
     ObjetivosCampanhaEnum,
+    PeriodicidadePainelCampanhasEnum,
     TiposCampoEnum,
 )
 from acutis_api.communication.enums.membros import OrigemCadastroEnum, SexoEnum
@@ -286,6 +287,17 @@ class CadastroPorCampanhaFormData(BaseModel):
         ):
             return None
         return form_data[field_name]
+
+
+class PainelCampanhasSchema(BaseModel):
+    campanha_id: uuid.UUID
+    periodicidade: PeriodicidadePainelCampanhasEnum
+
+
+class PainelCampanhasRequest(BaseModel):
+    lista_painel: List[PainelCampanhasSchema] = Field(
+        ..., description='Lista de campanhas para o painel', max_items=4
+    )
 
 
 class SalvarLandpageRequest(BaseModel):

@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from acutis_api.communication.enums.membros_oficiais import (
     AdminAcaoMembroOficialEnum,
@@ -36,6 +36,16 @@ class ListarMembrosOficiaisRequest(BaseModel):
     ordenar_por: Optional[str] = Field(
         default='desc', description='desc | asc'
     )
+    filtro_dinamico: Optional[str] = Field(None, description='Filtro dinâmico')
+
+    @field_validator('filtro_dinamico')
+    @classmethod
+    def filtro_minimo_quatro_caracteres(cls, value):
+        if value is not None and len(value.strip()) < 4:
+            raise ValueError(
+                'O filtro dinâmico deve ter pelo menos 4 caracteres.'
+            )
+        return value
 
 
 class AlterarStatusMembroOficialRequest(BaseModel):

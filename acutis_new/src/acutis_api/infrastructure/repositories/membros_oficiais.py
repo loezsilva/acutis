@@ -2,6 +2,7 @@ import uuid
 
 from flask_jwt_extended import current_user
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import aliased
 
 from acutis_api.communication.requests.membros_oficiais import (
     RegistrarMembroOficialRequest,
@@ -56,6 +57,10 @@ class MembrosOficiaisRepository(MembrosOficiaisRepositoryInterface):
     def admin_listar_membros_oficiais(
         self, filtros_da_requisicao: ListarMembrosOficiaisSchema
     ) -> tuple:
+        membro_oficial_alias = aliased(Membro)
+        superior_alias = aliased(Membro)
+        lead_superior_alias = aliased(Lead)
+
         MAP_ORDER_BY = {
             'desc': self.__database.desc(Oficial.criado_em),
             'asc': self.__database.asc(Oficial.criado_em),
@@ -101,7 +106,7 @@ class MembrosOficiaisRepository(MembrosOficiaisRepositoryInterface):
                 else True
             ),
             (
-                Membro.numero_documento.ilike(
+                membro_oficial_alias.numero_documento.ilike(
                     f'%{filtros_da_requisicao.numero_documento}%'
                 )
                 if filtros_da_requisicao.numero_documento is not None
@@ -109,11 +114,53 @@ class MembrosOficiaisRepository(MembrosOficiaisRepositoryInterface):
             ),
         }
 
+        if filtros_da_requisicao.filtro_dinamico:
+            pesquisa = f'%{filtros_da_requisicao.filtro_dinamico}%'
+            filtros.add(
+                self.__database.or_(
+                    Lead.nome.ilike(pesquisa),
+                    Lead.email.ilike(pesquisa),
+                    membro_oficial_alias.numero_documento.ilike(pesquisa),
+                    membro_oficial_alias.sexo.ilike(pesquisa),
+                    Endereco.logradouro.ilike(pesquisa),
+                    Endereco.numero.ilike(pesquisa),
+                    Endereco.bairro.ilike(pesquisa),
+                    Endereco.codigo_postal.ilike(pesquisa),
+                    Endereco.cidade.ilike(pesquisa),
+                    Endereco.complemento.ilike(pesquisa),
+                    Endereco.pais.ilike(pesquisa),
+                    Oficial.status.ilike(pesquisa),
+                    CargosOficiais.nome_cargo.ilike(pesquisa),
+                    lead_superior_alias.nome.ilike(pesquisa),
+                )
+            )
+
         consulta = (
-            self.__database.session.query(Lead, Membro, Endereco, Oficial)
-            .join(Membro, Membro.fk_lead_id == Lead.id)
-            .join(Endereco, Endereco.id == Membro.fk_endereco_id)
-            .join(Oficial, Oficial.fk_membro_id == Membro.id)
+            self.__database.session.query(
+                Lead,
+                membro_oficial_alias,
+                Endereco,
+                Oficial,
+                CargosOficiais.nome_cargo,
+                lead_superior_alias.nome.label('nome_superior'),
+            )
+            .join(
+                membro_oficial_alias,
+                membro_oficial_alias.fk_lead_id == Lead.id,
+            )
+            .join(Endereco, Endereco.id == membro_oficial_alias.fk_endereco_id)
+            .join(Oficial, Oficial.fk_membro_id == membro_oficial_alias.id)
+            .outerjoin(
+                CargosOficiais,
+                CargosOficiais.id == Oficial.fk_cargo_oficial_id,
+            )
+            .outerjoin(
+                superior_alias, superior_alias.id == Oficial.fk_superior_id
+            )
+            .outerjoin(
+                lead_superior_alias,
+                lead_superior_alias.id == superior_alias.fk_lead_id,
+            )
             .filter(*filtros)
             .order_by(MAP_ORDER_BY[filtros_da_requisicao.ordenar_por])
         )

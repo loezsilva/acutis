@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from acutis_api.communication.enums import TipoOrdenacaoEnum
 from acutis_api.communication.enums.admin_doacoes import (
@@ -43,3 +43,13 @@ class ListarDoacoesQuery(PaginacaoQuery):
         ListarDoacoesOrdenarPorEnum.doacao_criada_em
     )
     tipo_ordenacao: TipoOrdenacaoEnum = TipoOrdenacaoEnum.decrescente
+
+
+class CardDoacoesTotalResponse(BaseModel):
+    quantidade: int
+    total: float
+    porcentagem: float
+
+
+class CardMediaTotalResponse(BaseModel):
+    media: float

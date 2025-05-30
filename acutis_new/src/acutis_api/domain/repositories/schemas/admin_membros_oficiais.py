@@ -31,6 +31,7 @@ class ListarMembrosOficiaisSchema(BaseModel):
         None, description='Status do oficial'
     )
     fk_superior_id: Optional[str] = Field(None, description='ID de superior')
+    filtro_dinamico: Optional[str] = Field(None, description='Filtro dinâmico')
 
 
 class AlterarCargoOficialSchema(BaseModel):

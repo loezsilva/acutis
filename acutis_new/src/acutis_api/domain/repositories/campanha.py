@@ -1,5 +1,6 @@
 import uuid
 from abc import ABC, abstractmethod
+from datetime import date
 from uuid import UUID
 
 from acutis_api.domain.entities.campanha import Campanha
@@ -80,6 +81,15 @@ class CampanhaRepositoryInterface(ABC):
     def lista_de_campanhas(self) -> Campanha: ...
 
     @abstractmethod
+    def buscar_valor_arrecadado_periodo(
+        self, fk_campanha_id: UUID, data1: date, data2: date
+    ) -> float: ...
+
+    @abstractmethod
+    def buscar_cadastros_campanha_periodo(
+        self, fk_campanha_id: UUID, data1: date, data2: date
+    ) -> int: ...
+
     def buscar_landing_page_por_campanha_id(
         self, fk_campanha_id: uuid.UUID
     ) -> LandingPage: ...

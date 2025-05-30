@@ -1,7 +1,8 @@
-import csv
-import io
 from typing import List
 
+import pandas as pd
+
+from acutis_api.application.utils.funcoes_auxiliares import exporta_csv
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.domain.repositories.schemas.agape import (
     DadosExportacaoFamiliaSchema,
@@ -17,86 +18,64 @@ class ExportarFamiliasAgapeUseCase:
             self.agape_repository.buscar_dados_completos_familias_agape()
         )
 
-        output = io.StringIO()
-        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
-
-        headers = [
-            'familia_id',
-            'familia_nome',
-            'familia_data_cadastro',
-            'familia_status',
-            'familia_observacao',
-            'endereco_logradouro',
-            'endereco_numero',
-            'endereco_complemento',
-            'endereco_bairro',
-            'endereco_cidade',
-            'endereco_estado',
-            'endereco_cep',
-            'responsavel_nome',
-            'responsavel_cpf',
-            'responsavel_telefone',
-            'responsavel_email',
-            'responsavel_data_nascimento',
-            'responsavel_funcao_familiar',
-            'responsavel_escolaridade',
-            'responsavel_ocupacao',
-            'numero_total_membros',
-            'renda_familiar_total_estimada',
-            'comprovante_residencia_url',
-            'cadastrada_por_usuario_id',
-        ]
-        writer.writerow(headers)
-
         if not dados_exportacao:
-            return output.getvalue()
+            return {'url': None}
 
+        dados_formatados = []
         for dado in dados_exportacao:
-            writer.writerow([
-                str(dado.familia_id),  # UUID
-                dado.familia_nome or '',
-                (
-                    dado.familia_data_cadastro.strftime('%Y-%m-%d %H:%M:%S')
+            dados_formatados.append({
+                'familia_id': str(dado.familia_id),
+                'familia_nome': dado.familia_nome or '',
+                'familia_data_cadastro': str(
+                    dado.familia_data_cadastro.strftime('%d/%m/%Y %H:%M:%S')
                     if dado.familia_data_cadastro
                     else '',
                 ),
-                dado.familia_status or '',
-                dado.familia_observacao or '',
-                dado.endereco_logradouro or '',
-                dado.endereco_numero or '',
-                dado.endereco_complemento or '',
-                dado.endereco_bairro or '',
-                dado.endereco_cidade or '',
-                dado.endereco_estado or '',
-                dado.endereco_cep or '',
-                dado.responsavel_nome or '',
-                dado.responsavel_cpf or '',
-                dado.responsavel_telefone or '',
-                dado.responsavel_email or '',
-                (
-                    dado.responsavel_data_nascimento.strftime('%Y-%m-%d')
+                'familia_status': dado.familia_status or '',
+                'familia_observacao': dado.familia_observacao or '',
+                'endereco_logradouro': dado.endereco_logradouro or '',
+                'endereco_numero': dado.endereco_numero or '',
+                'endereco_complemento': dado.endereco_complemento or '',
+                'endereco_bairro': dado.endereco_bairro or '',
+                'endereco_cidade': dado.endereco_cidade or '',
+                'endereco_estado': dado.endereco_estado or '',
+                'endereco_cep': dado.endereco_cep or '',
+                'responsavel_nome': dado.responsavel_nome or '',
+                'responsavel_cpf': dado.responsavel_cpf or '',
+                'responsavel_telefone': dado.responsavel_telefone or '',
+                'responsavel_email': dado.responsavel_email or '',
+                'responsavel_data_nascimento': str(
+                    dado.responsavel_data_nascimento.strftime('%d/%m/%Y')
                     if dado.responsavel_data_nascimento
                     else '',
                 ),
-                dado.responsavel_funcao_familiar or '',
-                dado.responsavel_escolaridade or '',
-                dado.responsavel_ocupacao or '',
-                (
+                'responsavel_funcao_familiar': (
+                    dado.responsavel_funcao_familiar or ''
+                ),
+                'responsavel_escolaridade': (
+                    dado.responsavel_escolaridade or ''
+                ),
+                'responsavel_ocupacao': dado.responsavel_ocupacao or '',
+                'numero_total_membros': str(
                     str(dado.numero_total_membros)
                     if dado.numero_total_membros is not None
                     else '0',
                 ),
-                (
-                    str(dado.renda_familiar_total_estimada)
+                'renda_familiar_total_estimada': float(
+                    float(dado.renda_familiar_total_estimada)
                     if dado.renda_familiar_total_estimada is not None
                     else '0.00',
                 ),
-                dado.comprovante_residencia_url or '',
-                (
+                'comprovante_residencia_url': (
+                    dado.comprovante_residencia_url or ''
+                ),
+                'cadastrada_por_usuario_id': (
                     str(dado.cadastrada_por_usuario_id)
                     if dado.cadastrada_por_usuario_id
                     else ''
                 ),
-            ])
+            })
 
-        return output.getvalue()
+        df = pd.DataFrame(dados_formatados)
+
+        return {'url': exporta_csv(df, 'familias_agape')['url']}

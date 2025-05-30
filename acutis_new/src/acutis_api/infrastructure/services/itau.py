@@ -264,3 +264,22 @@ class ItauPixService(GatewayPagamentoInterface):  # pragma: no cover
             if not HTTPStatus(response.status_code).is_success:
                 logging.error(response.text)
                 raise ItauHttpBadRequestError('A chave pix é inválida.')
+
+    def buscar_lancamentos_pix(self, codigo_comprovante: str, chave_pix: str):
+        token = self._buscar_token()
+        url = f'{settings.ITAU_BOLECODE_URL}/lancamentos_pix'
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',
+        }
+        parametros = {'e2eid': codigo_comprovante, 'chaves': chave_pix}
+
+        with Client(cert=self._cert) as client:
+            response = client.get(url=url, headers=headers, params=parametros)
+
+        if not HTTPStatus(response.status_code).is_success:
+            raise Exception(  # NOSONAR
+                'Ocorreu um erro ao buscar os dados da doacao'
+            )
+
+        return response.json()

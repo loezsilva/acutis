@@ -10,6 +10,7 @@ from acutis_api.application.use_cases.cargos_oficiais import (
     ExcluirCargoOficialUseCase,
     ListaDeCargosOficiaisUseCase,
     ListarTodosCargosOficiaisUseCase,
+    ObterTotalCadastrosCargoOficialUseCase,
     RegistraNovoCargoOficialUseCase,
 )
 from acutis_api.communication.requests.cargos_oficiais import (
@@ -19,6 +20,7 @@ from acutis_api.communication.requests.cargos_oficiais import (
 )
 from acutis_api.communication.responses.cargos_oficiais import (
     ListaDeCargosOficiaisResponse,
+    ObterTotalCadastrosCargoOficialResponse,
     RegistrarNovoCargoficialResponse,
 )
 from acutis_api.communication.responses.padrao import (
@@ -149,6 +151,28 @@ def lista_cargos_oficiais():
     try:
         repository = CargosOficiaisRepository(database)
         usecase = ListaDeCargosOficiaisUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        return errors_handler(exc)
+
+
+@admin_cargos_oficiais_bp.get('/cadastros-por-cargo')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=ObterTotalCadastrosCargoOficialResponse,
+        HTTP_500=ErroPadraoResponse,
+    ),
+    tags=['Admin - Cargos Oficiais'],
+)
+@jwt_required()
+def obter_total_cadastros_cargo_oficial():
+    """
+    Retorna a quantidade de cadastros de cada cargo oficial registrado
+    """
+    try:
+        repository = CargosOficiaisRepository(database)
+        usecase = ObterTotalCadastrosCargoOficialUseCase(repository)
         response = usecase.execute()
         return response, HTTPStatus.OK
     except Exception as exc:

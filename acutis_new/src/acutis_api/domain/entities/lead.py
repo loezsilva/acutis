@@ -86,7 +86,6 @@ class Lead:
 
     @property
     def nomes_dos_perfis(self):
-        print('@@@@@@', self.permissoes_lead)
         return [
             permissao.perfil.nome
             for permissao in self.permissoes_lead

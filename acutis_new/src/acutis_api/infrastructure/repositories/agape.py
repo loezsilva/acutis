@@ -692,11 +692,18 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         session.add(historico)
 
-    def adicionar_voluntario_agape(self, lead_id: UUID) -> None:
+    def adicionar_voluntario_agape(self, lead: UUID) -> None:
         """
         Adiciona um voluntário ao ciclo de ação Ágape.
         """
-        pass
+        session = self._database.session
+        
+        
+
+    def buscar_lead_por_id(self, id: UUID) -> Lead | None:
+        session = self._database.session
+        lead = session.get(Lead, id)
+        return lead
 
     def buscar_familia_por_id(
         self, familia_id: UUID
@@ -1436,3 +1443,12 @@ class AgapeRepository(AgapeRepositoryInterface):
         leads = paginated_query.all()
 
         return leads, total
+
+    def buscar_permissoes_por_lead_id(
+        self, lead_id: UUID
+    ) -> PermissaoLead | None:
+        return (
+            self._database.session.query(PermissaoLead).filter(
+                PermissaoLead.lead_id == lead_id
+            )
+        )

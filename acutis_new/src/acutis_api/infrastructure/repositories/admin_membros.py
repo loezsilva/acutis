@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Date, asc, between, cast, desc, func
+from sqlalchemy import Date, asc, between, cast, desc, func, or_
 
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
@@ -131,6 +131,20 @@ class AdminMembrosRepository(AdminMembrosRepositoryInterface):
         if filtros.status is not None:
             query = query.where(Lead.status == filtros.status)
 
+        if filtros.filtro_dinamico:
+            pesquisa = f'%{filtros.filtro_dinamico}%'
+            query = query.where(
+                or_(
+                    Lead.nome.ilike(pesquisa),
+                    Lead.email.ilike(pesquisa),
+                    Lead.telefone.ilike(pesquisa),
+                    Lead.pais.ilike(pesquisa),
+                    Membro.nome_social.ilike(pesquisa),
+                    Membro.numero_documento.ilike(pesquisa),
+                    Membro.sexo.ilike(pesquisa),
+                )
+            )
+
         paginacao = query.paginate(
             page=filtros.pagina,
             per_page=filtros.por_pagina,
@@ -161,22 +175,20 @@ class AdminMembrosRepository(AdminMembrosRepositoryInterface):
         ).scalar()
         return total_membros
 
-    def buscar_leads_mes(self, data: datetime = datetime.now()) -> int:
+    def buscar_leads_periodo(self, inicio: datetime, fim: datetime) -> int:
         return (
             self._database.session.query(func.count(Lead.id))
             .filter(
-                func.month(Lead.criado_em) == func.month(data),
-                func.year(Lead.criado_em) == func.year(data),
+                Lead.criado_em.between(inicio, fim),
             )
             .scalar()
         )
 
-    def buscar_membros_mes(self, data: datetime = datetime.now()) -> int:
+    def buscar_membros_periodo(self, inicio: datetime, fim: datetime) -> int:
         return (
             self._database.session.query(func.count(Membro.id))
             .filter(
-                func.month(Membro.criado_em) == func.month(data),
-                func.year(Membro.criado_em) == func.year(data),
+                Membro.criado_em.between(inicio, fim),
             )
             .scalar()
         )

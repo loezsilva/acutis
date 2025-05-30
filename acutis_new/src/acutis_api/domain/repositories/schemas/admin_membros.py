@@ -23,6 +23,7 @@ class ListarLeadsMembrosFiltros(PaginacaoQuery):
     status: bool | None = None
     ordenar_por: str = 'data_cadastro_lead'
     tipo_ordenacao: TipoOrdenacaoEnum = TipoOrdenacaoEnum.decrescente
+    filtro_dinamico: str | None = None
 
 
 class ListarLeadsMembrosSchema(BaseModel):

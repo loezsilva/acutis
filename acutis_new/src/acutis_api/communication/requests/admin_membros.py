@@ -1,6 +1,8 @@
 import uuid
 from datetime import date, datetime
 
+from pydantic import field_validator
+
 from acutis_api.communication.enums import TipoOrdenacaoEnum
 from acutis_api.communication.enums.admin_membros import (
     ListarLeadsMembrosOrdenarPorEnum,
@@ -25,3 +27,13 @@ class ListarLeadsMembrosQuery(PaginacaoQuery):
         ListarLeadsMembrosOrdenarPorEnum.data_cadastro_lead
     )
     tipo_ordenacao: TipoOrdenacaoEnum = TipoOrdenacaoEnum.decrescente
+    filtro_dinamico: str | None = None
+
+    @field_validator('filtro_dinamico')
+    @classmethod
+    def filtro_minimo_quatro_caracteres(cls, value):
+        if value is not None and len(value.strip()) < 4:
+            raise ValueError(
+                'O filtro dinâmico deve ter pelo menos 4 caracteres.'
+            )
+        return value

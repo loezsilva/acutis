@@ -12,10 +12,12 @@ from .agape import agape_bp
 from .autenticacao import autenticacao_bp
 from .doacoes import doacoes_bp
 from .enderecos import enderecos_bp
+from .lives import lives_bp
 from .membros import membros_bp
 from .membros_oficiais import membros_oficiais_bp
 from .rotas_publicas import rotas_publicas_bp
 from .vocacional import vocacional_bp
+from .webhooks import webhooks_bp
 
 blueprints = [
     admin_benfeitores_bp,
@@ -29,11 +31,13 @@ blueprints = [
     autenticacao_bp,
     doacoes_bp,
     enderecos_bp,
-    membros_bp,
     membros_oficiais_bp,
-    vocacional_bp,
-    agape_bp,
+    membros_bp,
     rotas_publicas_bp,
+    vocacional_bp,
+    webhooks_bp,
+    lives_bp,
+    agape_bp,
 ]
 
 

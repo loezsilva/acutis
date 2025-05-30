@@ -2,7 +2,7 @@ import uuid
 
 from flask_jwt_extended import current_user
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from acutis_api.domain.entities.cargo_oficial import CargosOficiais
 from acutis_api.domain.entities.lead import Lead
@@ -133,3 +133,15 @@ class CargosOficiaisRepository(CargosOficiaisRepositoryInterface):
         return self.__database.session.scalars(
             select(CargosOficiais).order_by(CargosOficiais.nome_cargo)
         ).all()
+
+    def obter_total_cadastros_cargo_oficial(self):
+        consulta_cadastros_do_cargo = (
+            self.__database.session.query(
+                CargosOficiais.nome_cargo,
+                func.count(Oficial.id).label('total_cadastros'),
+            )
+            .join(Oficial, Oficial.fk_cargo_oficial_id == CargosOficiais.id)
+            .group_by(CargosOficiais.nome_cargo)
+            .all()
+        )
+        return consulta_cadastros_do_cargo

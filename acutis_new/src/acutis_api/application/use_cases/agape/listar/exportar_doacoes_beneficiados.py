@@ -1,8 +1,9 @@
-import csv
-import io
 import uuid
 from typing import List
 
+import pandas as pd
+
+from acutis_api.application.utils.funcoes_auxiliares import exporta_csv
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.domain.repositories.schemas.agape import (
     DadosCompletosDoacaoSchema,
@@ -18,6 +19,7 @@ class ExportarDoacoesBeneficiadosUseCase:
         ciclo_acao = self.agape_repository.buscar_ciclo_acao_agape_por_id(
             ciclo_acao_id
         )
+
         if not ciclo_acao:
             raise HttpNotFoundError(
                 f'Ciclo de Ação com ID {ciclo_acao_id} não encontrado.'
@@ -29,59 +31,50 @@ class ExportarDoacoesBeneficiadosUseCase:
             )
         )
 
-        output = io.StringIO()
-        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        if not dados_exportacao:
+            return {'url': None}
 
-        headers = [
-            'ciclo_acao_id',
-            'ciclo_acao_nome',
-            'ciclo_acao_data_inicio',
-            'ciclo_acao_data_termino',
-            'familia_id',
-            'familia_nome',
-            'familia_observacao',
-            'responsavel_familia_nome',
-            'responsavel_familia_cpf',
-            'responsavel_familia_telefone',
-            'doacao_id',
-            'doacao_data',
-            'item_doado_nome',
-            'item_doado_quantidade',
-        ]
-        writer.writerow(headers)
-
+        dados_formatados = []
         for dado in dados_exportacao:
-            writer.writerow([
-                str(dado.ciclo_acao_id) if dado.ciclo_acao_id else '',
-                dado.ciclo_acao_nome or '',
-                (
-                    dado.ciclo_acao_data_inicio.strftime('%Y-%m-%d %H:%M:%S')
+            dados_formatados.append({
+                'ciclo_acao_id': str(
+                    str(dado.ciclo_acao_id) if dado.ciclo_acao_id else ''
+                ),
+                'ciclo_acao_nome': dado.ciclo_acao_nome or '',
+                'ciclo_acao_data_inicio': (
+                    dado.ciclo_acao_data_inicio.strftime('%d/%m/%Y %H:%M:%S')
                     if dado.ciclo_acao_data_inicio
                     else '',
                 ),
-                (
-                    dado.ciclo_acao_data_termino.strftime('%Y-%m-%d %H:%M:%S')
+                'ciclo_acao_data_termino': (
+                    dado.ciclo_acao_data_termino.strftime('%d/%m/%Y %H:%M:%S')
                     if dado.ciclo_acao_data_termino
                     else '',
                 ),
-                str(dado.familia_id) if dado.familia_id else '',
-                dado.familia_nome or '',
-                dado.familia_observacao or '',
-                dado.responsavel_familia_nome or '',
-                dado.responsavel_familia_cpf or '',
-                dado.responsavel_familia_telefone or '',
-                str(dado.doacao_id) if dado.doacao_id else '',
-                (
+                'familia_id': str(dado.familia_id) if dado.familia_id else '',
+                'familia_nome': dado.familia_nome or '',
+                'familia_observacao': dado.familia_observacao or '',
+                'responsavel_familia_nome': str(
+                    dado.responsavel_familia_nome or ''
+                ),
+                'responsavel_familia_cpf': dado.responsavel_familia_cpf or '',
+                'responsavel_familia_telefone': (
+                    dado.responsavel_familia_telefone or ''
+                ),
+                'doacao_id': str(dado.doacao_id) if dado.doacao_id else '',
+                'doacao_data': (
                     dado.doacao_data.strftime('%Y-%m-%d %H:%M:%S')
                     if dado.doacao_data
                     else '',
                 ),
-                dado.item_doado_nome or '',
-                (
+                'item_doado_nome': dado.item_doado_nome or '',
+                'item_doado_quantidade': (
                     str(dado.item_doado_quantidade)
                     if dado.item_doado_quantidade is not None
                     else ''
                 ),
-            ])
+            })
 
-        return output.getvalue()
+        df = pd.DataFrame(dados_formatados)
+
+        return {'url': exporta_csv(df, 'familias_agape')['url']}

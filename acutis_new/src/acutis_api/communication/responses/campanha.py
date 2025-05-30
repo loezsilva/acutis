@@ -11,7 +11,10 @@ from pydantic import (
     model_validator,
 )
 
-from acutis_api.communication.enums.campanhas import ObjetivosCampanhaEnum
+from acutis_api.communication.enums.campanhas import (
+    ObjetivosCampanhaEnum,
+    PeriodicidadePainelCampanhasEnum,
+)
 from acutis_api.communication.responses.padrao import PaginacaoResponse
 
 
@@ -108,6 +111,18 @@ class ListaDeCampanhasResponse(RootModel):
     root: list[ListaDeCampanhasSchema]
 
 
+class PainelCampanhasSchema(BaseModel):
+    nome_campanha: str
+    objetivo: ObjetivosCampanhaEnum
+    total: float
+    periodicidade: PeriodicidadePainelCampanhasEnum
+    porcentagem_crescimento: float
+
+
+class PainelCampanhasResponse(BaseModel):
+    campanhas: List[PainelCampanhasSchema]
+
+
 class ListarDoacoesCampanhaSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -127,3 +142,9 @@ class ListarDoacoesCampanhaSchema(BaseModel):
 
 class ListarDoacoesCampanhaResponse(PaginacaoResponse):
     doacoes: list[ListarDoacoesCampanhaSchema]
+
+
+class CadastrosCampanhaPorPeriodoResponse(BaseModel):
+    ultimas_24h: int
+    ultimos_7_dias: int
+    ultimo_mes: int

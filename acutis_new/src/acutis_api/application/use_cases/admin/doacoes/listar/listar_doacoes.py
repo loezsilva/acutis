@@ -1,5 +1,3 @@
-import math
-
 from acutis_api.communication.requests.admin_doacoes import ListarDoacoesQuery
 from acutis_api.communication.responses.admin_doacoes import (
     DadosBenfeitorSchema,
@@ -18,12 +16,13 @@ class ListarDoacoesUseCase:
         self._repository = repository
 
     def execute(self, filtros: ListarDoacoesQuery):
-        doacoes, total = self._repository.listar_doacoes(filtros)
+        consulta_doacoes, total = self._repository.listar_doacoes(filtros)
 
         response = ListarDoacoesResponse(
             pagina=filtros.pagina,
-            paginas=math.ceil(total / filtros.por_pagina),
-            total=total,
+            paginas=consulta_doacoes.pages,
+            total=consulta_doacoes.total,
+            valor_total=round(total, 2),
             doacoes=[
                 ListarDoacoesSchema(
                     benfeitor=DadosBenfeitorSchema(
@@ -55,9 +54,10 @@ class ListarDoacoesUseCase:
                         codigo_comprovante=doacao.codigo_comprovante,
                         nosso_numero=doacao.nosso_numero,
                         status=doacao.status,
+                        contabilizar=doacao.contabilizar,
                     ),
                 )
-                for doacao in doacoes
+                for doacao in consulta_doacoes
             ],
         ).model_dump()
 

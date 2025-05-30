@@ -28,3 +28,8 @@ class GatewayPagamentoInterface(ABC):
 
     @abstractmethod
     def deletar_chave_pix_webhook(self, chave_pix: str): ...
+
+    @abstractmethod
+    def buscar_lancamentos_pix(
+        self, codigo_comprovante: str, chave_pix: str
+    ): ...

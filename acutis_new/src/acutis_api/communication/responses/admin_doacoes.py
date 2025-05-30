@@ -43,6 +43,7 @@ class DadosDoacaoSchema(BaseModel):
     codigo_comprovante: str | None
     nosso_numero: str | None
     status: StatusProcessamentoEnum
+    contabilizar: bool
 
     @field_validator('criada_em', 'cancelada_em', 'processado_em')
     @classmethod
@@ -61,3 +62,4 @@ class ListarDoacoesSchema(BaseModel):
 
 class ListarDoacoesResponse(PaginacaoResponse):
     doacoes: list[ListarDoacoesSchema]
+    valor_total: float

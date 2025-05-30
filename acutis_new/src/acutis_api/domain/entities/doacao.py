@@ -21,7 +21,7 @@ class Doacao:
     fk_benfeitor_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey('benfeitores.id'), index=True
     )
-    fk_campanha_doacao_id: Mapped[uuid.UUID] = mapped_column(
+    fk_campanha_doacao_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey('campanhas_doacoes.id'), index=True
     )
     cancelado_em: Mapped[datetime | None] = mapped_column(default=None)

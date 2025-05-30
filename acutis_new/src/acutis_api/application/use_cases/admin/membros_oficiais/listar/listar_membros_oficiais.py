@@ -37,9 +37,7 @@ class ListarMembrosOficiaisUseCase:
                     nome=lead.nome,
                     email=lead.email,
                     cargo_oficial=(
-                        self.__repository.buscar_nome_cargo_oficial(
-                            oficial.fk_cargo_oficial_id
-                        )
+                        cargo_oficial
                         if oficial.fk_cargo_oficial_id is not None
                         else None
                     ),
@@ -48,9 +46,7 @@ class ListarMembrosOficiaisUseCase:
                     sexo=membro.sexo,
                     status=oficial.status,
                     superior=(
-                        self.__repository.busca_nome_de_usuario_superior(
-                            oficial.fk_superior_id
-                        )
+                        nome_superior
                         if oficial.fk_superior_id is not None
                         else None
                     ),
@@ -67,7 +63,14 @@ class ListarMembrosOficiaisUseCase:
                     complemento=endereco.complemento,
                     pais=endereco.pais,
                 )
-                for lead, membro, endereco, oficial in membros_oficiais.items
+                for (
+                    lead,
+                    membro,
+                    endereco,
+                    oficial,
+                    cargo_oficial,
+                    nome_superior,
+                ) in membros_oficiais.items
             ],
         )
 

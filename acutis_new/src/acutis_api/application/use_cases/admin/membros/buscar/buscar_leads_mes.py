@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
+from acutis_api.application.utils.funcoes_auxiliares import buscar_data_valida
 from acutis_api.communication.responses.admin_membros import (
     BuscarLeadsMesResponse,
 )
@@ -15,12 +16,28 @@ class BuscarLeadsMesUseCase:
     def execute(self) -> dict:
         hoje = datetime.now()
 
-        leads_mes_atual = self._repository.buscar_leads_mes(hoje)
+        primeiro_dia_mes = hoje.replace(day=1)
+        leads_mes_atual = self._repository.buscar_leads_periodo(
+            primeiro_dia_mes, hoje
+        )
 
-        data_mes_anterior = hoje.replace(day=1) - timedelta(days=1)
+        ano = hoje.year
+        mes = hoje.month - 1
+        if mes == 0:
+            mes = 12
+            ano -= 1
 
-        leads_mes_anterior = self._repository.buscar_leads_mes(
-            data_mes_anterior
+        dia = hoje.day
+        data_mes_anterior = buscar_data_valida(dia, mes, ano)
+
+        data_mes_anterior = datetime.combine(
+            data_mes_anterior, datetime.max.time()
+        )
+
+        inicio_mes_anterior = data_mes_anterior.replace(day=1)
+
+        leads_mes_anterior = self._repository.buscar_leads_periodo(
+            inicio_mes_anterior, data_mes_anterior
         )
 
         if leads_mes_anterior > 0:
