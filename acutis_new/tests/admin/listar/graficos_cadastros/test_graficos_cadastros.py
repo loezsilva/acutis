@@ -324,7 +324,6 @@ def test_grafico_leads_evolucao_mensal(
     client: FlaskClient,
     membro_token,
     seed_registra_10_membros,
-    seed_registra_15_membros_idade,
 ):
     response = client.get(
         '/api/admin/graficos-cadastros/leads-por-evolucao-mensal',
@@ -336,3 +335,29 @@ def test_grafico_leads_evolucao_mensal(
     total_leads = database.session.query(func.count(Lead.id)).scalar()
 
     assert response.get_json()[-1]['montante_acumulado'] == total_leads
+
+
+def test_grafico_membros_por_estado(
+    client: FlaskClient, membro_token, seed_registra_10_membros
+):
+    response = client.get(
+        '/api/admin/graficos-cadastros/membros-por-estado',
+        headers={'Authorization': f' Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+
+    assert isinstance(response.get_json(), dict)
+
+
+def test_grafico_membros_por_pais(
+    client: FlaskClient, membro_token, seed_registra_10_membros
+):
+    response = client.get(
+        '/api/admin/graficos-cadastros/membros-por-pais',
+        headers={'Authorization': f' Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+
+    assert isinstance(response.get_json(), dict)

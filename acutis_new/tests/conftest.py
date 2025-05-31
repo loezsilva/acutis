@@ -1,6 +1,6 @@
 import uuid
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from flask import Flask
@@ -9,16 +9,23 @@ from sqlalchemy import event
 from testcontainers.mssql import SqlServerContainer
 
 from acutis_api.api.app import create_app
+from acutis_api.application.utils.funcoes_auxiliares import buscar_data_valida
+from acutis_api.communication.enums.campanhas import (
+    PeriodicidadePainelCampanhasEnum,
+)
 from acutis_api.communication.enums.membros import OrigemCadastroEnum, SexoEnum
 from acutis_api.domain.entities.campanha import Campanha, ObjetivosCampanhaEnum
 from acutis_api.domain.entities.campo_adicional import TiposCampoEnum
+from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.instancia_acao_agape import StatusAcaoAgapeEnum
+from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.processamento_doacao import (
     StatusProcessamentoEnum,
 )
 from acutis_api.infrastructure.extensions import database
 from acutis_api.infrastructure.settings import TestingConfig
 from tests.factories import (
+    AudienciaFactory,
     BenfeitorFactory,
     CampanhaDoacaoFactory,
     CampanhaFactory,
@@ -34,12 +41,19 @@ from tests.factories import (
     LandingPageFactory,
     LeadCampanhaFactory,
     LeadFactory,
+    LiveAvulsaFactory,
+    LiveFactory,
+    LiveRecorrenteFactory,
     MembroFactory,
     MembroOficialFactory,
+    MetadadoLeadFactory,
     NomeAcaoAgapeFactory,
     PagamentoDoacaoFactory,
     ProcessamentoDoacaoFactory,
+    PerfilFactory,
+    PermissaoLeadFactory,
 )
+from acutis_api.domain.entities.perfil import Perfil
 
 
 @pytest.fixture(scope='session')
@@ -100,6 +114,7 @@ def seed_registrar_membro():
         nome: str | None = None,
         numero_documento: str | None = None,
         telefone: str | None = None,
+        criado_em: datetime | None = None,
     ):
         lead = LeadFactory(status=status)
         lead.senha = '#Teste;@123'  # NOSONAR
@@ -108,6 +123,8 @@ def seed_registrar_membro():
             lead.nome = nome
         if telefone:
             lead.telefone = telefone
+        if criado_em:
+            lead.criado_em = criado_em
         database.session.add(lead)
 
         endereco = EnderecoFactory()
@@ -125,6 +142,8 @@ def seed_registrar_membro():
             membro.numero_documento = ''.join(
                 filter(str.isdigit, membro.numero_documento)
             )
+        if criado_em:
+            membro.criado_em = criado_em
         database.session.add(membro)
         database.session.commit()
 
@@ -182,7 +201,7 @@ def seed_campanha_cadastro(seed_registrar_membro):
     campo_adicional_1 = CampoAdicionalFactory(
         fk_campanha_id=campanha_cadastro.id,
         tipo_campo=TiposCampoEnum.string,
-        nome_campo='Nome Completo',
+        nome_campo='Nome Completo',  # NOSONAR
         obrigatorio=True,
     )
     database.session.add(campo_adicional_1)
@@ -275,11 +294,18 @@ def seed_nova_campanha(seed_registrar_membro):
 def seed_nova_campanha_com_campos_adicionais(seed_registrar_membro):
     def _nova_campanha_com_campos_adicionais(
         tipos_campos_adicionais: list[dict],
+        objetivo_campanha: ObjetivosCampanhaEnum | None = None,
     ):
         membro = seed_registrar_membro(status=True)[1]
 
         campanha = CampanhaFactory(criado_por=membro.id)
         database.session.add(campanha)
+
+        if objetivo_campanha == ObjetivosCampanhaEnum.doacao:
+            campanha_doacao = CampanhaDoacaoFactory(
+                fk_campanha_id=campanha.id,
+            )
+            database.session.add(campanha_doacao)
 
         campos_adicionais = []
         for campo in tipos_campos_adicionais:
@@ -430,8 +456,19 @@ def seed_registra_10_membros():
 def seed_membros_oficial_status_dinamico(
     seed_cargo_oficial, seed_registrar_membro
 ):
-    def _criar_membro_oficial(status: str):
-        membro = seed_registrar_membro(status=True)[1]
+    def _criar_membro_oficial(
+        status: str,
+        nome: str | None = None,
+        numero_documento: str | None = None,
+    ):
+        if nome:
+            membro = seed_registrar_membro(status=True, nome=nome)[1]
+        elif numero_documento:
+            membro = seed_registrar_membro(
+                status=True, numero_documento=numero_documento
+            )[1]
+        else:
+            membro = seed_registrar_membro(status=True)[1]
 
         membro_oficial = MembroOficialFactory(
             fk_membro_id=membro.id,
@@ -635,7 +672,7 @@ def seed_15_leads_campanhas(seed_registrar_membro):
 
         database.session.add(lead)
 
-        lead_campanha = LeadCampanhaFactory(
+        membrolead_campanha = LeadCampanhaFactory(
             fk_lead_id=lead.id, fk_campanha_id=campanha_2.id
         )
 
@@ -827,13 +864,16 @@ def seed_registra_5_membros_campanha(seed_registrar_membro):
 
 @pytest.fixture
 def seed_dados_doacao():
-    def _dados_doacao(
+    def _dados_doacao(  # noqa: PLR0913
         *,
         campanha: Campanha,
         doacao_ativa: bool = True,
         doacao_recorrente: bool = True,
         status_doacao: StatusProcessamentoEnum = StatusProcessamentoEnum.pago,
-    ):
+        criado_em: datetime = None,
+        numero_documento: str = None,
+        anonimo: bool = False,
+    ) -> tuple[Lead, Doacao]:
         endereco = EnderecoFactory()
         database.session.add(endereco)
         lead = LeadFactory(status=True)
@@ -842,6 +882,8 @@ def seed_dados_doacao():
         benfeitor = BenfeitorFactory(
             nome='Yan da Pororoca', numero_documento='14069725334'
         )
+        if numero_documento:
+            benfeitor.numero_documento = numero_documento
         database.session.add(benfeitor)
         membro = MembroFactory(
             fk_lead_id=lead.id,
@@ -859,7 +901,11 @@ def seed_dados_doacao():
             codigo_ordem_pagamento=str(uuid.uuid4()),
             recorrente=doacao_recorrente,
             ativo=doacao_ativa,
+            anonimo=anonimo,
         )
+
+        if criado_em:
+            pagamento_doacao.criado_em = criado_em
         database.session.add(pagamento_doacao)
 
         processamento_doacao = ProcessamentoDoacaoFactory(
@@ -873,3 +919,395 @@ def seed_dados_doacao():
         return lead, doacao
 
     return _dados_doacao
+
+
+@pytest.fixture
+def seed_campanha_objetivo_dinamico(seed_registrar_membro):
+    def _campanha_objetivo_dinamico(
+        objetivo_campanha: ObjetivosCampanhaEnum,
+    ):
+        membro = seed_registrar_membro(status=True)[1]
+
+        campanha = CampanhaFactory(
+            objetivo=ObjetivosCampanhaEnum.cadastro,
+            criado_por=membro.id,
+        )
+
+        if objetivo_campanha:
+            campanha.objetivo = objetivo_campanha
+        database.session.add(campanha)
+        database.session.commit()
+
+        return campanha
+
+    return _campanha_objetivo_dinamico
+
+
+@pytest.fixture
+def seed_vincula_na_campanha_verifica_periodo():
+    def _vincula_na_campanha_verifica_periodo(
+        campanha: Campanha,
+        periodo: PeriodicidadePainelCampanhasEnum,
+    ):
+        for i in range(5):
+            lead = LeadFactory(status=True)
+            lead.senha = '#Teste;@123'
+            database.session.add(lead)
+
+            lead_campanha = LeadCampanhaFactory(
+                fk_lead_id=lead.id, fk_campanha_id=campanha.id
+            )
+            database.session.add(lead_campanha)
+
+            if i == 0:
+                if periodo == PeriodicidadePainelCampanhasEnum.diario:
+                    lead_campanha.criado_em = datetime.now() - timedelta(
+                        days=1
+                    )
+
+                elif periodo == PeriodicidadePainelCampanhasEnum.semanal:
+                    lead_campanha.criado_em = datetime.now() - timedelta(
+                        weeks=1
+                    )
+
+                elif periodo == PeriodicidadePainelCampanhasEnum.mensal:
+                    data_atual = datetime.now()
+                    ano = data_atual.year
+                    mes = data_atual.month - 1
+                    if mes == 0:
+                        mes = 12
+                        ano -= 1
+
+                    dia = data_atual.day
+                    data_valida = buscar_data_valida(dia, mes, ano)
+                    lead_campanha.criado_em = datetime.combine(
+                        data_valida, data_atual.time()
+                    )
+
+            if campanha.objetivo == ObjetivosCampanhaEnum.cadastro:
+                endereco = EnderecoFactory()
+                database.session.add(endereco)
+                membro = MembroFactory(
+                    fk_lead_id=lead.id, fk_endereco_id=endereco.id
+                )
+                database.session.add(membro)
+
+            if campanha.objetivo == ObjetivosCampanhaEnum.oficiais:
+                endereco = EnderecoFactory()
+                database.session.add(endereco)
+                membro = MembroFactory(
+                    fk_lead_id=lead.id, fk_endereco_id=endereco.id
+                )
+                database.session.add(membro)
+                database.session.commit()
+
+                cargo_oficial = CargosOficiaisFactory(
+                    criado_por=membro.id,
+                    fk_cargo_superior_id=None,
+                )
+
+                database.session.add(cargo_oficial)
+                membro_oficial = MembroOficialFactory(
+                    fk_membro_id=membro.id,
+                    fk_superior_id=None,
+                    fk_cargo_oficial_id=cargo_oficial.id,
+                )
+                database.session.add(membro_oficial)
+
+        database.session.commit()
+
+    return _vincula_na_campanha_verifica_periodo
+
+
+@pytest.fixture
+def seed_campanha_cadastro_sem_landingpage(seed_registrar_membro):
+    membro = seed_registrar_membro(status=True)[1]
+
+    campanha_cadastro = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.cadastro, criado_por=membro.id
+    )
+    database.session.add(campanha_cadastro)
+
+    campo_adicional_1 = CampoAdicionalFactory(
+        fk_campanha_id=campanha_cadastro.id,
+        tipo_campo=TiposCampoEnum.string,
+        nome_campo='Nome Completo',
+        obrigatorio=True,
+    )
+    database.session.add(campo_adicional_1)
+
+    campo_adicional_2 = CampoAdicionalFactory(
+        fk_campanha_id=campanha_cadastro.id,
+        tipo_campo=TiposCampoEnum.string,
+        nome_campo='Email',
+        obrigatorio=True,
+    )
+    database.session.add(campo_adicional_2)
+
+    database.session.commit()
+
+    return campanha_cadastro
+
+
+@pytest.fixture
+def seed_landingpage_campanha(seed_registrar_membro):
+    membro = seed_registrar_membro(status=True)[1]
+
+    campanha_cadastro = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.cadastro, criado_por=membro.id
+    )
+    database.session.add(campanha_cadastro)
+
+    landing_page = LandingPageFactory(fk_campanha_id=campanha_cadastro.id)
+    database.session.add(landing_page)
+
+    database.session.commit()
+    return landing_page
+
+
+@pytest.fixture
+def seed_membro_com_todas_relacoes(seed_registrar_membro):
+    lead, membro, endereco = seed_registrar_membro(status=True)
+
+    membro_campanha = seed_registrar_membro(status=True)[1]
+
+    campanha = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.doacao,
+        criado_por=membro_campanha.id,
+        nome='Campanha Viagem a Lá',
+    )
+
+    database.session.add(campanha)
+
+    database.session.flush()
+
+    lead_campanha = LeadCampanhaFactory(
+        fk_lead_id=lead.id, fk_campanha_id=campanha.id
+    )
+    database.session.add(lead_campanha)
+
+    campo_adicional_1 = CampoAdicionalFactory(
+        fk_campanha_id=campanha.id,
+        tipo_campo=TiposCampoEnum.string,
+        nome_campo='Nome Completo',
+        obrigatorio=True,
+    )
+    database.session.add(campo_adicional_1)
+    database.session.flush()
+
+    meta_data_lead = MetadadoLeadFactory(
+        fk_lead_id=lead.id,
+        fk_campo_adicional_id=campo_adicional_1.id,
+        valor_campo='Valor 1',
+    )
+    database.session.add(meta_data_lead)
+    database.session.flush()
+
+    database.session.commit()
+
+    return {
+        'lead': lead,
+        'membro': membro,
+        'endereco': endereco,
+        'lead_campanha': lead_campanha,
+        'meta_data_lead': meta_data_lead,
+    }
+
+
+@pytest.fixture
+def seed_registrar_live_avulsa(seed_registrar_membro):
+    membro = seed_registrar_membro(status=True)[1]
+
+    campanha = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.doacao, criado_por=membro.id
+    )
+    database.session.add(campanha)
+
+    live = LiveFactory(
+        tag='live-avulsa-teste',
+        fk_campanha_id=campanha.id,
+        rede_social='youtube',
+        criado_por=membro.id,
+    )
+    database.session.add(live)
+    database.session.flush()
+
+    live_avulsa = LiveAvulsaFactory(
+        fk_livemembro_id=live.id,
+        data_hora_inicio=datetime.now() + timedelta(hours=1),
+        criado_por=membro.id,
+    )
+    database.session.add(live_avulsa)
+
+    database.session.commit()
+    return live, live_avulsa
+
+
+@pytest.fixture
+def seed_registrar_live_recorrente(seed_registrar_membro):
+    membro = seed_registrar_membro(status=True)[1]
+
+    campanha = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.doacao, criado_por=membro.id
+    )
+    database.session.add(campanha)
+
+    live = LiveFactory(
+        tag='live-recorrente-teste',
+        fk_campanha_id=campanha.id,
+        rede_social='youtube',
+        criado_por=membro.id,
+    )
+    database.session.add(live)
+    database.session.flush()
+
+    live_recorrente = LiveRecorrenteFactory(
+        fk_live_id=live.id,
+        hora_inicio=datetime.now(),
+        dia_semana='quarta',
+        criado_por=membro.id,
+    )
+    database.session.add(live_recorrente)
+
+    database.session.commit()
+    return live, live_recorrente
+
+
+@pytest.fixture
+def seed_registrar_canal(seed_registrar_membro):
+    membro = seed_registrar_membro(status=True)[1]
+
+    campanha = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.doacao, criado_por=membro.id
+    )
+    database.session.add(campanha)
+
+    live = LiveFactory(
+        tag='live-teste',
+        fk_campanha_id=campanha.id,
+        rede_social='youtube',
+        criado_por=membro.id,
+    )
+    database.session.add(live)
+    database.session.flush()
+    database.session.commit()
+
+    return live
+
+
+@pytest.fixture
+def seed_audiencia_lives():
+    lead = LeadFactory(status=True)
+    lead.senha = '#Teste;@123'
+    database.session.add(lead)
+
+    endereco = EnderecoFactory()
+    database.session.add(endereco)
+
+    membro = MembroFactory(
+        fk_lead_id=lead.id,
+        fk_endereco_id=endereco.id,
+    )
+    database.session.add(membro)
+
+    campanha = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.doacao,
+        criado_por=membro.id,
+    )
+    database.session.add(campanha)
+
+    live = LiveFactory(
+        tag='live-teste',
+        rede_social='youtube',
+        fk_campanha_id=campanha.id,
+        criado_por=membro.id,
+    )
+
+    database.session.add(live)
+    database.session.flush()
+
+    audiencia = AudienciaFactory(
+        fk_live_id=live.id,
+        audiencia=123,
+        data_hora_registro=datetime.now(),
+    )
+
+    database.session.add(audiencia)
+    database.session.commit()
+
+    return audiencia, live
+
+
+@pytest.fixture
+def seed_gerar_cadastros_campanha_em_periodos(seed_registrar_membro):
+    membro = seed_registrar_membro(status=True)[1]
+
+    campanha = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.cadastro,
+        nome="Campanha teste",
+        criado_por=membro.id
+    )
+    database.session.add(campanha)
+    database.session.commit()
+
+    agora = datetime.now()
+
+    def criar_lead_campanha_com_data(data_criacao):
+        lead = LeadFactory(status=True)
+        lead.senha = '#Teste;@123'
+        database.session.add(lead)
+
+        lead_campanha = LeadCampanhaFactory(
+            fk_lead_id=lead.id,
+            fk_campanha_id=campanha.id,
+        )
+        lead_campanha.criado_em = data_criacao
+        database.session.add(lead_campanha)
+
+    criar_lead_campanha_com_data(agora - timedelta(hours=1))
+    criar_lead_campanha_com_data(agora - timedelta(hours=23))
+
+    criar_lead_campanha_com_data(agora - timedelta(days=2))
+    criar_lead_campanha_com_data(agora - timedelta(days=6))
+
+    criar_lead_campanha_com_data(agora - timedelta(days=10))
+    criar_lead_campanha_com_data(agora - timedelta(days=29))
+
+    database.session.commit()
+    return campanha.id
+
+@pytest.fixture
+def seed_lead_voluntario_e_token(client: FlaskClient):
+    lead = LeadFactory(status=True)
+    database.session.add(lead)
+    database.session.commit()
+
+    perfil_voluntario = (
+        database.session.query(Perfil)
+        .filter_by(nome='Voluntario Agape')
+        .first()
+    )
+
+    if not perfil_voluntario:
+        perfil_voluntario = PerfilFactory(nome='Voluntario Agape')
+        database.session.add(perfil_voluntario)
+        database.session.commit()
+
+    permissao = PermissaoLeadFactory(
+        lead_id=lead.id, 
+        lead=lead,
+        perfil_id=perfil_voluntario.id,
+        perfil=perfil_voluntario,
+    )
+
+    database.session.add(permissao)
+    database.session.commit()
+    database.session.flush
+
+    payload = {'email': lead.email, 'senha': '#Teste;@123'}
+    response = client.post(
+        '/api/autenticacao/login?httponly=false', json=payload
+    )
+    token = response.get_json()['access_token']
+
+    return lead, token

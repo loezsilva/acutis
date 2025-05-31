@@ -1,11 +1,13 @@
 import json
 from http import HTTPStatus
 from io import BytesIO
+from unittest.mock import patch
 
 from flask.testing import FlaskClient
 
 from acutis_api.domain.entities.campanha import Campanha
 from acutis_api.infrastructure.extensions import database
+from acutis_api.infrastructure.services.itau import ItauPixService
 
 ROTA = '/api/admin/campanhas/registrar-campanha'
 
@@ -14,31 +16,6 @@ def test_registrar_campanha_cadastro_completa(
     client: FlaskClient, seed_registrar_membro, membro_token
 ):
     membro = seed_registrar_membro(status=True)[1]
-
-    dados_da_landing_page = {
-        'conteudo': """<!DOCTYPE html>
-            <html lang="pt-br">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width,
-                    initial-scale=1.0">
-                <title>Página Simples</title>
-            </head>
-            <body>
-                <header>
-                    <h1>Bem-vindo à minha página simples!</h1>
-                </header>
-                <main>
-                    <p>Este é um parágrafo de texto simples.</p>
-                    <a href="link"
-                    target="_blank">Clique</a>
-                </main>
-                <footer>
-                    <p>&copy; 2025 Meu Site. Todos os direitos reservados.</p>
-                </footer>
-            </body>
-            </html>"""
-    }
 
     dados_da_campanha = {
         'nome': 'CAMPANHA PRE CADASTROS COMPLETO',
@@ -77,7 +54,6 @@ def test_registrar_campanha_cadastro_completa(
         data={
             'foto_capa': foto,
             'campos_adicionais': json.dumps(campos_adicionais),
-            'dados_da_landing_page': json.dumps(dados_da_landing_page),
             'dados_da_campanha': json.dumps(dados_da_campanha),
         },
         content_type='multipart/form-data',
@@ -102,31 +78,6 @@ def test_registrar_campanha_cadastro_completa_sem_foto_campos_adicionais(
 ):
     membro = seed_registrar_membro(status=True)[1]
 
-    dados_da_landing_page = {
-        'conteudo': """<!DOCTYPE html>
-            <html lang="pt-br">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width,
-                    initial-scale=1.0">
-                <title>Página Simples</title>
-            </head>
-            <body>
-                <header>
-                    <h1>Bem-vindo à minha página simples!</h1>
-                </header>
-                <main>
-                    <p>Este é um parágrafo de texto simples.</p>
-                    <a href="link"
-                    target="_blank">Cliquea</a>
-                </main>
-                <footer>
-                    <p>&copy; 2025 Meu Site. Todos os direitos reservados.</p>
-                </footer>
-            </body>
-            </html>"""
-    }
-
     dados_da_campanha = {
         'nome': 'CAMPANHA CADASTROS',
         'objetivo': 'pre_cadastro',
@@ -145,7 +96,6 @@ def test_registrar_campanha_cadastro_completa_sem_foto_campos_adicionais(
         ROTA,
         headers={'Authorization': f'Bearer {membro_token}'},
         data={
-            'dados_da_landing_page': json.dumps(dados_da_landing_page),
             'dados_da_campanha': json.dumps(dados_da_campanha),
         },
         content_type='multipart/form-data',
@@ -165,43 +115,12 @@ def test_registrar_campanha_cadastro_completa_sem_foto_campos_adicionais(
     assert 'id' in response.get_json().keys()
 
 
-def test_registrar_campanha_cadastro_sem_foto_campos_adicionais_landingpage(
-    client: FlaskClient, seed_registrar_membro, membro_token
+@patch.object(ItauPixService, 'registrar_chave_pix_webhook')
+def test_registrar_campanha_doacao(
+    mock_registrar_chave_pix_webhook, client: FlaskClient, membro_token
 ):
-    membro = seed_registrar_membro(status=True)[1]
+    mock_registrar_chave_pix_webhook.return_value
 
-    dados_da_campanha = {
-        'nome': 'CAMPANHA DOACAO',
-        'objetivo': 'cadastro',
-        'publica': True,
-        'ativa': True,
-        'meta': 10000.0,
-        'chave_pix': '123e4567-e89b-12d3-a456-426614174000',
-        'criado_por': f'{membro.id}',
-        'nome_campo': 'Telefone',
-        'tipo_campo': 'string',
-        'obrigatorio': True,
-        'fk_cargo_oficial_id': None,
-    }
-
-    response = client.post(
-        ROTA,
-        headers={'Authorization': f'Bearer {membro_token}'},
-        data={
-            'dados_da_campanha': json.dumps(dados_da_campanha),
-        },
-        content_type='multipart/form-data',
-    )
-
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    data = response.get_json()
-
-    assert data == [
-        {'msg': 'É necessário informar o conteúdo da landing page'}
-    ]
-
-
-def test_registrar_campanha_doacao(client: FlaskClient, membro_token):
     dados_da_campanha = {
         'nome': 'CAMPANHA DOACAO',
         'objetivo': 'doacao',
@@ -284,31 +203,6 @@ def test_registrar_campanha_membro_oficial_completa_success(
         'fk_cargo_oficial_id': f'{cargo_oficial.id}',
     }
 
-    dados_da_landing_page = {
-        'conteudo': """<!DOCTYPE html>
-            <html lang="pt-br">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width,
-                    initial-scale=1.0">
-                <title>Página Simples</title>
-            </head>
-            <body>
-                <header>
-                    <h1>Bem-vindo à minha página simples!</h1>
-                </header>
-                <main>
-                    <p>Este é um parágrafo de texto simples.</p>
-                    <a href="link"
-                    target="_blank">Cliquea</a>
-                </main>
-                <footer>
-                    <p>&copy; 2025 Meu Site. Todos os direitos reservados.</p>
-                </footer>
-            </body>
-            </html>"""
-    }
-
     campos_adicionais = [
         {'nome_campo': 'idade', 'tipo_campo': 'int', 'obrigatorio': True},
         {
@@ -328,7 +222,6 @@ def test_registrar_campanha_membro_oficial_completa_success(
         data={
             'foto_capa': foto,
             'campos_adicionais': json.dumps(campos_adicionais),
-            'dados_da_landing_page': json.dumps(dados_da_landing_page),
             'dados_da_campanha': json.dumps(dados_da_campanha),
         },
         content_type='multipart/form-data',
@@ -368,31 +261,6 @@ def test_registrar_campanha_membro_oficial_completa_bad_request_error(
         'fk_cargo_oficial_id': None,
     }
 
-    dados_da_landing_page = {
-        'conteudo': """<!DOCTYPE html>
-            <html lang="pt-br">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width,
-                    initial-scale=1.0">
-                <title>Página Simples</title>
-            </head>
-            <body>
-                <header>
-                    <h1>Bem-vindo à minha página simples!</h1>
-                </header>
-                <main>
-                    <p>Este é um parágrafo de texto simples.</p>
-                    <a href="link"
-                    target="_blank">Cliquea</a>
-                </main>
-                <footer>
-                    <p>&copy; 2025 Meu Site. Todos os direitos reservados.</p>
-                </footer>
-            </body>
-            </html>"""
-    }
-
     campos_adicionais = [
         {'nome_campo': 'idade', 'tipo_campo': 'int', 'obrigatorio': True},
         {
@@ -412,7 +280,6 @@ def test_registrar_campanha_membro_oficial_completa_bad_request_error(
         data={
             'foto_capa': foto,
             'campos_adicionais': json.dumps(campos_adicionais),
-            'dados_da_landing_page': json.dumps(dados_da_landing_page),
             'dados_da_campanha': json.dumps(dados_da_campanha),
         },
         content_type='multipart/form-data',
@@ -422,44 +289,6 @@ def test_registrar_campanha_membro_oficial_completa_bad_request_error(
     data = response.get_json()
 
     assert data == [{'msg': 'Deve ser informado um cargo oficial.'}]
-
-
-def test_registrar_campanha_membro_oficial_bad_request_error(
-    client: FlaskClient,
-    seed_registrar_membro,
-    membro_token,
-    seed_cargo_oficial,
-):
-    cargo_oficial = seed_cargo_oficial
-
-    membro = seed_registrar_membro(status=True)[1]
-
-    dados_da_campanha = {
-        'nome': 'CAMPANHA General',
-        'objetivo': 'oficiais',
-        'publica': True,
-        'ativa': True,
-        'meta': 10000.0,
-        'chave_pix': None,
-        'criado_por': f'{membro.id}',
-        'fk_cargo_oficial_id': f'{cargo_oficial.id}',
-    }
-
-    response = client.post(
-        ROTA,
-        headers={'Authorization': f'Bearer {membro_token}'},
-        data={
-            'dados_da_campanha': json.dumps(dados_da_campanha),
-        },
-        content_type='multipart/form-data',
-    )
-
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    data = response.get_json()
-
-    assert data == [
-        {'msg': 'É necessário informar o conteúdo da landing page'}
-    ]
 
 
 def test_registrar_campanha_membro_oficial_sem_campos_adicionais_e_foto(
@@ -483,36 +312,10 @@ def test_registrar_campanha_membro_oficial_sem_campos_adicionais_e_foto(
         'fk_cargo_oficial_id': f'{cargo_oficial.id}',
     }
 
-    dados_da_landing_page = {
-        'conteudo': """<!DOCTYPE html>
-            <html lang="pt-br">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width,
-                    initial-scale=1.0">
-                <title>Página Simples</title>
-            </head>
-            <body>
-                <header>
-                    <h1>Bem-vindo à minha página simples!</h1>
-                </header>
-                <main>
-                    <p>Este é um parágrafo de texto simples.</p>
-                    <a href="link"
-                    target="_blank">Cliquea</a>
-                </main>
-                <footer>
-                    <p>&copy; 2025 Meu Site. Todos os direitos reservados.</p>
-                </footer>
-            </body>
-            </html>"""
-    }
-
     response = client.post(
         ROTA,
         headers={'Authorization': f'Bearer {membro_token}'},
         data={
-            'dados_da_landing_page': json.dumps(dados_da_landing_page),
             'dados_da_campanha': json.dumps(dados_da_campanha),
         },
         content_type='multipart/form-data',

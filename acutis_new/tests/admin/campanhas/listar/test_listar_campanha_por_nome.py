@@ -6,7 +6,7 @@ from acutis_api.communication.responses.campanha import (
     ListaCampanhaPorNomeResponse,
 )
 
-ROTA = '/api/admin/campanhas/buscar-campanha-por-nome'
+ROTA = '/api/rotas-publicas/buscar-campanha-por-nome'
 
 
 def test_listar_campanha_por_nome(

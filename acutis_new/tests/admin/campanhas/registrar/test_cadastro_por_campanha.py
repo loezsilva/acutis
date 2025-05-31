@@ -26,6 +26,8 @@ from tests.factories import (
 
 faker = Faker('pt-BR')
 
+ROTA = '/api/rotas-publicas/cadastro-por-campanha'
+
 
 def gerar_imagem_base64():
     imagem = Image.new('RGB', (100, 100), color=(255, 0, 0))
@@ -84,7 +86,7 @@ def test_cadastro_por_campanha_vincula_oficial(
     ).get_json()['access_token']
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_oficiais.id}',
+        f'{ROTA}/{campanha_oficiais.id}',
         headers={'Authorization': f'Bearer {token}'},
     )
 
@@ -174,7 +176,7 @@ def test_cadastro_por_campanha_membro_logado_vira_oficial(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_oficiais.id}',
+        f'{ROTA}/{campanha_oficiais.id}',
         headers={'Authorization': f'Bearer {token}'},
         data=data,
         content_type='multipart/form-data',
@@ -272,7 +274,7 @@ def test_cadastro_por_campanha_lead_logado_vira_oficial(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_oficiais.id}',
+        f'{ROTA}/{campanha_oficiais.id}',
         headers={'Authorization': f'Bearer {token}'},
         data=data,
         content_type='multipart/form-data',
@@ -325,7 +327,7 @@ def test_cadastro_por_campanha_adicionais_nao_enviados(
     ).get_json()['access_token']
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha.id}',
+        f'{ROTA}/{campanha.id}',
         headers={'Authorization': f'Bearer {token}'},
     )
 
@@ -409,7 +411,7 @@ def test_cadastro_por_campanha_membro_logado_vincula(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         headers={'Authorization': f'Bearer {token}'},
         data=data,
         content_type='multipart/form-data',
@@ -469,7 +471,7 @@ def test_cadastro_por_campanha_lead_logado_vira_membro(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         headers={'Authorization': f'Bearer {token}'},
         data=data,
         content_type='multipart/form-data',
@@ -540,7 +542,7 @@ def test_cadastro_por_campanha_lead_logado_vincula(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_lead.id}',
+        f'{ROTA}/{campanha_lead.id}',
         headers={'Authorization': f'Bearer {token}'},
         data=data,
         content_type='multipart/form-data',
@@ -626,7 +628,7 @@ def test_cadastro_por_campanha_membro_oficial(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_oficiais.id}',
+        f'{ROTA}/{campanha_oficiais.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -681,7 +683,7 @@ def test_cadastro_por_campanha_membro(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -718,7 +720,7 @@ def test_cadastro_por_campanha_lead(client: FlaskClient, seed_membros_oficial):
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_lead.id}',
+        f'{ROTA}/{campanha_lead.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -759,7 +761,7 @@ def test_cadastro_por_campanha_email_ja_cadastrado(
         'senha': '#Teste;@123',
     }
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_lead.id}',
+        f'{ROTA}/{campanha_lead.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -794,7 +796,7 @@ def test_cadastro_por_campanha_telefone_ja_cadastrado(
         'senha': '#Teste;@123',
     }
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_lead.id}',
+        f'{ROTA}/{campanha_lead.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -848,7 +850,7 @@ def test_cadastro_por_campanha_superior_obrigatorio(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_oficiais.id}',
+        f'{ROTA}/{campanha_oficiais.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -905,7 +907,7 @@ def test_cadastro_por_campanha_json_invalido(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         headers={'Authorization': f'Bearer {token}'},
         data=data,
         content_type='multipart/form-data',
@@ -957,7 +959,7 @@ def test_cadastro_por_campanha_documento_invalido(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -1008,7 +1010,7 @@ def test_cadastro_por_campanha_nome_social_invalido(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -1059,7 +1061,7 @@ def test_cadastro_por_campanha_nome_invalido(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         data=data,
         content_type='multipart/form-data',
     )
@@ -1110,7 +1112,7 @@ def test_cadastro_por_campanha_nome_curto(
     }
 
     response = client.post(
-        f'/api/admin/campanhas/cadastro-por-campanha/{campanha_cadastro.id}',
+        f'{ROTA}/{campanha_cadastro.id}',
         data=data,
         content_type='multipart/form-data',
     )

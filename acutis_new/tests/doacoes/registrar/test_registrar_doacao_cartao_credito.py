@@ -5,6 +5,7 @@ from flask.testing import FlaskClient
 
 from acutis_api.domain.services.schemas.maxipago import PagamentoResponse
 from acutis_api.infrastructure.extensions import database
+from acutis_api.infrastructure.repositories.doacoes import DoacoesRepository
 from acutis_api.infrastructure.services.maxipago import MaxiPago
 from tests.factories import BenfeitorFactory, CampanhaFactory, LeadFactory
 
@@ -20,14 +21,14 @@ def test_registrar_doacao_cartao_credito_sucesso(  # NOSONAR
 
     mock_criar_pagamento_unico.return_value = PagamentoResponse(
         orderID='54042aab-1e3a-4b46-85c6-9209c4a3d01b',
-        referenceNum='cef47fc5-6a31-4124-ad55-501df7370778_CARTAO_1744650661.626459',
+        referenceNum='cef47fc5-6a31-4124-ad55-501df7370778_CARTAO_1744650661.626459',  # NOSONAR # noqa
         transactionID='738366809',
     )
 
     payload = {
         'campanha_id': campanha_doacao.id,
         'codigo_seguranca': '784',
-        'nome_titular': 'Leonardo Guimaraes',
+        'nome_titular': 'Leonardo Guimaraes',  # NOSONAR
         'numero_cartao': '4578 6985 2354 1456',
         'numero_documento': '76825523015',
         'valor_doacao': 10.00,
@@ -37,13 +38,13 @@ def test_registrar_doacao_cartao_credito_sucesso(  # NOSONAR
     }
 
     response = client.post(
-        '/api/doacoes/pagamento/cartao-de-credito',
+        '/api/doacoes/pagamento/cartao-de-credito',  # NOSONAR
         json=payload,
         headers={'Authorization': f'Bearer {membro_token}'},
     )
 
     assert response.status_code == HTTPStatus.CREATED
-    assert response.json == {'msg': 'Doação realizada com sucesso.'}
+    assert response.json == {'msg': 'Doação realizada com sucesso.'}  # NOSONAR
 
 
 @patch.object(MaxiPago, 'criar_pagamento_recorrente')
@@ -101,10 +102,11 @@ def test_registrar_doacao_cartao_credito_vinculacao_benfeitor_sucesso(  # NOSONA
     )
     database.session.add(benfeitor)
     database.session.commit()
-    payload = {'email': lead.email, 'senha': '#Teste;@123'}
+    payload = {'email': lead.email, 'senha': '#Teste;@123'}  # NOSONAR
 
     resp_token = client.post(
-        '/api/autenticacao/login?httponly=false', json=payload
+        '/api/autenticacao/login?httponly=false',  # NOSONAR
+        json=payload,
     )
     token = resp_token.json['access_token']
 
@@ -309,3 +311,49 @@ def test_registrar_doacao_cartao_credito_erro_valor_abaixo_de_10(
     assert response.json[0]['msg'] == (
         'O valor deve ser maior ou igual a R$ 10,00.'
     )
+
+
+@patch.object(MaxiPago, 'criar_pagamento_recorrente')
+@patch.object(DoacoesRepository, 'salvar_alteracoes')
+@patch.object(MaxiPago, 'cancelar_pagamento_recorrente')
+@patch.object(MaxiPago, 'estornar_pagamento')
+def test_registrar_doacao_cartao_credito_erro_salvar_dados(  # noqa
+    mock_estornar_pagamento,
+    mock_cancelar_pagamento_recorrente,
+    mock_salvar_alteracoes,
+    mock_criar_pagamento_recorrente,
+    client: FlaskClient,
+    membro_token,
+    seed_campanha_doacao,
+):
+    campanha_doacao = seed_campanha_doacao
+
+    mock_criar_pagamento_recorrente.return_value = PagamentoResponse(
+        orderID='54042aab-1e3a-4b46-85c6-9209c4a3d01b',
+        referenceNum='cef47fc5-6a31-4124-ad55-501df7370778_CARTAO_1744650661.626459',
+        transactionID='738366809',
+    )
+    mock_salvar_alteracoes.side_effect = Exception('Erro interno no servidor')
+    mock_cancelar_pagamento_recorrente.return_value
+    mock_estornar_pagamento.return_value
+
+    payload = {
+        'campanha_id': campanha_doacao.id,
+        'codigo_seguranca': '784',
+        'nome_titular': 'Leonardo Guimaraes',
+        'numero_cartao': '4578 6985 2354 1456',
+        'numero_documento': '76825523015',
+        'valor_doacao': 10.00,
+        'vencimento_ano': '2028',
+        'vencimento_mes': '11',
+        'recorrente': True,
+    }
+
+    response = client.post(
+        '/api/doacoes/pagamento/cartao-de-credito',
+        json=payload,
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response.json == [{'msg': 'Erro interno no servidor.'}]

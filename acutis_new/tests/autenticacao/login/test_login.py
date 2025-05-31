@@ -23,9 +23,7 @@ def test_login_erro_email_incorreto(client: FlaskClient):
     response = client.post(ROTA_LOGIN, json=payload)
 
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json == [
-        {'msg': 'Ops, o email ou a senha está incorreta.'}
-    ]
+    assert response.json == [{'msg': 'Ops, email ou senha incorretos.'}]
 
 
 def test_login_erro_senha_incorreta(
@@ -37,9 +35,7 @@ def test_login_erro_senha_incorreta(
     response = client.post(ROTA_LOGIN, json=payload)
 
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json == [
-        {'msg': 'Ops, o email ou a senha está incorreta.'}
-    ]
+    assert response.json == [{'msg': 'Ops, email ou senha incorretos.'}]
 
 
 def test_login_erro_conta_inativa(client: FlaskClient, seed_registrar_membro):

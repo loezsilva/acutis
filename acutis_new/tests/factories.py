@@ -1,9 +1,11 @@
+from datetime import datetime, timezone
 from random import choice
 
 import factory
 from faker import Faker
 
 from acutis_api.domain.entities.acao_agape import AcaoAgape
+from acutis_api.domain.entities.audiencia_live import AudienciaLive
 from acutis_api.domain.entities.benfeitor import Benfeitor
 from acutis_api.domain.entities.campanha import Campanha, ObjetivosCampanhaEnum
 from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
@@ -28,6 +30,9 @@ from acutis_api.domain.entities.instancia_acao_agape import (
 from acutis_api.domain.entities.landing_page import LandingPage
 from acutis_api.domain.entities.lead import Lead, OrigemCadastroEnum
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
+from acutis_api.domain.entities.live import Live
+from acutis_api.domain.entities.live_avulsa import LiveAvulsa
+from acutis_api.domain.entities.live_recorrente import LiveRecorrente
 from acutis_api.domain.entities.membro import Membro, SexoEnum
 from acutis_api.domain.entities.metadado_lead import MetadadoLead
 from acutis_api.domain.entities.oficial import Oficial
@@ -41,6 +46,9 @@ from acutis_api.domain.entities.processamento_doacao import (
     StatusProcessamentoEnum,
 )
 from acutis_api.domain.entities.usuario_vocacional import UsuarioVocacional
+
+from acutis_api.domain.entities.perfil import Perfil
+from acutis_api.domain.entities.permissao_lead import PermissaoLead
 
 faker = Faker(locale='pt-BR')
 faker.word()
@@ -60,6 +68,10 @@ class LeadFactory(factory.Factory):
     ultimo_acesso = None
     status = False
 
+    @factory.post_generation
+    def criar_senha(obj, create, extracted, **kwargs):
+        if create:
+            obj.senha = '#Teste;@123'
 
 class EnderecoFactory(factory.Factory):
     class Meta:
@@ -115,6 +127,7 @@ class LandingPageFactory(factory.Factory):
     fk_campanha_id = factory.LazyFunction(lambda: CampanhaFactory().id)
     conteudo = factory.Faker('text', max_nb_chars=500, locale='pt_BR')
     shlink = factory.Faker('url')
+    estrutura_json = factory.Faker('text', max_nb_chars=500, locale='pt_BR')
 
 
 class CampanhaFactory(factory.Factory):
@@ -344,7 +357,7 @@ class ProcessamentoDoacaoFactory(factory.Factory):
         lambda _: PagamentoDoacaoFactory().id
     )
     forma_pagamento = FormaPagamentoEnum.credito
-    processado_em = None
+    processado_em = datetime.now()
     codigo_referencia = None
     codigo_transacao = None
     codigo_comprovante = None
@@ -376,3 +389,90 @@ class EstoqueAgapeFactory(factory.Factory):
 
     item = factory.Faker('name', locale='pt-BR')
     quantidade = factory.Faker('random_int', min=1, max=10)
+class LiveFactory(factory.Factory):
+    class Meta:
+        model = Live
+
+    tag = factory.LazyFunction(faker.word)
+    fk_campanha_id = factory.LazyAttribute(lambda _: CampanhaFactory().id)
+    rede_social = factory.LazyFunction(
+        lambda: choice(['youtube', 'instagram', 'facebook'])
+    )
+    criado_por = factory.LazyAttribute(lambda _: MembroFactory().id)
+
+
+class LiveAvulsaFactory(factory.Factory):
+    class Meta:
+        model = LiveAvulsa
+
+    fk_live_id = factory.LazyAttribute(lambda _: LiveFactory().id)
+    data_hora_inicio = datetime.now()
+    criado_por = factory.LazyAttribute(lambda _: MembroFactory().id)
+
+
+class LiveRecorrenteFactory(factory.Factory):
+    class Meta:
+        model = LiveRecorrente
+
+    dia_semana = factory.LazyFunction(
+        lambda: choice([
+            'segunda',
+            'terça',
+            'quarta',
+            'quinta',
+            'sexta',
+            'sábado',
+            'domingo',
+        ])
+    )
+    hora_inicio = factory.LazyFunction(lambda _: faker.time_object())
+    fk_live_id = factory.LazyAttribute(lambda _: LiveFactory().id)
+    criado_por = factory.LazyAttribute(lambda _: MembroFactory().id)
+
+
+class AudienciaFactory(factory.Factory):
+    class Meta:
+        model = AudienciaLive
+
+    fk_live_id = factory.LazyAttribute(lambda _: LiveFactory().id)
+    titulo = factory.LazyFunction(
+        lambda: f'Live - {faker.sentence(nb_words=2)}'
+    )
+    audiencia = factory.Faker('random_int', min=0, max=500)
+    data_hora_registro = factory.LazyFunction(
+        lambda: datetime.now(timezone.utc)
+    )
+
+class PerfilFactory(factory.Factory):
+    class Meta:
+        model = Perfil
+
+    nome = factory.Faker('job', locale='pt-BR')
+    status = True
+    super_perfil = False
+    permissoes_lead = factory.List([])
+    permissoes_menu = factory.List([])
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        kwargs.setdefault('permissoes_lead', [])
+        kwargs.setdefault('permissoes_menu', [])
+        return model_class(*args, **kwargs)
+
+
+class PermissaoLeadFactory(factory.Factory):
+    class Meta:
+        model = PermissaoLead
+    
+    # lead = factory.SubFactory(LeadFactory)
+    # perfil = factory.SubFactory(PerfilFactory)
+
+    
+
+# class PerfilFactory(factory.Factory):
+#     class Meta:
+#         model = Perfil
+
+#     nome = factory.Faker('job', locale='pt-BR')
+#     status = True
+#     super_perfil = False

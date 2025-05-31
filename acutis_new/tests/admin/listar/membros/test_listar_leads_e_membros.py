@@ -340,3 +340,77 @@ def test_listar_leads_e_membros_filtro_status_inativo(
 
     assert response.status_code == HTTPStatus.OK
     assert response.json['total'] == total_registros
+
+
+def test_listar_leads_e_membros_filtro_dinamico(
+    client: FlaskClient, membro_token, seed_registrar_membro
+):
+    seed_registrar_membro(nome='Leonardo Neville')
+    total_registros = 2
+
+    lead = LeadFactory(nome='Yan da Pororoca')
+    lead.senha = SENHA_TESTE
+    database.session.add(lead)
+    database.session.commit()
+
+    lead2 = LeadFactory(email='leoneville@gmail.com')
+    lead2.senha = SENHA_TESTE
+    database.session.add(lead2)
+    database.session.commit()
+
+    response = client.get(
+        '/api/admin/membros/listar-leads-e-membros?filtro_dinamico=nevi',
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json['total'] == total_registros
+    leads_membros = response.json['leads_e_membros']
+    assert any(item['nome'] == 'Leonardo Neville' for item in leads_membros)
+    assert any(
+        item['email'] == 'leoneville@gmail.com' for item in leads_membros
+    )
+
+
+def test_listar_leads_e_membros_filtro_dinamico_numero(
+    client: FlaskClient, membro_token, seed_registrar_membro
+):
+    seed_registrar_membro(numero_documento='10144488855')
+    total_registros = 2
+
+    lead = LeadFactory(telefone='859884868283')
+    lead.senha = SENHA_TESTE
+    database.session.add(lead)
+    database.session.commit()
+
+    lead2 = LeadFactory(telefone='85988101444')
+    lead2.senha = SENHA_TESTE
+    database.session.add(lead2)
+    database.session.commit()
+
+    response = client.get(
+        '/api/admin/membros/listar-leads-e-membros?filtro_dinamico=1014',
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json['total'] == total_registros
+    leads_membros = response.json['leads_e_membros']
+    assert any(
+        item['numero_documento'] == '10144488855' for item in leads_membros
+    )
+    assert any(item['telefone'] == '85988101444' for item in leads_membros)
+
+
+def test_listar_leads_e_membros_filtro_dinamico_menos_4_caracteres(
+    client: FlaskClient, membro_token
+):
+    response = client.get(
+        '/api/admin/membros/listar-leads-e-membros?filtro_dinamico=101',
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
+    assert response.json[0]['msg'] == (
+        'Value error, O filtro dinâmico deve ter pelo menos 4 caracteres.'
+    )

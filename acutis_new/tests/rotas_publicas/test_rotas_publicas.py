@@ -40,3 +40,27 @@ def test_busca_superiores_oficiais_sem_cargo_superior(
     assert response.status_code == HTTPStatus.NOT_FOUND
 
     assert response.get_json() == [{'msg': 'Cargo não possui superior.'}]
+
+
+def test_busca_landingpage_por_nome_campanha(
+    client: FlaskClient,
+    seed_campanha_pre_cadastro_com_landing_page,
+):
+    endpoint = '/api/rotas-publicas/busca-landingpage-por-nome'
+    response = client.get(
+        f'{endpoint}/{seed_campanha_pre_cadastro_com_landing_page.nome}',
+    )
+
+    assert response.status_code == HTTPStatus.OK
+
+
+def test_busca_landingpage_por_nome_campanha_not_found(
+    client: FlaskClient,
+):
+    endpoint = '/api/rotas-publicas/busca-landingpage-por-nome'
+    response = client.get(
+        f'{endpoint}/{"Campanha da cadeira ergonomica"}',
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.get_json() == [{'msg': 'Nome de campanha não encontrado'}]

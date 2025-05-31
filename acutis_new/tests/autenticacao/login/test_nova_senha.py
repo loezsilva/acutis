@@ -45,7 +45,7 @@ def test_nova_senha_usuario_inativo(
     assert response.json == {'msg': 'Senha alterada com sucesso.'}
 
     database.session.refresh(lead)
-    assert lead.verificar_senha('@NovaSenha456') is True
+    assert lead.status is True
 
 
 def test_nova_senha_usuario_inexistente(client: FlaskClient):

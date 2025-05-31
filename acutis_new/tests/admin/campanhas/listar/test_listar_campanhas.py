@@ -1,7 +1,12 @@
 from datetime import datetime
 from http import HTTPStatus
+from unittest.mock import patch
 
 from flask.testing import FlaskClient
+
+from acutis_api.application.use_cases.campanha.listar.campanhas import (
+    ListarCampanhasUseCase,
+)
 
 ROTA = '/api/admin/campanhas/listar-campanhas'
 
@@ -136,3 +141,18 @@ def test_listar_campanhas_filtro_data_sucess(
 
     assert response.status_code == HTTPStatus.OK
     assert response.get_json()['total'] == 3  # NOQA
+
+
+@patch.object(ListarCampanhasUseCase, 'execute')
+def test_listar_campanhas_erro_interno_servidor(
+    mock_target, client: FlaskClient, membro_token
+):
+    mock_target.side_effect = Exception('Erro interno no servidor')
+
+    response = client.get(
+        f'{ROTA}?objetivo=doacao',
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response.json == [{'msg': 'Erro interno no servidor.'}]
