@@ -36,6 +36,8 @@ class EditarCicloAcaoAgapeUseCase:
                 self.__repository.buscar_ciclo_acao_agape_por_id(acao_agape_id)
             )
 
+            print('@@@@@@@@@@', ciclo_acao_agape)
+
             # Só ciclos não iniciados podem ser editados
             if ciclo_acao_agape.status != StatusAcaoAgapeEnum.nao_iniciado:
                 raise HttpUnprocessableEntityError(

@@ -4,6 +4,9 @@ from random import choice
 import factory
 from faker import Faker
 
+from acutis_api.application.utils.funcoes_auxiliares import (
+    valida_cpf_cnpj,
+)
 from acutis_api.domain.entities.acao_agape import AcaoAgape
 from acutis_api.domain.entities.audiencia_live import AudienciaLive
 from acutis_api.domain.entities.benfeitor import Benfeitor
@@ -15,6 +18,7 @@ from acutis_api.domain.entities.campo_adicional import (
 )
 from acutis_api.domain.entities.cargo_oficial import CargosOficiais
 from acutis_api.domain.entities.doacao import Doacao
+from acutis_api.domain.entities.doacao_agape import DoacaoAgape
 from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.entities.estoque_agape import EstoqueAgape
 from acutis_api.domain.entities.etapa_vocacional import (
@@ -22,11 +26,14 @@ from acutis_api.domain.entities.etapa_vocacional import (
     PassosVocacionalEnum,
     PassosVocacionalStatusEnum,
 )
+from acutis_api.domain.entities.familia_agape import FamiliaAgape
 from acutis_api.domain.entities.ficha_vocacional import FichaVocacional
 from acutis_api.domain.entities.instancia_acao_agape import (
     AbrangenciaInstanciaAcaoAgapeEnum,
     InstanciaAcaoAgape,
 )
+from acutis_api.domain.entities.item_doacao_agape import ItemDoacaoAgape
+from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
 from acutis_api.domain.entities.landing_page import LandingPage
 from acutis_api.domain.entities.lead import Lead, OrigemCadastroEnum
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
@@ -34,6 +41,7 @@ from acutis_api.domain.entities.live import Live
 from acutis_api.domain.entities.live_avulsa import LiveAvulsa
 from acutis_api.domain.entities.live_recorrente import LiveRecorrente
 from acutis_api.domain.entities.membro import Membro, SexoEnum
+from acutis_api.domain.entities.membro_agape import MembroAgape
 from acutis_api.domain.entities.metadado_lead import MetadadoLead
 from acutis_api.domain.entities.oficial import Oficial
 from acutis_api.domain.entities.pagamento_doacao import (
@@ -41,14 +49,13 @@ from acutis_api.domain.entities.pagamento_doacao import (
     GatewayPagamentoEnum,
     PagamentoDoacao,
 )
+from acutis_api.domain.entities.perfil import Perfil
+from acutis_api.domain.entities.permissao_lead import PermissaoLead
 from acutis_api.domain.entities.processamento_doacao import (
     ProcessamentoDoacao,
     StatusProcessamentoEnum,
 )
 from acutis_api.domain.entities.usuario_vocacional import UsuarioVocacional
-
-from acutis_api.domain.entities.perfil import Perfil
-from acutis_api.domain.entities.permissao_lead import PermissaoLead
 
 faker = Faker(locale='pt-BR')
 faker.word()
@@ -72,6 +79,7 @@ class LeadFactory(factory.Factory):
     def criar_senha(obj, create, extracted, **kwargs):
         if create:
             obj.senha = '#Teste;@123'
+
 
 class EnderecoFactory(factory.Factory):
     class Meta:
@@ -388,7 +396,9 @@ class EstoqueAgapeFactory(factory.Factory):
         model = EstoqueAgape
 
     item = factory.Faker('name', locale='pt-BR')
-    quantidade = factory.Faker('random_int', min=1, max=10)
+    quantidade = factory.Faker('random_int')
+
+
 class LiveFactory(factory.Factory):
     class Meta:
         model = Live
@@ -438,10 +448,11 @@ class AudienciaFactory(factory.Factory):
     titulo = factory.LazyFunction(
         lambda: f'Live - {faker.sentence(nb_words=2)}'
     )
-    audiencia = factory.Faker('random_int', min=0, max=500)
+    audiencia = factory.Faker('random_int', min_value=0, max=500)
     data_hora_registro = factory.LazyFunction(
         lambda: datetime.now(timezone.utc)
     )
+
 
 class PerfilFactory(factory.Factory):
     class Meta:
@@ -463,16 +474,79 @@ class PerfilFactory(factory.Factory):
 class PermissaoLeadFactory(factory.Factory):
     class Meta:
         model = PermissaoLead
-    
-    # lead = factory.SubFactory(LeadFactory)
-    # perfil = factory.SubFactory(PerfilFactory)
 
-    
 
-# class PerfilFactory(factory.Factory):
-#     class Meta:
-#         model = Perfil
+class FamiliaAgapeFactory(factory.Factory):
+    class Meta:
+        model = FamiliaAgape
 
-#     nome = factory.Faker('job', locale='pt-BR')
-#     status = True
-#     super_perfil = False
+    status = True
+    deletado_em = None
+    comprovante_residencia = factory.Faker('file_name', extension='jpg')
+    nome_familia = factory.Faker('name', locale='pt-BR')
+    observacao = factory.Faker('name', locale='pt-BR')
+
+
+class MembroAgapeFactory(factory.Factory):
+    class Meta:
+        model = MembroAgape
+
+    fk_familia_agape_id = factory.LazyAttribute(
+        lambda _: FamiliaAgapeFactory().id
+    )
+    responsavel = True
+    nome = factory.Faker('name', locale='pt-BR')
+    email = factory.Faker('email', locale='pt-BR')
+    telefone = factory.Faker('phone_number', locale='pt-BR')
+    cpf = factory.LazyFunction(
+        lambda: valida_cpf_cnpj(faker.cpf(), tipo_documento='cpf')
+    )
+    data_nascimento = factory.Faker(
+        'date_of_birth', minimum_age=1, maximum_age=100
+    )
+    funcao_familiar = factory.Faker(
+        'random_element',
+        elements=['Pai', 'Mãe', 'Filho(a)', 'Avô(ó)', 'Neto(a)'],
+    )
+    escolaridade = factory.Faker(
+        'random_element',
+        elements=[
+            'Analfabeto',
+            'Ensino Fundamental Incompleto',
+            'Ensino Fundamental Completo',
+            'Ensino Médio Incompleto',
+            'Ensino Médio Completo',
+            'Superior Incompleto',
+            'Superior Completo',
+        ],
+    )
+    ocupacao = factory.Faker('job', locale='pt-BR')
+    renda = factory.Faker(
+        'pydecimal',
+        left_digits=4,
+        right_digits=2,
+        positive=True,
+        min_value=1000,
+        max_value=10000,
+    )
+    beneficiario_assistencial = factory.Faker('boolean')
+    foto_documento = factory.Faker('file_name', extension='jpg')
+
+
+class DoacaoAgapeFactory(factory.Factory):
+    class Meta:
+        model = DoacaoAgape
+
+
+class ItemInstanciaAgapeFactory(factory.Factory):
+    class Meta:
+        model = ItemInstanciaAgape
+
+    quantidade = factory.Faker('random_int')
+
+
+class ItemDoacaoAgapeFactory(factory.Factory):
+    class Meta:
+        model = ItemDoacaoAgape
+
+    quantidade = factory.Faker('random_int')

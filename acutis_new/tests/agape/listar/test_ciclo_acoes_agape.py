@@ -8,6 +8,7 @@ ENDPOINT = '/api/agape/listar-ciclo-acoes-agape'
 def test_listar_ciclo_acoes_agape(
     client: FlaskClient, seed_ciclo_acao_agape, membro_token
 ):
+    ciclo_acao = seed_ciclo_acao_agape[0]
     response = client.get(
         ENDPOINT, headers={'Authorization': f'Bearer {membro_token}'}
     )
@@ -33,4 +34,4 @@ def test_listar_ciclo_acoes_agape(
     assert 'status' in resultado
     assert 'abrangencia' in resultado
 
-    assert resultado['id'] == str(seed_ciclo_acao_agape.id)
+    assert resultado['id'] == str(ciclo_acao.id)

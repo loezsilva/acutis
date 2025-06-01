@@ -1,6 +1,7 @@
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from flask import Flask
@@ -19,6 +20,7 @@ from acutis_api.domain.entities.campo_adicional import TiposCampoEnum
 from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.instancia_acao_agape import StatusAcaoAgapeEnum
 from acutis_api.domain.entities.lead import Lead
+from acutis_api.domain.entities.perfil import Perfil
 from acutis_api.domain.entities.processamento_doacao import (
     StatusProcessamentoEnum,
 )
@@ -35,25 +37,29 @@ from tests.factories import (
     CargoOficialMarechalFactory,
     CargosOficiaisFactory,
     CicloAcaoAgapeFactory,
+    DoacaoAgapeFactory,
     DoacaoFactory,
     EnderecoFactory,
     EstoqueAgapeFactory,
+    FamiliaAgapeFactory,
+    ItemDoacaoAgapeFactory,
+    ItemInstanciaAgapeFactory,
     LandingPageFactory,
     LeadCampanhaFactory,
     LeadFactory,
     LiveAvulsaFactory,
     LiveFactory,
     LiveRecorrenteFactory,
+    MembroAgapeFactory,
     MembroFactory,
     MembroOficialFactory,
     MetadadoLeadFactory,
     NomeAcaoAgapeFactory,
     PagamentoDoacaoFactory,
-    ProcessamentoDoacaoFactory,
     PerfilFactory,
     PermissaoLeadFactory,
+    ProcessamentoDoacaoFactory,
 )
-from acutis_api.domain.entities.perfil import Perfil
 
 
 @pytest.fixture(scope='session')
@@ -672,7 +678,7 @@ def seed_15_leads_campanhas(seed_registrar_membro):
 
         database.session.add(lead)
 
-        membrolead_campanha = LeadCampanhaFactory(
+        lead_campanha = LeadCampanhaFactory(
             fk_lead_id=lead.id, fk_campanha_id=campanha_2.id
         )
 
@@ -786,7 +792,27 @@ def seed_ciclo_acao_agape():
 
     database.session.commit()
 
-    return ciclo_acao_agape
+    return ciclo_acao_agape, endereco
+
+
+@pytest.fixture
+def seed_ciclo_acao_agape_com_endereco():
+    endereco = EnderecoFactory()
+    database.session.add(endereco)
+
+    nome_acao_agape = NomeAcaoAgapeFactory()
+    database.session.add(nome_acao_agape)
+
+    ciclo_acao_agape = CicloAcaoAgapeFactory(
+        fk_endereco_id=endereco.id,
+        fk_acao_agape_id=nome_acao_agape.id,
+    )
+
+    database.session.add(ciclo_acao_agape)
+
+    database.session.commit()
+
+    return ciclo_acao_agape, endereco
 
 
 @pytest.fixture
@@ -1244,8 +1270,8 @@ def seed_gerar_cadastros_campanha_em_periodos(seed_registrar_membro):
 
     campanha = CampanhaFactory(
         objetivo=ObjetivosCampanhaEnum.cadastro,
-        nome="Campanha teste",
-        criado_por=membro.id
+        nome='Campanha teste',
+        criado_por=membro.id,
     )
     database.session.add(campanha)
     database.session.commit()
@@ -1276,6 +1302,7 @@ def seed_gerar_cadastros_campanha_em_periodos(seed_registrar_membro):
     database.session.commit()
     return campanha.id
 
+
 @pytest.fixture
 def seed_lead_voluntario_e_token(client: FlaskClient):
     lead = LeadFactory(status=True)
@@ -1294,7 +1321,7 @@ def seed_lead_voluntario_e_token(client: FlaskClient):
         database.session.commit()
 
     permissao = PermissaoLeadFactory(
-        lead_id=lead.id, 
+        lead_id=lead.id,
         lead=lead,
         perfil_id=perfil_voluntario.id,
         perfil=perfil_voluntario,
@@ -1302,7 +1329,7 @@ def seed_lead_voluntario_e_token(client: FlaskClient):
 
     database.session.add(permissao)
     database.session.commit()
-    database.session.flush
+    database.session.flush()
 
     payload = {'email': lead.email, 'senha': '#Teste;@123'}
     response = client.post(
@@ -1311,3 +1338,414 @@ def seed_lead_voluntario_e_token(client: FlaskClient):
     token = response.get_json()['access_token']
 
     return lead, token
+
+
+@pytest.fixture
+def seed_familia_com_endereco(seed_membro):
+    endereco_criado = EnderecoFactory()
+    database.session.add(endereco_criado)
+    database.session.commit()
+    database.session.flush()
+
+    familia_criada = FamiliaAgapeFactory(
+        fk_endereco_id=endereco_criado.id, cadastrada_por=seed_membro.id
+    )
+    database.session.add(familia_criada)
+    database.session.commit()
+    database.session.flush()
+
+    membro_familia = MembroAgapeFactory(
+        fk_familia_agape_id=familia_criada.id,
+        responsavel=True,
+    )
+    database.session.add(membro_familia)
+    database.session.commit()
+    database.session.flush()
+
+    return familia_criada, endereco_criado
+
+
+@pytest.fixture
+def seed_familia_com_cpf_especifico(
+    seed_familia_com_endereco, seed_ciclo_acao_agape
+):
+    ciclo_acao = seed_ciclo_acao_agape[0]
+
+    familia = seed_familia_com_endereco[0]
+
+    membro_responsavel = MembroAgapeFactory(
+        fk_familia_agape_id=familia.id,
+        responsavel=True,
+        cpf='12345678901',
+    )
+    database.session.add(membro_responsavel)
+    database.session.commit()
+    database.session.flush()
+
+    doacao_agape = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia.id,
+    )
+    database.session.add(doacao_agape)
+    database.session.commit()
+    database.session.flush()
+
+    item_estoque = EstoqueAgapeFactory()
+    database.session.add(item_estoque)
+    database.session.commit()
+    database.session.flush()
+
+    item_instancia_agape = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_estoque.id,
+    )
+    database.session.add(item_instancia_agape)
+    database.session.commit()
+    database.session.flush()
+
+    item_doacao = ItemDoacaoAgapeFactory(
+        fk_item_instancia_agape_id=item_instancia_agape.id,
+        fk_doacao_agape_id=doacao_agape.id,
+    )
+
+    database.session.add(item_doacao)
+    database.session.commit()
+    database.session.flush()
+
+    return familia
+
+
+@pytest.fixture
+def seed_ciclo_acao_com_itens(seed_ciclo_acao_agape):
+    ciclo_acao = seed_ciclo_acao_agape[0]
+
+    itens_estoque_criados = []
+    items_instancia_criados = []
+    for i in range(3):
+        item_estoque = EstoqueAgapeFactory(item=f'Item de Teste {i + 1}')
+        database.session.add(item_estoque)
+        itens_estoque_criados.append(item_estoque)
+
+    database.session.commit()
+
+    for item_estoque in itens_estoque_criados:
+        item_instancia = ItemInstanciaAgapeFactory(
+            fk_instancia_acao_agape_id=ciclo_acao.id,
+            fk_estoque_agape_id=item_estoque.id,
+            quantidade=5 + itens_estoque_criados.index(item_estoque),
+        )
+        database.session.add(item_instancia)
+        items_instancia_criados.append(item_instancia)
+
+    database.session.commit()
+
+    return ciclo_acao, items_instancia_criados
+
+
+@pytest.fixture
+def seed_membro():
+    endereco_criado = EnderecoFactory()
+    database.session.add(endereco_criado)
+    database.session.commit()
+
+    lead_cadastrou = LeadFactory(status=True)
+    lead_cadastrou.senha = '#Teste;@123'
+    database.session.add(lead_cadastrou)
+    database.session.commit()
+
+    membro = MembroFactory(
+        fk_lead_id=lead_cadastrou.id,
+        fk_endereco_id=endereco_criado.id,
+    )
+
+    database.session.add(membro)
+    database.session.commit()
+
+    return membro
+
+
+@pytest.fixture
+def seed_membro_agape(seed_familia_com_endereco):
+    familia = seed_familia_com_endereco[0]
+
+    membro = MembroAgapeFactory(
+        fk_familia_agape_id=familia.id,
+    )
+    database.session.add(membro)
+    database.session.commit()
+
+    return membro
+
+
+@pytest.fixture
+def seed_familia_com_membros_e_rendas(seed_familia_com_endereco):
+    """
+    Cria uma família ágape com múltiplos membros, cada um com rendas
+    variadas, e retorna a família, a renda total esperada e o número
+    de membros.
+    """
+
+    familia = seed_familia_com_endereco[0]
+
+    rendas = [Decimal('100.50'), Decimal('75.25'), Decimal('0.00'), None]
+    membros_criados = []
+    renda_total_calculada = Decimal('0.00')
+
+    for i, renda_valor in enumerate(rendas):
+        membro = MembroAgapeFactory(
+            fk_familia_agape_id=familia.id,
+            renda=(
+                Decimal(str(renda_valor)) if renda_valor is not None else None
+            ),
+        )
+        database.session.add(membro)
+        membros_criados.append(membro)
+        if renda_valor is not None:
+            renda_total_calculada += Decimal(str(renda_valor))
+
+    database.session.commit()
+
+    numero_total_membros = len(membros_criados)
+
+    return familia, renda_total_calculada, numero_total_membros
+
+
+@pytest.fixture
+def seed_familia_com_recebimentos(seed_familia_com_endereco):
+    """
+    Cria uma família com múltiplas doações e itens, e retorna a família
+    junto com os totais esperados para o card de recebimentos.
+    """
+
+    familia = seed_familia_com_endereco[0]
+
+    nome_acao = NomeAcaoAgapeFactory()
+    database.session.add(nome_acao)
+    endereco_ciclo = EnderecoFactory(cidade='Cidade Ciclo Doacao')
+    database.session.add(endereco_ciclo)
+    database.session.commit()
+
+    ciclo_acao = CicloAcaoAgapeFactory(
+        fk_acao_agape_id=nome_acao.id,
+        fk_endereco_id=endereco_ciclo.id,
+        status=StatusAcaoAgapeEnum.finalizado,
+    )
+    database.session.add(ciclo_acao)
+    database.session.commit()
+
+    # Criar alguns itens de estoque distintos
+    item_estoque1 = EstoqueAgapeFactory(item='Arroz Tipo A')
+    item_estoque2 = EstoqueAgapeFactory(item='Feijão Tipo B')
+    item_estoque3 = EstoqueAgapeFactory(item='Óleo Tipo C')
+    database.session.add_all([item_estoque1, item_estoque2, item_estoque3])
+    database.session.commit()
+
+    # Doação 1
+    doacao1 = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia.id,
+    )
+    database.session.add(doacao1)
+    database.session.commit()
+
+    item_instancia_agape1 = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_estoque1.id,
+        quantidade=5,
+    )
+    item_instancia_agape2 = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_estoque2.id,
+        quantidade=5,
+    )
+    database.session.add_all([item_instancia_agape1, item_instancia_agape2])
+    database.session.commit()
+
+    item_doacao1_1 = ItemDoacaoAgapeFactory(
+        fk_doacao_agape_id=doacao1.id,
+        fk_item_instancia_agape_id=item_instancia_agape1.id,
+        quantidade=2,
+    )
+
+    item_doacao1_2 = ItemDoacaoAgapeFactory(
+        fk_doacao_agape_id=doacao1.id,
+        fk_item_instancia_agape_id=item_instancia_agape2.id,
+        quantidade=3,
+    )
+    database.session.add_all([item_doacao1_1, item_doacao1_2])
+    database.session.commit()
+
+    doacao2 = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia.id,
+    )
+    database.session.add(doacao2)
+    database.session.commit()
+
+    item_instancia_agape2_1 = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_estoque1.id,
+        quantidade=5,
+    )
+    item_instancia_agape2_2 = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_estoque2.id,
+        quantidade=5,
+    )
+    database.session.add_all([
+        item_instancia_agape2_1,
+        item_instancia_agape2_2,
+    ])
+    database.session.commit()
+
+    database.session.add_all([
+        ItemDoacaoAgapeFactory(
+            fk_doacao_agape_id=doacao2.id,
+            fk_item_instancia_agape_id=item_instancia_agape2_1.id,
+            quantidade=1,
+        ),
+        ItemDoacaoAgapeFactory(
+            fk_doacao_agape_id=doacao2.id,
+            fk_item_instancia_agape_id=item_instancia_agape2_2.id,
+            quantidade=4,
+        ),
+    ])
+    database.session.commit()
+
+    return (
+        familia,
+        2 + 3 + 1 + 4,  # = 10
+    )
+
+
+@pytest.fixture
+def seed_varias_familias_para_estatisticas(seed_membro):
+    familias_criadas_info = []
+
+    endereco1 = EnderecoFactory()
+    database.session.add(endereco1)
+    database.session.commit()
+    familia1 = FamiliaAgapeFactory(
+        fk_endereco_id=endereco1.id,
+        cadastrada_por=seed_membro.id,
+    )
+    database.session.add(familia1)
+    database.session.commit()
+    database.session.add(
+        MembroAgapeFactory(fk_familia_agape_id=familia1.id),
+    )
+    familias_criadas_info.append((familia1, 1))
+
+    endereco2 = EnderecoFactory()
+    database.session.add(endereco2)
+    database.session.commit()
+    familia2 = FamiliaAgapeFactory(
+        fk_endereco_id=endereco2.id,
+        cadastrada_por=seed_membro.id,
+    )
+    database.session.add(familia2)
+    database.session.commit()
+
+    database.session.add_all([
+        MembroAgapeFactory(fk_familia_agape_id=familia2.id) for _ in range(3)
+    ])
+
+    familias_criadas_info.append((familia2, 3))
+
+    endereco3 = EnderecoFactory()
+    database.session.add(endereco3)
+    database.session.commit()
+    familia3 = FamiliaAgapeFactory(
+        fk_endereco_id=endereco3.id,
+        cadastrada_por=seed_membro.id,
+    )
+    database.session.add(familia3)
+    database.session.commit()
+    database.session.add_all([
+        MembroAgapeFactory(fk_familia_agape_id=familia3.id) for _ in range(5)
+    ])
+    familias_criadas_info.append((familia3, 5))
+
+    endereco4 = EnderecoFactory()
+    database.session.add(endereco4)
+    database.session.commit()
+    familia4_sem_membros = FamiliaAgapeFactory(
+        fk_endereco_id=endereco4.id,
+        cadastrada_por=seed_membro.id,
+    )
+    database.session.add(familia4_sem_membros)
+    familias_criadas_info.append((familia4_sem_membros, 0))
+
+    database.session.commit()
+
+    total_familias = len(familias_criadas_info)
+    total_membros = sum(
+        num_membros for _, num_membros in familias_criadas_info
+    )
+
+    media_membros_por_familia = (
+        Decimal(str(total_membros)) / Decimal(str(total_familias))
+        if total_familias > 0
+        else Decimal('0.0')
+    )
+
+    total_familias_com_apenas_um_membro = sum(
+        1 for _, num_membros in familias_criadas_info if num_membros == 1
+    )
+    total_familias_com_cinco_ou_mais_membros = sum(
+        1 for _, num_membros in familias_criadas_info if num_membros >= 5
+    )
+
+    return {
+        'total_familias': total_familias,
+        'total_membros': total_membros,
+        'media_membros_por_familia': float(
+            media_membros_por_familia.quantize(Decimal('0.01'))
+        ),
+        'total_familias_com_apenas_um_membro': (
+            total_familias_com_apenas_um_membro
+        ),
+        'total_familias_com_cinco_ou_mais_membros': (
+            total_familias_com_cinco_ou_mais_membros
+        ),
+    }
+
+
+@pytest.fixture
+def seed_varios_itens_estoque_para_estatisticas():
+    """
+    Cria vários itens no estoque com diferentes quantidades para testar
+    o endpoint de estatísticas de itens de estoque.
+    Retorna um dicionário com as estatísticas esperadas.
+    """
+    itens_criados_detalhes = [
+        {'item': 'Arroz 1kg', 'quantidade': 20},
+        {'item': 'Feijão Carioca 1kg', 'quantidade': 15},
+        {'item': 'Óleo de Soja 900ml', 'quantidade': 5},
+        {'item': 'Açúcar Refinado 1kg', 'quantidade': 0},
+        {'item': 'Sal Refinado 1kg', 'quantidade': 3}, 
+        {'item': 'Macarrão Espaguete 500g', 'quantidade': 30},
+        {'item': 'Farinha de Trigo 1kg', 'quantidade': 0},
+    ]
+
+    for detalhe_item in itens_criados_detalhes:
+        database.session.add(EstoqueAgapeFactory(**detalhe_item))
+    database.session.commit()
+
+    total_tipos_item = len(itens_criados_detalhes)
+    quantidade_total_itens = sum(
+        d['quantidade'] for d in itens_criados_detalhes
+    )
+    total_itens_zerados = sum(
+        1 for d in itens_criados_detalhes if d['quantidade'] == 0
+    )
+    
+    total_itens_baixo_estoque = sum(
+        1 for d in itens_criados_detalhes if 0 < d['quantidade'] <= 5
+    )
+
+    expected_stats = {
+        'total_tipos_item': total_tipos_item,
+        'quantidade_total_itens': quantidade_total_itens,
+        'total_itens_zerados': total_itens_zerados,
+        'total_itens_baixo_estoque': total_itens_baixo_estoque,
+    }
+    
+    return expected_stats

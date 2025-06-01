@@ -7,8 +7,9 @@ from flask.testing import FlaskClient
 def test_deletar_ciclo_acao_sucesso(
     client: FlaskClient, seed_ciclo_acao_agape, membro_token
 ):
+    ciclo_acao = seed_ciclo_acao_agape[0]
     response = client.delete(
-        f'/api/agape/deletar-ciclo-acao-agape/{seed_ciclo_acao_agape.id}',
+        f'/api/agape/deletar-ciclo-acao-agape/{ciclo_acao.id}',
         headers={'Authorization': f'Bearer {membro_token}'},
     )
 

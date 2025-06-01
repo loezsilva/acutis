@@ -14,6 +14,11 @@ class BuscarEnderecoCicloAcaoUseCase:
             ciclo_acao_id
         )
 
+        if not ciclo_acao:
+            raise HttpNotFoundError(
+                f'Ciclo de ação ágape {ciclo_acao_id} não encontrado'
+            )
+
         if not ciclo_acao.fk_endereco_id:
             raise HttpNotFoundError(
                 f"""

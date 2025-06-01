@@ -30,7 +30,7 @@ class BuscarMembroAgapePorIdUseCase:
 
         foto_documento_url = None
         if membro.foto_documento:
-            foto_documento_url = self._file_service.get_public_url(
+            foto_documento_url = self._file_service.buscar_url_arquivo(
                 membro.foto_documento
             )
 

@@ -692,14 +692,6 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         session.add(historico)
 
-    def adicionar_voluntario_agape(self, lead: UUID) -> None:
-        """
-        Adiciona um voluntário ao ciclo de ação Ágape.
-        """
-        session = self._database.session
-        
-        
-
     def buscar_lead_por_id(self, id: UUID) -> Lead | None:
         session = self._database.session
         lead = session.get(Lead, id)
@@ -714,8 +706,6 @@ class AgapeRepository(AgapeRepositoryInterface):
                 FamiliaAgape.deletado_em.is_(None),
             )
         )
-        # No explicit error raise here as per Optional[FamiliaAgape]
-        # return type in interface for use case
         return instancia
 
     def numero_membros_familia_agape(
@@ -724,7 +714,6 @@ class AgapeRepository(AgapeRepositoryInterface):
         """
         Conta o número de membros ativos de uma família.
         """
-        # First, check if the family itself is active
         familia = self.buscar_familia_por_id(familia_id)
         if not familia:
             raise HttpNotFoundError(
@@ -772,14 +761,20 @@ class AgapeRepository(AgapeRepositoryInterface):
             .first()
         )
 
-        # Não levanta erro se não encontrar,
-        # apenas retorna None. O caso de uso tratará isso.
         return instancia
 
     def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
         membro = (
             self._database.session.query(MembroAgape)
             .filter(MembroAgape.cpf == cpf)
+            .first()
+        )
+        return membro
+
+    def buscar_membro_por_email(self, email: str) -> MembroAgape | None:
+        membro = (
+            self._database.session.query(MembroAgape)
+            .filter(MembroAgape.email == email)
             .first()
         )
         return membro
@@ -813,7 +808,7 @@ class AgapeRepository(AgapeRepositoryInterface):
                 DoacaoAgape.fk_familia_agape_id == familia_id,
                 ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id,
             )
-            .scalar_one_or_none()
+            .scalar()
         )
         return data_maxima
 
@@ -1233,9 +1228,11 @@ class AgapeRepository(AgapeRepositoryInterface):
         self._database.session.delete(permissao_lead)
 
     def adicionar_permissao_lead(
-        self, lead_id: UUID, perfil_id: UUID
+        self, lead: Lead, perfil: Perfil, lead_id: UUID, perfil_id: UUID
     ) -> PermissaoLead:
-        nova_permissao = PermissaoLead(lead_id=lead_id, perfil_id=perfil_id)
+        nova_permissao = PermissaoLead(
+            lead=lead, perfil=perfil, lead_id=lead_id, perfil_id=perfil_id
+        )
         self._database.session.add(nova_permissao)
         return nova_permissao
 
@@ -1447,8 +1444,6 @@ class AgapeRepository(AgapeRepositoryInterface):
     def buscar_permissoes_por_lead_id(
         self, lead_id: UUID
     ) -> PermissaoLead | None:
-        return (
-            self._database.session.query(PermissaoLead).filter(
-                PermissaoLead.lead_id == lead_id
-            )
+        return self._database.session.query(PermissaoLead).filter(
+            PermissaoLead.lead_id == lead_id
         )

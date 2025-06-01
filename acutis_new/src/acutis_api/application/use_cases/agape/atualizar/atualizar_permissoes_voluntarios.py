@@ -41,7 +41,7 @@ class AtualizarPermissoesVoluntariosUseCase:
                 resultados_finais.append(
                     AtualizacaoPermissaoStatus(
                         lead_id=lead_id,
-                        status=f'Erro: Lead com ID {lead_id} não encontrado.',
+                        status=f'Lead com ID {lead_id} não encontrado.',
                     )
                 )
                 continue
@@ -58,7 +58,7 @@ class AtualizarPermissoesVoluntariosUseCase:
                         AtualizacaoPermissaoStatus(
                             lead_id=lead_id,
                             status=f"""
-                            Erro: Perfil '{nome_perfil_solicitado}'
+                            Perfil '{nome_perfil_solicitado}'
                             não encontrado no sistema.
                             """,
                             perfis_concedidos=[],
@@ -99,7 +99,10 @@ class AtualizarPermissoesVoluntariosUseCase:
                 if not existe:
                     nova_permissao = (
                         self.agape_repository.adicionar_permissao_lead(
-                            lead_id=lead.id, perfil_id=perfil_para_adicionar.id
+                            lead=lead,
+                            perfil=perfil_para_adicionar,
+                            lead_id=lead_id,
+                            perfil_id=perfil_para_adicionar.id,
                         )
                     )
                     lead.permissoes_lead.append(nova_permissao)

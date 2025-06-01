@@ -7,9 +7,11 @@ from flask.testing import FlaskClient
 def test_iniciar_ciclo_acao_sucesso_e_erro_ciclo_ja_iniciado(
     client: FlaskClient, seed_ciclo_acao_agape, membro_token
 ):
+    ciclo_acao = seed_ciclo_acao_agape[0]
+
     def _request():
         response = client.put(
-            f'/api/agape/iniciar-ciclo-acao-agape/{seed_ciclo_acao_agape.id}',
+            f'/api/agape/iniciar-ciclo-acao-agape/{ciclo_acao.id}',
             headers={'Authorization': f'Bearer {membro_token}'},
         )
 

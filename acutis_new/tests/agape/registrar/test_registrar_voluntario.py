@@ -1,12 +1,10 @@
-from http import HTTPStatus
 import uuid
+from http import HTTPStatus
 
 ADICIONAR_VOLUNTARIO_ENDPOINT = 'api/agape/adicionar-voluntario'
 
-def test_adicionar_voluntario_sucesso(
-    client, 
-    seed_lead_voluntario_e_token
-):
+
+def test_adicionar_voluntario_sucesso(client, seed_lead_voluntario_e_token):
     lead, token = seed_lead_voluntario_e_token
     response = client.put(
         f'{ADICIONAR_VOLUNTARIO_ENDPOINT}/{lead.id}',
@@ -17,9 +15,9 @@ def test_adicionar_voluntario_sucesso(
     assert response.status_code == HTTPStatus.OK
     assert dados.get('msg') == 'Voluntário adicionado com sucesso.'
 
+
 def test_adicionar_voluntario_lead_invalido(
-        client, 
-        seed_lead_voluntario_e_token
+    client, seed_lead_voluntario_e_token
 ):
     lead_id_invalido = uuid.uuid4()
     lead, token = seed_lead_voluntario_e_token
@@ -33,8 +31,9 @@ def test_adicionar_voluntario_lead_invalido(
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert dados.get('msg') == 'Usuário não encontrado.'
 
+
 def test_adicionar_voluntario_sem_permissao(
-    client, 
+    client,
     membro_token,
 ):
     lead_id = uuid.uuid4()
@@ -46,4 +45,6 @@ def test_adicionar_voluntario_sem_permissao(
 
     dados = response.json[0]
     assert response.status_code == HTTPStatus.FORBIDDEN
-    assert dados.get('msg') == 'Você não tem permissão para realizar esta ação.'
+    assert (
+        dados.get('msg') == 'Você não tem permissão para realizar esta ação.'
+    )

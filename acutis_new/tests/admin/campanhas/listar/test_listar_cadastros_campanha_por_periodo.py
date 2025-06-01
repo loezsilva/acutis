@@ -16,7 +16,7 @@ ROTA = '/api/admin/campanhas/cadastros-campanha-por-periodo'
 def test_listar_cadastros_campanha_por_periodo_sucesso(
     client: FlaskClient,
     seed_gerar_cadastros_campanha_em_periodos,
-    membro_token
+    membro_token,
 ):
     campanha_id = seed_gerar_cadastros_campanha_em_periodos
 
@@ -38,7 +38,7 @@ def test_buscar_membros_mes_erro_interno_servidor(
     mock_target,
     client: FlaskClient,
     seed_gerar_cadastros_campanha_em_periodos,
-    membro_token
+    membro_token,
 ):
     mock_target.side_effect = Exception('Erro interno no servidor')
 

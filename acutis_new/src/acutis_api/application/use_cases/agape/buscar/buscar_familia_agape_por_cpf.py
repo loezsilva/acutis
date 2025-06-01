@@ -57,7 +57,7 @@ class BuscarFamiliaAgapePorCpfUseCase:
             familia.id
         )
         fotos_urls = [
-            self._file_service.get_public_url(foto.foto)
+            self._file_service.buscar_url_arquivo(foto.foto)
             for foto in fotos_entities
             if foto.foto
         ]
@@ -70,7 +70,7 @@ class BuscarFamiliaAgapePorCpfUseCase:
 
         comprovante_url = None
         if familia.comprovante_residencia:
-            comprovante_url = self._file_service.get_public_url(
+            comprovante_url = self._file_service.buscar_url_arquivo(
                 familia.comprovante_residencia
             )
 
@@ -81,7 +81,9 @@ class BuscarFamiliaAgapePorCpfUseCase:
             comprovante_residencia_url=comprovante_url,
             criado_em=familia.criado_em,
             ativo=familia.deletado_em is None,
-            ultimo_recebimento=ultimo_recebimento_data,
+            ultimo_recebimento=(
+                ultimo_recebimento_data if ultimo_recebimento_data else None
+            ),
             endereco=endereco_response_data,
             fotos_familia_urls=fotos_urls,
         )

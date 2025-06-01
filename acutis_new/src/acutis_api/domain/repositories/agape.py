@@ -242,9 +242,6 @@ class AgapeRepositoryInterface(ABC):
     ) -> HistoricoMovimentacaoAgape: ...
 
     @abstractmethod
-    def adicionar_voluntario_agape(self, lead_id: UUID) -> None: ...
-
-    @abstractmethod
     def buscar_lead_por_id(self, id: UUID) -> Lead | None: ...
 
     @abstractmethod
@@ -260,6 +257,11 @@ class AgapeRepositoryInterface(ABC):
     @abstractmethod
     def buscar_membro_por_cpf(self, cpf: str) -> MembroAgape | None:
         """Busca um membro ágape pelo seu CPF."""
+        ...
+
+    @abstractmethod
+    def buscar_membro_por_email(self, email: str) -> MembroAgape | None:
+        """Busca um membro ágape pelo seu EMAIL."""
         ...
 
     @abstractmethod
@@ -427,7 +429,7 @@ class AgapeRepositoryInterface(ABC):
 
     @abstractmethod
     def adicionar_permissao_lead(
-        self, lead_id: UUID, perfil_id: UUID
+        self, lead: Lead, perfil: Perfil, lead_id: UUID, perfil_id: UUID
     ) -> PermissaoLead: ...
 
     @abstractmethod

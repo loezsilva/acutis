@@ -3,6 +3,7 @@ from acutis_api.communication.responses.agape import (
     DoacaoAgapeResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class BuscarItensCicloAcaoAgapeUseCase:
@@ -16,6 +17,14 @@ class BuscarItensCicloAcaoAgapeUseCase:
     def execute(
         self, acao_agape_id
     ) -> list[BuscarItensCicloAcaoAgapeResponse]:
+        ciclo_acao = self._repository.buscar_ciclo_acao_agape_por_id(
+            acao_agape_id
+        )
+        if ciclo_acao is None:
+            raise HttpNotFoundError(
+                f'Ciclo de ação Ágape com ID {acao_agape_id} não encontrado.'
+            )
+
         itens = self._repository.buscar_itens_ciclo_acao_agape(acao_agape_id)
 
         response = BuscarItensCicloAcaoAgapeResponse(

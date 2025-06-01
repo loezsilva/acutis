@@ -4,7 +4,6 @@ from acutis_api.application.utils.funcoes_auxiliares import (
     decodificar_base64_para_arquivo,
     valida_cpf_cnpj,
     valida_email,
-    valida_nome,
 )
 from acutis_api.application.utils.regex import format_string
 from acutis_api.communication.requests.agape import (
@@ -41,21 +40,17 @@ class RegistrarMembrosFamiliaAgapeUseCase:
         if not familia:
             raise HttpNotFoundError('Família não encontrada ou inativa.')
 
-        for membro in request_data.membros:
-            # Validar nome
-            nome_valido, msg_nome = valida_nome(membro.nome)
-            if not nome_valido:
-                raise HttpBadRequestError(
-                    f"Nome inválido para '{membro.nome}': {msg_nome}"
-                )
-            nome_formatado = msg_nome
+        if not request_data.membros:
+            raise HttpBadRequestError('Nenhum membro fornecido para cadastro.')
 
+        for membro in request_data.membros:
             # Validar CPF (se fornecido) e checar unicidade
             cpf_formatado = None
             if membro.cpf:
                 cpf_formatado = valida_cpf_cnpj(
                     membro.cpf, tipo_documento='cpf', gerar_excesao=True
-                )  # Levanta HttpBadRequestError
+                )
+
                 if self._agape_repository.buscar_membro_por_cpf(cpf_formatado):
                     raise HttpConflictError(
                         f'CPF {cpf_formatado} já cadastrado para outro membro.'
@@ -64,7 +59,7 @@ class RegistrarMembrosFamiliaAgapeUseCase:
             if membro.responsavel and not cpf_formatado:
                 raise HttpBadRequestError(
                     f"""CPF é obrigatório para o membro responsável:
-                    {nome_formatado}."""
+                    {membro.nome}."""
                 )
 
             # Validar Email (se fornecido) e checar unicidade
@@ -77,7 +72,7 @@ class RegistrarMembrosFamiliaAgapeUseCase:
                 )
                 if not email_valido:
                     raise HttpBadRequestError(
-                        f"Email inválido para '{nome_formatado}': {msg_email}"
+                        f"Email inválido para '{membro.nome}': {msg_email}"
                     )
                 email_formatado = msg_email
                 if self._agape_repository.buscar_membro_por_email(
@@ -108,13 +103,13 @@ class RegistrarMembrosFamiliaAgapeUseCase:
                 except Exception as e:
                     raise HttpBadRequestError(
                         f"Erro ao processar foto_documento \
-                            para '{nome_formatado}': {str(e)}"
+                            para '{membro.nome}': {str(e)}"
                     )
 
             novo_membro = MembroAgapeEntity(
                 fk_familia_agape_id=familia.id,
                 responsavel=membro.responsavel,
-                nome=nome_formatado,
+                nome=membro.nome,
                 email=email_formatado,
                 telefone=telefone_formatado,
                 cpf=cpf_formatado,
@@ -128,7 +123,7 @@ class RegistrarMembrosFamiliaAgapeUseCase:
             )
             self._agape_repository.registrar_membro_agape(novo_membro)
 
-        self._agape_repository.salvar_alteracoes()  # Commit no final
+            self._agape_repository.salvar_alteracoes()
 
         return ResponsePadraoSchema(
             msg=rf'{len(request_data.membros)} \

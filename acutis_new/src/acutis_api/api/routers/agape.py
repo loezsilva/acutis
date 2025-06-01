@@ -1249,7 +1249,6 @@ def listar_itens_recebidos(ciclo_acao_id: uuid.UUID, doacao_id: uuid.UUID):
 @swagger.validate(
     form=AdicionarVoluntarioAgapeFormData,
     resp=Response(
-        HTTP_204=None,
         HTTP_422=ErroPadraoResponse,
     ),
     tags=['Ágape - Voluntários'],
@@ -1257,12 +1256,16 @@ def listar_itens_recebidos(ciclo_acao_id: uuid.UUID, doacao_id: uuid.UUID):
 def adicionar_voluntario_agape(lead_id):
     """Adiciona um voluntário ágape"""
     try:
-
-        if PerfilEnum.administrador_agape not in current_user.nomes_dos_perfis:
+        if (
+            PerfilEnum.administrador_agape.value
+            not in current_user.nomes_dos_perfis
+            and PerfilEnum.voluntario_agape.value
+            not in current_user.nomes_dos_perfis
+        ):
             raise HttpForbiddenError(
                 'Você não tem permissão para realizar esta ação.'
             )
-        
+
         repository = AgapeRepository(database)
         usecase = AdicionarVoluntarioAgapeUseCase(repository)
         response = usecase.execute(lead_id)
@@ -1376,6 +1379,16 @@ def atualizar_permissoes_voluntarios():
     e adiciona as novas solicitadas.
     """
     try:
+        if (
+            PerfilEnum.administrador_agape.value
+            not in current_user.nomes_dos_perfis
+            and PerfilEnum.voluntario_agape.value
+            not in current_user.nomes_dos_perfis
+        ):
+            raise HttpForbiddenError(
+                'Você não tem permissão para realizar esta ação.'
+            )
+
         request_payload = (
             AtualizarPermissoesVoluntariosRequestSchema.model_validate(
                 flask_request.get_json()

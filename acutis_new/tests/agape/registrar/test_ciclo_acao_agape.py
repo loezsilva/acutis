@@ -35,8 +35,9 @@ def test_registrar_ciclo_acao_sucesso(
     seed_item_estoque_agape,
     membro_token,
 ):
+    ciclo_acao = seed_ciclo_acao_agape[0]
     dados_json = json_padrao(
-        seed_ciclo_acao_agape.fk_acao_agape_id, seed_item_estoque_agape.id
+        ciclo_acao.fk_acao_agape_id, seed_item_estoque_agape.id
     )
 
     response = client.post(
@@ -76,8 +77,9 @@ def test_erro_registrar_ciclo_acao_cep_invalido(
     seed_item_estoque_agape,
     membro_token,
 ):
+    ciclo_acao = seed_ciclo_acao_agape[0]
     dados_json = json_padrao(
-        seed_ciclo_acao_agape.fk_acao_agape_id, seed_item_estoque_agape.id
+        ciclo_acao.fk_acao_agape_id, seed_item_estoque_agape.id
     )
     dados_json['endereco']['cep'] = '58000-000'
 
@@ -98,8 +100,9 @@ def test_erro_registrar_ciclo_acao_abrencencia_invalida(
     seed_item_estoque_agape,
     membro_token,
 ):
+    ciclo_acao = seed_ciclo_acao_agape[0]
     dados_json = json_padrao(
-        seed_ciclo_acao_agape.fk_acao_agape_id, seed_item_estoque_agape.id
+        ciclo_acao.fk_acao_agape_id, seed_item_estoque_agape.id
     )
     dados_json['abrangencia'] = 'desconhecida'
 
@@ -112,25 +115,3 @@ def test_erro_registrar_ciclo_acao_abrencencia_invalida(
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     dados_resposta = response.json[0]
     assert dados_resposta['loc'][0] == 'abrangencia'
-
-
-"""
-# Esse teste ta travando os testes
-def test_erro_registrar_ciclo_acao_item_inexistente(
-    client: FlaskClient,
-    seed_ciclo_acao_agape,
-    membro_token
-):
-    dados_json = json_padrao(
-        seed_ciclo_acao_agape_id=seed_ciclo_acao_agape.fk_acao_agape_id
-    )
-
-    response = client.post(
-        REGISTRAR_CICLO_ACAO_AGAPE_ENDPOINT,
-        headers={'Authorization': f'Bearer {membro_token}'},
-        json=dados_json
-    )
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert 'msg' in response.json[0]
-"""
