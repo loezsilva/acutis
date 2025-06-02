@@ -77,7 +77,7 @@ class EditarEnderecoFamiliaAgapeUseCase:
                 exc_info=True,
             )
             raise HttpNotFoundError(f'Erro ao geolocalizar endereço: {str(e)}')
-
+        print(f'Geolocalização obtida: {coordenadas_obj}')
         self.__repository.atualizar_endereco_familia(
             familia=familia,
             dados_endereco=dados_endereco,

@@ -1720,7 +1720,7 @@ def seed_varios_itens_estoque_para_estatisticas():
         {'item': 'Feijão Carioca 1kg', 'quantidade': 15},
         {'item': 'Óleo de Soja 900ml', 'quantidade': 5},
         {'item': 'Açúcar Refinado 1kg', 'quantidade': 0},
-        {'item': 'Sal Refinado 1kg', 'quantidade': 3}, 
+        {'item': 'Sal Refinado 1kg', 'quantidade': 3},
         {'item': 'Macarrão Espaguete 500g', 'quantidade': 30},
         {'item': 'Farinha de Trigo 1kg', 'quantidade': 0},
     ]
@@ -1736,7 +1736,7 @@ def seed_varios_itens_estoque_para_estatisticas():
     total_itens_zerados = sum(
         1 for d in itens_criados_detalhes if d['quantidade'] == 0
     )
-    
+
     total_itens_baixo_estoque = sum(
         1 for d in itens_criados_detalhes if 0 < d['quantidade'] <= 5
     )
@@ -1747,5 +1747,323 @@ def seed_varios_itens_estoque_para_estatisticas():
         'total_itens_zerados': total_itens_zerados,
         'total_itens_baixo_estoque': total_itens_baixo_estoque,
     }
-    
+
     return expected_stats
+
+
+@pytest.fixture
+def seed_ciclo_com_doacoes_completas(
+    seed_membro,
+):
+    """
+    Cria um ciclo de ação com famílias, membros, doações e itens
+    para testar a funcionalidade de exportação.
+    Retorna o ciclo_acao, e listas de familias, membros e itens doados
+    para facilitar as asserções.
+    """
+    # 1. Criar Ação e Ciclo da Ação
+    nome_acao = NomeAcaoAgapeFactory(nome='Ação de Natal')
+    endereco_ciclo = EnderecoFactory(cidade='Fortaleza', bairro='Centro')
+    database.session.add_all([nome_acao, endereco_ciclo])
+    database.session.commit()
+
+    ciclo_acao = CicloAcaoAgapeFactory(
+        fk_acao_agape_id=nome_acao.id,
+        fk_endereco_id=endereco_ciclo.id,
+        status=StatusAcaoAgapeEnum.finalizado,
+        data_inicio=datetime(2023, 12, 1),
+        data_termino=datetime(2023, 12, 20),
+    )
+    database.session.add(ciclo_acao)
+    database.session.commit()
+
+    # 2. Criar Itens de Estoque
+    item_arroz = EstoqueAgapeFactory(
+        item='Arroz Parboilizado 1kg', quantidade=100
+    )
+    item_feijao = EstoqueAgapeFactory(
+        item='Feijão Carioca 1kg', quantidade=100
+    )
+    item_macarrao = EstoqueAgapeFactory(
+        item='Macarrão Espaguete 500g', quantidade=100
+    )
+    database.session.add_all([item_arroz, item_feijao, item_macarrao])
+    database.session.commit()
+
+    # 3. Associar Itens ao Ciclo (ItemInstanciaAgape)
+    item_instancia_arroz = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_arroz.id,
+        quantidade=50,
+    )
+    item_instancia_feijao = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_feijao.id,
+        quantidade=50,
+    )
+    item_instancia_macarrao = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+        fk_estoque_agape_id=item_macarrao.id,
+        quantidade=30,
+    )
+    database.session.add_all([
+        item_instancia_arroz,
+        item_instancia_feijao,
+        item_instancia_macarrao,
+    ])
+    database.session.commit()
+
+    familias_criadas = []
+    membros_responsaveis_criados = []
+    # Lista para guardar dicionários com detalhes para facilitar asserções.
+    doacoes_info = []
+
+    # Família 1
+    endereco_familia1 = EnderecoFactory(
+        cidade='Fortaleza', bairro='Aldeota', codigo_postal='60100001'
+    )
+    cadastrada_por_membro1 = seed_membro
+    database.session.add(endereco_familia1)
+    database.session.commit()
+    familia1 = FamiliaAgapeFactory(
+        fk_endereco_id=endereco_familia1.id,
+        nome_familia='Família Silva',
+        cadastrada_por=cadastrada_por_membro1.id,
+    )
+    database.session.add(familia1)
+    database.session.commit()
+    responsavel1 = MembroAgapeFactory(
+        fk_familia_agape_id=familia1.id,
+        nome='João Silva',
+        cpf='11122233344',  # CPF único para facilitar a busca
+        responsavel=True,
+    )
+    database.session.add(responsavel1)
+    database.session.commit()
+    familias_criadas.append(familia1)
+    membros_responsaveis_criados.append(responsavel1)
+
+    doacao1 = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia1.id,
+    )
+    database.session.add(doacao1)
+    database.session.commit()
+
+    item_doado1_arroz = ItemDoacaoAgapeFactory(
+        fk_doacao_agape_id=doacao1.id,
+        fk_item_instancia_agape_id=item_instancia_arroz.id,
+        quantidade=2,
+    )
+    item_doado1_feijao = ItemDoacaoAgapeFactory(
+        fk_doacao_agape_id=doacao1.id,
+        fk_item_instancia_agape_id=item_instancia_feijao.id,
+        quantidade=1,
+    )
+    database.session.add_all([item_doado1_arroz, item_doado1_feijao])
+    database.session.commit()
+    doacoes_info.append({
+        'familia': familia1,
+        'responsavel_cpf': responsavel1.cpf,
+        'itens': [(item_arroz.item, 2), (item_feijao.item, 1)],
+    })
+
+    # Família 2
+    endereco_familia2 = EnderecoFactory(
+        cidade='Fortaleza', bairro='Meireles', codigo_postal='60200002'
+    )
+    cadastrada_por_membro2 = seed_membro
+    database.session.add(endereco_familia2)
+    database.session.commit()
+    familia2 = FamiliaAgapeFactory(
+        fk_endereco_id=endereco_familia2.id,
+        nome_familia='Família Souza',
+        cadastrada_por=cadastrada_por_membro2.id,
+    )
+    database.session.add(familia2)
+    database.session.commit()
+    responsavel2 = MembroAgapeFactory(
+        fk_familia_agape_id=familia2.id,
+        nome='Maria Souza',
+        cpf='55566677788',  # CPF único
+        responsavel=True,
+    )
+    database.session.add(responsavel2)
+    database.session.commit()
+    familias_criadas.append(familia2)
+    membros_responsaveis_criados.append(responsavel2)
+
+    doacao2 = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia2.id,
+    )
+    database.session.add(doacao2)
+    database.session.commit()
+
+    item_doado2_macarrao = ItemDoacaoAgapeFactory(
+        fk_doacao_agape_id=doacao2.id,
+        fk_item_instancia_agape_id=item_instancia_macarrao.id,
+        quantidade=3,
+    )
+    database.session.add(item_doado2_macarrao)
+    database.session.commit()
+    doacoes_info.append({
+        'familia': familia2,
+        'responsavel_cpf': responsavel2.cpf,
+        'itens': [(item_macarrao.item, 3)],
+    })
+
+    return {
+        'ciclo_acao': ciclo_acao,
+        'nome_acao': nome_acao,
+        'doacoes_info': doacoes_info,
+    }
+
+
+@pytest.fixture
+def seed_diversas_familias_para_exportacao(
+    seed_membro,
+):
+    """
+    Cria um conjunto diversificado de famílias Ágape para testar a exportação.
+    Retorna uma lista de todas as famílias criadas que devem ser exportadas.
+    """
+    familias_exportaveis = []
+    membro_cadastrador = seed_membro
+
+    # Família 1: Completa e ativa
+    end1 = EnderecoFactory(
+        logradouro='Rua das Flores',
+        numero='123',
+        bairro='Jardim',
+        cidade='Floral',
+        estado='FL',
+        codigo_postal='10000001',
+    )
+    database.session.add(end1)
+    database.session.commit()
+    fam1 = FamiliaAgapeFactory(
+        nome_familia='Família Almeida',
+        fk_endereco_id=end1.id,
+        observacao='Nenhuma observação especial.',
+        status=True,
+        deletado_em=None,
+        cadastrada_por=membro_cadastrador.id,
+    )
+    database.session.add(fam1)
+    database.session.commit()
+    MembroAgapeFactory(
+        fk_familia_agape_id=fam1.id,
+        nome='Carlos Almeida',
+        responsavel=True,
+        cpf='11100011101',
+        telefone='11999911101',
+        email='carlos@almeida.com',
+    )
+    MembroAgapeFactory(
+        fk_familia_agape_id=fam1.id, nome='Ana Almeida', responsavel=False
+    )
+    familias_exportaveis.append(fam1)
+
+    # Família 2: Ativa, sem observação, com um membro
+    end2 = EnderecoFactory(
+        logradouro='Avenida Principal',
+        numero='456',
+        bairro='Centro',
+        cidade='Metropole',
+        estado='MP',
+        codigo_postal='20000002',
+    )
+    database.session.add(end2)
+    database.session.commit()
+    fam2 = FamiliaAgapeFactory(
+        nome_familia='Família Costa',
+        fk_endereco_id=end2.id,
+        observacao=None,
+        status=True,
+        deletado_em=None,
+        cadastrada_por=membro_cadastrador.id,
+    )
+    database.session.add(fam2)
+    database.session.commit()
+    MembroAgapeFactory(
+        fk_familia_agape_id=fam2.id,
+        nome='Beatriz Costa',
+        responsavel=True,
+        cpf='22200022202',
+        telefone='22999922202',
+        email='bia@costa.com',
+    )
+    familias_exportaveis.append(fam2)
+
+    # Família 3: Ativa, com observação longa, múltiplos membros
+    end3 = EnderecoFactory(
+        logradouro='Travessa dos Sonhos',
+        numero='78',
+        bairro='Paraíso',
+        cidade='Campina',
+        estado='CA',
+        codigo_postal='30000003',
+    )
+    database.session.add(end3)
+    database.session.commit()
+    obs_longa = (
+        'Esta família necessita de acompanhamento especial devido a '
+        'condições de moradia. Contato preferencial pela manhã.'
+    )
+    fam3 = FamiliaAgapeFactory(
+        nome_familia='Família Oliveira',
+        fk_endereco_id=end3.id,
+        observacao=obs_longa,
+        status=True,
+        deletado_em=None,
+        cadastrada_por=membro_cadastrador.id,
+    )
+    database.session.add(fam3)
+    database.session.commit()
+    MembroAgapeFactory(
+        fk_familia_agape_id=fam3.id,
+        nome='Daniel Oliveira',
+        responsavel=True,
+        cpf='33300033303',
+        telefone='33999933303',
+        email='daniel@oliveira.com',
+    )
+    MembroAgapeFactory(
+        fk_familia_agape_id=fam3.id, nome='Elisa Oliveira', responsavel=False
+    )
+    MembroAgapeFactory(
+        fk_familia_agape_id=fam3.id,
+        nome='Fernando Oliveira',
+        responsavel=False,
+    )
+    familias_exportaveis.append(fam3)
+
+    # Família 4: Soft-deleted - NÃO DEVE APARECER NO EXPORT
+    end4 = EnderecoFactory(
+        logradouro='Rua Esquecida',
+        numero='0',
+        bairro='Limbo',
+        cidade='Perdida',
+        estado='LP',
+        codigo_postal='40000004',
+    )
+    database.session.add(end4)
+    database.session.commit()
+    fam4_deletada = FamiliaAgapeFactory(
+        nome_familia='Família Fantasma',
+        fk_endereco_id=end4.id,
+        status=False,
+        deletado_em=datetime.now(),
+        cadastrada_por=membro_cadastrador.id,
+    )
+    database.session.add(fam4_deletada)
+    database.session.commit()
+    MembroAgapeFactory(
+        fk_familia_agape_id=fam4_deletada.id,
+        nome='Sr. Sumido',
+        responsavel=True,
+        cpf='44400044404',
+    )
+
+    database.session.flush()
+
+    return familias_exportaveis

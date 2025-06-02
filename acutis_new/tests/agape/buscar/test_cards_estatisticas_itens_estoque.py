@@ -26,10 +26,8 @@ def test_cards_estatisticas_itens_estoque_com_dados(
     response_data = response.json
 
     assert 'itens_em_estoque' in response_data
-    assert (
-        int(response_data['itens_em_estoque'].split(' ')[0])
-        == 
-        int(expected_stats['quantidade_total_itens'])
+    assert int(response_data['itens_em_estoque'].split(' ')[0]) == int(
+        expected_stats['quantidade_total_itens']
     )
 
 
@@ -48,8 +46,4 @@ def test_cards_estatisticas_itens_estoque_sem_dados(
     response_data = response.json
 
     assert 'itens_em_estoque' in response_data
-    assert (
-        int(response_data['itens_em_estoque'].split(' ')[0])
-        == 
-        0
-    )
+    assert int(response_data['itens_em_estoque'].split(' ')[0]) == 0

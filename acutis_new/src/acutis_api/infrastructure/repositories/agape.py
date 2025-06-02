@@ -1009,17 +1009,15 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         if coordenadas:
             coordenada_obj = endereco_obj.coordenada
-
-            if not coordenada_obj:
-                coordenada_obj = Coordenada(fk_endereco_id=endereco_obj.id)
-                session.add(coordenada_obj)
-
-            coordenada_obj.latitude = coordenadas.latitude
-            coordenada_obj.longitude = coordenadas.longitude
-            coordenada_obj.latitude_ne = coordenadas.latitude_ne
-            coordenada_obj.longitude_ne = coordenadas.longitude_ne
-            coordenada_obj.latitude_so = coordenadas.latitude_so
-            coordenada_obj.longitude_so = coordenadas.longitude_so
+            coordenada_obj = Coordenada(
+                fk_endereco_id=endereco_obj.id,
+                latitude=coordenadas.latitude,
+                longitude=coordenadas.longitude,
+                latitude_ne=coordenadas.latitude_ne,
+                longitude_ne=coordenadas.longitude_ne,
+                latitude_so=coordenadas.latitude_so,
+                longitude_so=coordenadas.longitude_so,
+            )
             session.add(coordenada_obj)
 
         return familia

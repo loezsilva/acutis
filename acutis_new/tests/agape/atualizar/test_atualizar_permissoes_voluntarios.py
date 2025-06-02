@@ -110,6 +110,7 @@ def test_atualizar_permissoes_payload_invalido(
         json=dados_payload_invalido,
     )
 
-    assert int(resposta.status_code) in set(
-        HTTPStatus.UNPROCESSABLE_ENTITY, HTTPStatus.BAD_REQUEST
-    )
+    assert int(resposta.status_code) in set([
+        HTTPStatus.UNPROCESSABLE_ENTITY,
+        HTTPStatus.BAD_REQUEST,
+    ])

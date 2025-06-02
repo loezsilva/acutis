@@ -9,6 +9,7 @@ from acutis_api.communication.responses.agape import (
     MembroFamiliaAgapeResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class ListarBeneficiariosAgapeUseCase:
@@ -36,15 +37,14 @@ class ListarBeneficiariosAgapeUseCase:
     def execute(
         self, ciclo_acao_id: uuid.UUID
     ) -> tuple[ListarBeneficiariosAgapeResponse, HTTPStatus]:
-        """
-        Executa a lógica para listar os beneficiários de um ciclo de ação.
+        
+        ciclo_acao = self.agape_repository.buscar_ciclo_acao_agape_por_id(
+            ciclo_acao_id
+        )
 
-        Args:
-            ciclo_acao_id: O ID do ciclo de ação (InstanciaAcaoAgape).
+        if ciclo_acao is None:
+            raise HttpNotFoundError('Ciclo de ação não encontrado.')
 
-        Returns:
-            Uma tupla contendo a lista de beneficiários e o status HTTP.
-        """
         familias_beneficiadas = (
             self.agape_repository.listar_familias_beneficiadas_por_ciclo_id(
                 ciclo_acao_id=ciclo_acao_id

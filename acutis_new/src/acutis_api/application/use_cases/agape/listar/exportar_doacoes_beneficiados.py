@@ -41,12 +41,12 @@ class ExportarDoacoesBeneficiadosUseCase:
                     str(dado.ciclo_acao_id) if dado.ciclo_acao_id else ''
                 ),
                 'ciclo_acao_nome': dado.ciclo_acao_nome or '',
-                'ciclo_acao_data_inicio': (
+                'ciclo_acao_data_inicio': str(
                     dado.ciclo_acao_data_inicio.strftime('%d/%m/%Y %H:%M:%S')
                     if dado.ciclo_acao_data_inicio
                     else '',
                 ),
-                'ciclo_acao_data_termino': (
+                'ciclo_acao_data_termino': str(
                     dado.ciclo_acao_data_termino.strftime('%d/%m/%Y %H:%M:%S')
                     if dado.ciclo_acao_data_termino
                     else '',
@@ -62,13 +62,13 @@ class ExportarDoacoesBeneficiadosUseCase:
                     dado.responsavel_familia_telefone or ''
                 ),
                 'doacao_id': str(dado.doacao_id) if dado.doacao_id else '',
-                'doacao_data': (
-                    dado.doacao_data.strftime('%Y-%m-%d %H:%M:%S')
+                'doacao_data': str(
+                    dado.doacao_data.strftime('%d/%m/%Y %H:%M:%S')
                     if dado.doacao_data
                     else '',
                 ),
                 'item_doado_nome': dado.item_doado_nome or '',
-                'item_doado_quantidade': (
+                'item_doado_quantidade': str(
                     str(dado.item_doado_quantidade)
                     if dado.item_doado_quantidade is not None
                     else ''
