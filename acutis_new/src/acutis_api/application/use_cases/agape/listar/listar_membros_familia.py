@@ -1,4 +1,5 @@
 import math
+import uuid
 
 from acutis_api.application.utils.funcoes_auxiliares import calcular_idade
 from acutis_api.communication.responses.agape import (
@@ -9,11 +10,12 @@ from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.domain.repositories.schemas.agape import (
     ListarMembrosFamiliaAgapeFiltros,
 )
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class ListarMembrosFamiliaUseCase:
     """
-    Caso de uso para listar as famílias cadastradas:
+    Caso de uso para listar membros de uma familia:
     """
 
     def __init__(
@@ -23,11 +25,15 @@ class ListarMembrosFamiliaUseCase:
         self.__repository = agape_repository
 
     def execute(
-        self, filtros: ListarMembrosFamiliaAgapeFiltros
+        self, filtros: ListarMembrosFamiliaAgapeFiltros, familia_id: uuid.UUID
     ) -> ListarMembrosFamiliaAgapeResponsePaginada:
-        # Executa consulta ao repositório para obter instâncias do ciclo
+        familia = self.__repository.buscar_familia_por_id(familia_id)
+
+        if familia is None:
+            raise HttpNotFoundError('Família não encontrada.')
+
         instancias, total = self.__repository.listar_membros_familia(
-            familia_id=filtros.familia_id
+            filtros=filtros, familia_id=familia_id
         )
 
         # Cria resposta paginada

@@ -5,6 +5,7 @@ from flask.testing import FlaskClient
 
 LISTAR_BENEFICIARIOS_ENDPOINT = 'api/agape/listar-beneficiarios'
 
+
 def test_listar_beneficiarios_ciclo_com_doacoes_sucesso(
     client: FlaskClient,
     seed_ciclo_com_doacoes_completas,
@@ -52,10 +53,7 @@ def test_listar_beneficiarios_ciclo_sem_doacoes(
     assert resposta.status_code == HTTPStatus.OK
     resposta_json = resposta.json
     assert isinstance(resposta_json, list)
-    assert (
-        len(resposta_json) == 0, \
-        "A lista de beneficiários deveria estar vazia"
-    )
+    assert len(resposta_json) == 0
 
 
 def test_listar_beneficiarios_ciclo_nao_encontrado(
@@ -73,6 +71,7 @@ def test_listar_beneficiarios_ciclo_nao_encontrado(
     )
 
     assert resposta.status_code == HTTPStatus.NOT_FOUND
+
 
 def test_listar_beneficiarios_sem_permissao(
     client: FlaskClient,

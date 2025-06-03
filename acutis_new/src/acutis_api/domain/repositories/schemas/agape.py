@@ -135,7 +135,7 @@ class FotoFamiliaAgapeSchema(BaseModel):
 
 
 class ListarMembrosFamiliaAgapeFiltros(PaginacaoQuery):
-    familia_id: uuid.UUID
+    pass
 
 
 class NumeroMembrosFamiliaAgapeSchema(BaseModel):

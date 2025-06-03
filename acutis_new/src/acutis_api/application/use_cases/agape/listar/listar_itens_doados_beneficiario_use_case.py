@@ -6,6 +6,7 @@ from acutis_api.communication.responses.agape import (
     ListarItensDoadosBeneficiarioResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class ListarItensDoadosBeneficiarioUseCase:
@@ -15,6 +16,12 @@ class ListarItensDoadosBeneficiarioUseCase:
     def execute(
         self, doacao_id: uuid.UUID
     ) -> tuple[ListarItensDoadosBeneficiarioResponse, HTTPStatus]:
+        doacao_agape = self.agape_repository.buscar_doacao_agape_por_id(
+            doacao_id
+        )
+        if doacao_agape is None:
+            raise HttpNotFoundError('Doação não encontrada.')
+
         itens_doados_data = (
             self.agape_repository.listar_itens_por_doacao_agape_id(
                 doacao_id=doacao_id

@@ -102,6 +102,7 @@ from acutis_api.communication.responses.agape import (
     ListarHistoricoMovimentacoesAgapeResponsePaginada,
     ListarItensDoadosBeneficiarioResponse,
     ListarItensEstoqueAgapeResponsePaginada,
+    ListarMembrosFamiliaAgapeResponsePaginada,
     ListarNomesAcoesAgapeResponsePaginada,
     ListarStatusPermissaoVoluntariosResponse,
     ListarVoluntariosAgapeResponse,
@@ -679,14 +680,14 @@ def listar_familias_agape():
 
 @agape_bp.get('/listar-membros-familia/<uuid:familia_id>')
 @swagger.validate(
-    query=ListarMembrosFamiliaAgapeFiltros,
+    query=PaginacaoSchema,
     resp=Response(
-        HTTP_200=ListarMembrosFamiliaAgapeFiltros,
+        HTTP_200=ListarMembrosFamiliaAgapeResponsePaginada,
         HTTP_422=ErroPadraoResponse,
     ),
     tags=['Ágape - Familias'],
 )
-def listar_membros_familia_agape():
+def listar_membros_familia_agape(familia_id):
     """Lista todas as famílias Ágape com contagem de membros
     (rota antiga /listar-membros/<fk_familia_agape_id>).
     """
@@ -696,7 +697,10 @@ def listar_membros_familia_agape():
         filtros = ListarMembrosFamiliaAgapeFiltros.model_validate(
             flask_request.args.to_dict()
         )
-        response = usecase.execute(filtros)
+        response = usecase.execute(
+            filtros=filtros,
+            familia_id=familia_id,
+        )
         return response, HTTPStatus.OK
     except Exception as exc:
         database.session.rollback()

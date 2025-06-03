@@ -37,6 +37,7 @@ from acutis_api.domain.repositories.schemas.agape import (
     FotoFamiliaAgapeSchema,
     InformacoesAgregadasFamiliasSchema,
     ListarItensEstoqueAgapeFiltros,
+    ListarMembrosFamiliaAgapeFiltros,
     ListarNomesAcoesAgapeFiltros,
     MembroFamiliaSchema,
     NomeAcaoAgapeSchema,
@@ -461,3 +462,8 @@ class AgapeRepositoryInterface(ABC):
     def buscar_permissoes_por_lead_id(
         self, lead_id: UUID
     ) -> PermissaoLead | None: ...
+
+    @abstractmethod
+    def listar_membros_familia(
+        self, filtros: ListarMembrosFamiliaAgapeFiltros, familia_id: UUID
+    ) -> tuple[list[MembroFamiliaSchema], int]: ...

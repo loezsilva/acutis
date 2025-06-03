@@ -145,14 +145,13 @@ class AgapeRepository(AgapeRepositoryInterface):
         )
 
     def listar_membros_familia(
-        self, filtros: ListarMembrosFamiliaAgapeFiltros
+        self, filtros: ListarMembrosFamiliaAgapeFiltros, familia_id: UUID
     ) -> tuple[list[MembroFamiliaSchema], int]:
         query = self._database.session.query(MembroAgape).order_by(
             desc(MembroAgape.nome)
         )
 
-        if filtros.familia_id:
-            query = query.filter(AcaoAgape.id == filtros.familia_id)
+        query = query.filter(MembroAgape.fk_familia_agape_id == familia_id)
 
         paginacao = query.paginate(
             page=filtros.pagina,

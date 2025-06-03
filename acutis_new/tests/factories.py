@@ -17,6 +17,7 @@ from acutis_api.domain.entities.campo_adicional import (
     TiposCampoEnum,
 )
 from acutis_api.domain.entities.cargo_oficial import CargosOficiais
+from acutis_api.domain.entities.coordenada import Coordenada
 from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.doacao_agape import DoacaoAgape
 from acutis_api.domain.entities.endereco import Endereco
@@ -28,6 +29,9 @@ from acutis_api.domain.entities.etapa_vocacional import (
 )
 from acutis_api.domain.entities.familia_agape import FamiliaAgape
 from acutis_api.domain.entities.ficha_vocacional import FichaVocacional
+from acutis_api.domain.entities.historico_movimentacao_agape import (
+    HistoricoMovimentacaoAgape,
+)
 from acutis_api.domain.entities.instancia_acao_agape import (
     AbrangenciaInstanciaAcaoAgapeEnum,
     InstanciaAcaoAgape,
@@ -550,3 +554,20 @@ class ItemDoacaoAgapeFactory(factory.Factory):
         model = ItemDoacaoAgape
 
     quantidade = factory.Faker('random_int')
+
+
+class HistoricoMovimentacaoAgapeFactory(factory.Factory):
+    class Meta:
+        model = HistoricoMovimentacaoAgape
+
+
+class CoordenadaFactory(factory.Factory):
+    class Meta:
+        model = Coordenada
+
+    latitude = factory.Faker('latitude')
+    longitude = factory.Faker('longitude')
+    latitude_ne = factory.Faker('latitude')
+    longitude_ne = factory.Faker('longitude')
+    latitude_so = factory.Faker('latitude')
+    longitude_so = factory.Faker('longitude')

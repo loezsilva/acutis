@@ -37,7 +37,6 @@ class ListarBeneficiariosAgapeUseCase:
     def execute(
         self, ciclo_acao_id: uuid.UUID
     ) -> tuple[ListarBeneficiariosAgapeResponse, HTTPStatus]:
-        
         ciclo_acao = self.agape_repository.buscar_ciclo_acao_agape_por_id(
             ciclo_acao_id
         )

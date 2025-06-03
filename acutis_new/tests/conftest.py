@@ -18,6 +18,10 @@ from acutis_api.communication.enums.membros import OrigemCadastroEnum, SexoEnum
 from acutis_api.domain.entities.campanha import Campanha, ObjetivosCampanhaEnum
 from acutis_api.domain.entities.campo_adicional import TiposCampoEnum
 from acutis_api.domain.entities.doacao import Doacao
+from acutis_api.domain.entities.historico_movimentacao_agape import (
+    HistoricoOrigemEnum,
+    TipoMovimentacaoEnum,
+)
 from acutis_api.domain.entities.instancia_acao_agape import StatusAcaoAgapeEnum
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.perfil import Perfil
@@ -37,11 +41,13 @@ from tests.factories import (
     CargoOficialMarechalFactory,
     CargosOficiaisFactory,
     CicloAcaoAgapeFactory,
+    CoordenadaFactory,
     DoacaoAgapeFactory,
     DoacaoFactory,
     EnderecoFactory,
     EstoqueAgapeFactory,
     FamiliaAgapeFactory,
+    HistoricoMovimentacaoAgapeFactory,
     ItemDoacaoAgapeFactory,
     ItemInstanciaAgapeFactory,
     LandingPageFactory,
@@ -1761,7 +1767,7 @@ def seed_ciclo_com_doacoes_completas(
     Retorna o ciclo_acao, e listas de familias, membros e itens doados
     para facilitar as asserções.
     """
-    # 1. Criar Ação e Ciclo da Ação
+
     nome_acao = NomeAcaoAgapeFactory(nome='Ação de Natal')
     endereco_ciclo = EnderecoFactory(cidade='Fortaleza', bairro='Centro')
     database.session.add_all([nome_acao, endereco_ciclo])
@@ -1777,7 +1783,6 @@ def seed_ciclo_com_doacoes_completas(
     database.session.add(ciclo_acao)
     database.session.commit()
 
-    # 2. Criar Itens de Estoque
     item_arroz = EstoqueAgapeFactory(
         item='Arroz Parboilizado 1kg', quantidade=100
     )
@@ -1790,7 +1795,6 @@ def seed_ciclo_com_doacoes_completas(
     database.session.add_all([item_arroz, item_feijao, item_macarrao])
     database.session.commit()
 
-    # 3. Associar Itens ao Ciclo (ItemInstanciaAgape)
     item_instancia_arroz = ItemInstanciaAgapeFactory(
         fk_instancia_acao_agape_id=ciclo_acao.id,
         fk_estoque_agape_id=item_arroz.id,
@@ -1815,10 +1819,9 @@ def seed_ciclo_com_doacoes_completas(
 
     familias_criadas = []
     membros_responsaveis_criados = []
-    # Lista para guardar dicionários com detalhes para facilitar asserções.
+
     doacoes_info = []
 
-    # Família 1
     endereco_familia1 = EnderecoFactory(
         cidade='Fortaleza', bairro='Aldeota', codigo_postal='60100001'
     )
@@ -1835,7 +1838,7 @@ def seed_ciclo_com_doacoes_completas(
     responsavel1 = MembroAgapeFactory(
         fk_familia_agape_id=familia1.id,
         nome='João Silva',
-        cpf='11122233344',  # CPF único para facilitar a busca
+        cpf='11122233344',
         responsavel=True,
     )
     database.session.add(responsavel1)
@@ -1867,7 +1870,6 @@ def seed_ciclo_com_doacoes_completas(
         'itens': [(item_arroz.item, 2), (item_feijao.item, 1)],
     })
 
-    # Família 2
     endereco_familia2 = EnderecoFactory(
         cidade='Fortaleza', bairro='Meireles', codigo_postal='60200002'
     )
@@ -1884,7 +1886,7 @@ def seed_ciclo_com_doacoes_completas(
     responsavel2 = MembroAgapeFactory(
         fk_familia_agape_id=familia2.id,
         nome='Maria Souza',
-        cpf='55566677788',  # CPF único
+        cpf='55566677788',
         responsavel=True,
     )
     database.session.add(responsavel2)
@@ -1929,7 +1931,6 @@ def seed_diversas_familias_para_exportacao(
     familias_exportaveis = []
     membro_cadastrador = seed_membro
 
-    # Família 1: Completa e ativa
     end1 = EnderecoFactory(
         logradouro='Rua das Flores',
         numero='123',
@@ -1963,7 +1964,6 @@ def seed_diversas_familias_para_exportacao(
     )
     familias_exportaveis.append(fam1)
 
-    # Família 2: Ativa, sem observação, com um membro
     end2 = EnderecoFactory(
         logradouro='Avenida Principal',
         numero='456',
@@ -1994,7 +1994,6 @@ def seed_diversas_familias_para_exportacao(
     )
     familias_exportaveis.append(fam2)
 
-    # Família 3: Ativa, com observação longa, múltiplos membros
     end3 = EnderecoFactory(
         logradouro='Travessa dos Sonhos',
         numero='78',
@@ -2037,7 +2036,6 @@ def seed_diversas_familias_para_exportacao(
     )
     familias_exportaveis.append(fam3)
 
-    # Família 4: Soft-deleted - NÃO DEVE APARECER NO EXPORT
     end4 = EnderecoFactory(
         logradouro='Rua Esquecida',
         numero='0',
@@ -2067,3 +2065,400 @@ def seed_diversas_familias_para_exportacao(
     database.session.flush()
 
     return familias_exportaveis
+
+
+@pytest.fixture
+def seed_historico_movimentacoes_agape(
+    seed_item_estoque_agape,
+    seed_ciclo_acao_com_itens,
+    seed_familia_com_endereco,
+    seed_membro,
+):
+    """
+    Popula o banco de dados com dados de histórico de movimentações do ágape.
+    Cria movimentações de entrada (abastecimento) e saída (doação).
+    Retorna uma lista dos objetos HistoricoMovimentacaoAgape criados.
+    """
+
+    historicos_criados = []
+
+    ciclo_acao, itens_instancia_ciclo = seed_ciclo_acao_com_itens
+    familia_beneficiada, _ = seed_familia_com_endereco
+
+    item_estoque_existente = seed_item_estoque_agape
+    historico_entrada = HistoricoMovimentacaoAgapeFactory(
+        fk_estoque_agape_id=item_estoque_existente.id,
+        tipo_movimentacoes=TipoMovimentacaoEnum.entrada,
+        quantidade=50,
+        origem=HistoricoOrigemEnum.estoque,
+        destino=HistoricoOrigemEnum.estoque,
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+    )
+    database.session.add(historico_entrada)
+    historicos_criados.append(historico_entrada)
+
+    if not itens_instancia_ciclo:
+        raise ValueError(
+            'A fixture seed_ciclo_acao_com_itens não retornou itens_instancia.'
+        )
+
+    item_instancia_para_doar = itens_instancia_ciclo[0]
+
+    doacao = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia_beneficiada.id,
+    )
+    database.session.add(doacao)
+    database.session.flush()
+
+    item_doacao = ItemDoacaoAgapeFactory(
+        fk_doacao_agape_id=doacao.id,
+        fk_item_instancia_agape_id=item_instancia_para_doar.id,
+        quantidade=5,
+    )
+    database.session.add(item_doacao)
+    database.session.flush()
+
+    historico_saida = HistoricoMovimentacaoAgapeFactory(
+        fk_estoque_agape_id=item_instancia_para_doar.fk_estoque_agape_id,
+        tipo_movimentacoes=TipoMovimentacaoEnum.saida,
+        quantidade=50,
+        origem=HistoricoOrigemEnum.estoque,
+        destino=HistoricoOrigemEnum.estoque,
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+    )
+    database.session.add(historico_saida)
+    historicos_criados.append(historico_saida)
+
+    historico_entrada_2 = HistoricoMovimentacaoAgapeFactory(
+        fk_estoque_agape_id=item_estoque_existente.id,
+        tipo_movimentacoes=TipoMovimentacaoEnum.saida,
+        quantidade=50,
+        origem=HistoricoOrigemEnum.estoque,
+        destino=HistoricoOrigemEnum.estoque,
+        fk_instancia_acao_agape_id=ciclo_acao.id,
+    )
+    database.session.add(historico_entrada_2)
+    historicos_criados.append(historico_entrada_2)
+
+    if len(itens_instancia_ciclo) > 1:
+        item_instancia_para_doar_2 = itens_instancia_ciclo[1]
+
+        doacao_2 = DoacaoAgapeFactory(
+            fk_familia_agape_id=familia_beneficiada.id,
+        )
+        database.session.add(doacao_2)
+        database.session.flush()
+
+        item_doacao_2 = ItemDoacaoAgapeFactory(
+            fk_doacao_agape_id=doacao_2.id,
+            fk_item_instancia_agape_id=item_instancia_para_doar_2.id,
+            quantidade=3,
+        )
+        database.session.add(item_doacao_2)
+        database.session.flush()
+
+        historico_saida_2 = HistoricoMovimentacaoAgapeFactory(
+            fk_estoque_agape_id=item_instancia_para_doar_2.fk_estoque_agape_id,
+            tipo_movimentacoes=TipoMovimentacaoEnum.saida,
+            quantidade=50,
+            origem=HistoricoOrigemEnum.estoque,
+            destino=HistoricoOrigemEnum.estoque,
+            fk_instancia_acao_agape_id=ciclo_acao.id,
+        )
+        database.session.add(historico_saida_2)
+        historicos_criados.append(historico_saida_2)
+
+    database.session.commit()
+
+    historicos_criados.sort(key=lambda x: x.criado_em, reverse=True)
+
+    return historicos_criados
+
+
+@pytest.fixture
+def seed_geolocalizacoes_beneficiarios_ciclo_acao(
+    seed_nome_acao_agape,
+    seed_membro,
+):
+    endereco_ciclo = EnderecoFactory()
+    database.session.add(endereco_ciclo)
+    database.session.commit()
+
+    ciclo_acao_principal = CicloAcaoAgapeFactory(
+        fk_acao_agape_id=seed_nome_acao_agape.id,
+        fk_endereco_id=endereco_ciclo.id,
+    )
+    database.session.add(ciclo_acao_principal)
+    database.session.commit()
+
+    geolocalizacoes_esperadas = []
+
+    for i in range(3):
+        endereco_familia = EnderecoFactory()
+        coordenada_familia = CoordenadaFactory(
+            fk_endereco_id=endereco_familia.id
+        )
+        database.session.add(endereco_familia)
+        database.session.add(coordenada_familia)
+        database.session.commit()
+
+        familia = FamiliaAgapeFactory(
+            fk_endereco_id=endereco_familia.id, cadastrada_por=seed_membro.id
+        )
+        database.session.add(familia)
+        database.session.commit()
+
+        responsavel = MembroAgapeFactory(
+            fk_familia_agape_id=familia.id,
+            nome=f'Responsável Família {i + 1}',
+            responsavel=True,
+        )
+        database.session.add(responsavel)
+        database.session.commit()
+
+        doacao = DoacaoAgapeFactory(
+            fk_familia_agape_id=familia.id,
+        )
+        database.session.add(doacao)
+        database.session.commit()
+
+        item_estoque_ciclo = EstoqueAgapeFactory()
+        database.session.add(item_estoque_ciclo)
+        database.session.commit()
+
+        item_instancia_ciclo = ItemInstanciaAgapeFactory(
+            fk_instancia_acao_agape_id=ciclo_acao_principal.id,
+            fk_estoque_agape_id=item_estoque_ciclo.id,
+            quantidade=10,
+        )
+        database.session.add(item_instancia_ciclo)
+        database.session.commit()
+
+        item_doacao = ItemDoacaoAgapeFactory(
+            fk_doacao_agape_id=doacao.id,
+            fk_item_instancia_agape_id=item_instancia_ciclo.id,
+            quantidade=1,
+        )
+        database.session.add(item_doacao)
+
+        geolocalizacoes_esperadas.append({
+            'latitude': coordenada_familia.latitude,
+            'longitude': coordenada_familia.longitude,
+            'nome_familia': familia.nome_familia,
+        })
+
+    geolocalizacoes_esperadas.sort(key=lambda g: g['nome_familia'])
+
+    return ciclo_acao_principal.id, geolocalizacoes_esperadas
+
+
+@pytest.fixture
+def seed_doacao_com_itens_doados(
+    seed_familia_com_endereco,
+    seed_ciclo_acao_agape,
+):
+    familia, _ = seed_familia_com_endereco
+    ciclo_acao, _ = seed_ciclo_acao_agape
+
+    itens_esperados = []
+
+    doacao = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia.id,
+    )
+    database.session.add(doacao)
+    database.session.flush()
+
+    for i in range(2):
+        item_estoque = EstoqueAgapeFactory(
+            item=f'Item Teste Doado {i + 1}', quantidade=100
+        )
+        database.session.add(item_estoque)
+        database.session.flush()
+
+        item_instancia = ItemInstanciaAgapeFactory(
+            fk_instancia_acao_agape_id=ciclo_acao.id,
+            fk_estoque_agape_id=item_estoque.id,
+            quantidade=20,
+        )
+        database.session.add(item_instancia)
+        database.session.flush()
+
+        quantidade_doada_neste_item = 5 + i
+        item_doado = ItemDoacaoAgapeFactory(
+            fk_doacao_agape_id=doacao.id,
+            fk_item_instancia_agape_id=item_instancia.id,
+            quantidade=quantidade_doada_neste_item,
+        )
+        database.session.add(item_doado)
+        database.session.flush()
+
+        itens_esperados.append({
+            'item_id': item_estoque.id,
+            'nome_item': item_estoque.item,
+            'quantidade_doada': quantidade_doada_neste_item,
+            'item_doacao_agape_id': item_doado.id,
+            'item_instancia_agape_id': item_instancia.id,
+        })
+
+    database.session.commit()
+
+    itens_esperados.sort(key=lambda x: x['nome_item'])
+
+    return doacao.id, itens_esperados
+
+
+@pytest.fixture
+def seed_doacao_sem_itens(
+    seed_familia_com_endereco,
+):
+    from tests.factories import DoacaoAgapeFactory
+
+    familia, _ = seed_familia_com_endereco
+
+    doacao = DoacaoAgapeFactory(
+        fk_familia_agape_id=familia.id,
+    )
+    database.session.add(doacao)
+    database.session.commit()
+
+    return doacao.id
+
+
+@pytest.fixture
+def seed_itens_recebidos_em_ciclo_doacao(
+    seed_familia_com_endereco,
+    seed_nome_acao_agape,
+):
+    familia, _ = seed_familia_com_endereco
+
+    endereco_ciclo_principal = EnderecoFactory()
+    database.session.add(endereco_ciclo_principal)
+    database.session.flush()
+
+    nome_acao_principal = seed_nome_acao_agape
+    ciclo_principal = CicloAcaoAgapeFactory(
+        fk_acao_agape_id=nome_acao_principal.id,
+        fk_endereco_id=endereco_ciclo_principal.id,
+    )
+    database.session.add(ciclo_principal)
+    database.session.flush()
+
+    doacao_principal = DoacaoAgapeFactory(fk_familia_agape_id=familia.id)
+    database.session.add(doacao_principal)
+    database.session.flush()
+
+    itens_esperados_principal = []
+    for i in range(2):
+        item_estoque = EstoqueAgapeFactory(item=f'Item Principal {i + 1}')
+        database.session.add(item_estoque)
+        database.session.flush()
+
+        item_instancia = ItemInstanciaAgapeFactory(
+            fk_instancia_acao_agape_id=ciclo_principal.id,
+            fk_estoque_agape_id=item_estoque.id,
+            quantidade=30,
+        )
+        database.session.add(item_instancia)
+        database.session.flush()
+
+        quantidade_doada = 10 + i
+        item_doado = ItemDoacaoAgapeFactory(
+            fk_doacao_agape_id=doacao_principal.id,
+            fk_item_instancia_agape_id=item_instancia.id,
+            quantidade=quantidade_doada,
+        )
+        database.session.add(item_doado)
+        database.session.flush()
+        itens_esperados_principal.append({
+            'item_id': item_estoque.id,
+            'nome_item': item_estoque.item,
+            'quantidade_doada': quantidade_doada,
+            'item_doacao_agape_id': item_doado.id,
+            'item_instancia_agape_id': item_instancia.id,
+        })
+
+    endereco_ciclo_secundario = EnderecoFactory(cidade='Outra Cidade')
+    database.session.add(endereco_ciclo_secundario)
+    database.session.flush()
+
+    nome_acao_secundaria = NomeAcaoAgapeFactory(nome='Ação Secundária')
+    database.session.add(nome_acao_secundaria)
+    database.session.flush()
+
+    ciclo_secundario = CicloAcaoAgapeFactory(
+        fk_acao_agape_id=nome_acao_secundaria.id,
+        fk_endereco_id=endereco_ciclo_secundario.id,
+    )
+    database.session.add(ciclo_secundario)
+    database.session.flush()
+
+    doacao_secundaria = DoacaoAgapeFactory(fk_familia_agape_id=familia.id)
+    database.session.add(doacao_secundaria)
+    database.session.flush()
+
+    item_estoque_sec = EstoqueAgapeFactory(item='Item Secundário 1')
+    database.session.add(item_estoque_sec)
+    database.session.flush()
+    item_instancia_sec = ItemInstanciaAgapeFactory(
+        fk_instancia_acao_agape_id=ciclo_secundario.id,
+        fk_estoque_agape_id=item_estoque_sec.id,
+        quantidade=15,
+    )
+    database.session.add(item_instancia_sec)
+    database.session.flush()
+    ItemDoacaoAgapeFactory(
+        fk_doacao_agape_id=doacao_secundaria.id,
+        fk_item_instancia_agape_id=item_instancia_sec.id,
+        quantidade=7,
+    )
+
+    database.session.commit()
+    itens_esperados_principal.sort(key=lambda x: x['nome_item'])
+    return ciclo_principal.id, doacao_principal.id, itens_esperados_principal
+
+
+@pytest.fixture
+def seed_doacao_em_ciclo_sem_itens(
+    seed_familia_com_endereco,
+    seed_nome_acao_agape,
+):
+    familia, _ = seed_familia_com_endereco
+
+    endereco_ciclo_principal = EnderecoFactory()
+    database.session.add(endereco_ciclo_principal)
+    database.session.flush()
+
+    nome_acao_principal = seed_nome_acao_agape
+    ciclo_principal = CicloAcaoAgapeFactory(
+        fk_acao_agape_id=nome_acao_principal.id,
+        fk_endereco_id=endereco_ciclo_principal.id,
+    )
+    database.session.add(ciclo_principal)
+    database.session.flush()
+
+    doacao_principal = DoacaoAgapeFactory(fk_familia_agape_id=familia.id)
+    database.session.add(doacao_principal)
+    database.session.flush()
+
+    endereco_ciclo_secundario = EnderecoFactory(cidade='Outra Cidade')
+    database.session.add(endereco_ciclo_secundario)
+    database.session.flush()
+
+    nome_acao_secundaria = NomeAcaoAgapeFactory(nome='Ação Secundária')
+    database.session.add(nome_acao_secundaria)
+    database.session.flush()
+
+    ciclo_secundario = CicloAcaoAgapeFactory(
+        fk_acao_agape_id=nome_acao_secundaria.id,
+        fk_endereco_id=endereco_ciclo_secundario.id,
+    )
+    database.session.add(ciclo_secundario)
+    database.session.flush()
+
+    doacao_secundaria = DoacaoAgapeFactory(fk_familia_agape_id=familia.id)
+    database.session.add(doacao_secundaria)
+    database.session.flush()
+
+    database.session.commit()
+
+    return ciclo_principal.id, doacao_principal.id

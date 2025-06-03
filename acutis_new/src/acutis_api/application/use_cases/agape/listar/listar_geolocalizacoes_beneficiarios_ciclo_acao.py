@@ -6,6 +6,7 @@ from acutis_api.communication.responses.agape import (
     ListarGeolocalizacoesBeneficiariosResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class ListarGeolocalizacoesBeneficiariosUseCase:
@@ -18,6 +19,11 @@ class ListarGeolocalizacoesBeneficiariosUseCase:
         """
         Executa a lógica para listar as geolocalizações dos beneficiários.
         """
+        ciclo_acao = self.agape_repository.buscar_ciclo_acao_agape_por_id(
+            ciclo_acao_id
+        )
+        if ciclo_acao is None:
+            raise HttpNotFoundError('Ciclo de ação não encontrado.')
         familias_beneficiadas = (
             self.agape_repository.listar_familias_beneficiadas_por_ciclo_id(
                 ciclo_acao_id=ciclo_acao_id
@@ -41,7 +47,7 @@ class ListarGeolocalizacoesBeneficiariosUseCase:
                                     nome_familia=(familia_entity.nome_familia),
                                     latitude=coordenada.latitude,
                                     longitude=coordenada.longitude,
-                                    endereco_id=familia_entity.endereco.id,
+                                    endereco_id=familia_entity.fk_endereco_id,
                                 )
                             )
 
