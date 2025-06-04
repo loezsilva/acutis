@@ -1165,7 +1165,10 @@ class AgapeRepository(AgapeRepositoryInterface):
                 PermissaoLead,
                 PermissaoLead.lead_id == Lead.id,
             )
-            .join(Perfil, Perfil.id == PermissaoLead.lead_id)
+            .join(
+                Perfil, 
+                Perfil.id == PermissaoLead.perfil_id
+            )
             .filter(Perfil.nome == PerfilEnum.voluntario_agape.value)
             .order_by(Lead.nome)
         )

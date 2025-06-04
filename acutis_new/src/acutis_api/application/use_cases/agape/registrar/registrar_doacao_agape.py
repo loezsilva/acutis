@@ -96,7 +96,6 @@ class RegistrarDoacaoAgapeUseCase:
 
         nova_doacao_agape = DoacaoAgape(
             fk_familia_agape_id=familia.id,
-            fk_instancia_acao_agape_id=ciclo_acao.id,
         )
         doacao_registrada = self.agape_repository.registrar_doacao_agape(
             nova_doacao_agape
@@ -113,7 +112,13 @@ class RegistrarDoacaoAgapeUseCase:
                     novo_item_doacao
                 )
             )
-            itens_doacao_criados_entidades.append(item_doacao_criado)
+            itens_doacao_criados_entidades.append(
+                ItemDoacaoDetalheResponseSchema(
+                    id=item_doacao_criado.fk_doacao_agape_id,
+                    item_instancia_agape_id=item_doacao_criado.fk_item_instancia_agape_id,
+                    quantidade=item_doacao_criado.quantidade,
+                )
+            )
 
             item_instancia.quantidade -= quantidade_doada
             self.agape_repository.atualizar_item_instancia_agape(

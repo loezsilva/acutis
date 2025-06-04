@@ -79,7 +79,7 @@ from acutis_api.communication.requests.agape import (
     RegistrarNomeAcaoAgapeFormData,
     RegistrarOuEditarCicloAcaoAgapeFormData,
     RegistrarOuEditarFamiliaAgapeFormData,
-    RegistrarRecibosRequestSchema,
+    RegistrarRecibosRequestScheme,
     RemoverItemEstoqueAgapeFormData,
 )
 from acutis_api.communication.responses.agape import (
@@ -1459,7 +1459,7 @@ def exportar_familias_agape_route():
 
 @agape_bp.post('/registrar-recibos-doacao-agape/<uuid:doacao_id>')
 @swagger.validate(
-    json=RegistrarRecibosRequestSchema,
+    json=RegistrarRecibosRequestScheme,
     resp=Response(
         HTTP_201=RegistrarRecibosResponse,
         HTTP_404=ErroPadraoResponse,
@@ -1472,7 +1472,7 @@ def registrar_recibos_doacao_route(doacao_id: uuid.UUID):
     Registra um ou mais recibos para uma doação ágape específica.
     """
     try:
-        request_payload = RegistrarRecibosRequestSchema.model_validate(
+        request_payload = RegistrarRecibosRequestScheme.model_validate(
             flask_request.get_json()
         )
 

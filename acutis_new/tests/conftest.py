@@ -1335,13 +1335,14 @@ def seed_lead_voluntario_e_token(client: FlaskClient):
 
     database.session.add(permissao)
     database.session.commit()
-    database.session.flush()
 
     payload = {'email': lead.email, 'senha': '#Teste;@123'}
     response = client.post(
         '/api/autenticacao/login?httponly=false', json=payload
     )
     token = response.get_json()['access_token']
+
+    database.session.flush()
 
     return lead, token
 
@@ -1421,8 +1422,8 @@ def seed_familia_com_cpf_especifico(
 
 
 @pytest.fixture
-def seed_ciclo_acao_com_itens(seed_ciclo_acao_agape):
-    ciclo_acao = seed_ciclo_acao_agape[0]
+def seed_ciclo_acao_com_itens(seed_ciclo_acao_agape_em_andamento):
+    ciclo_acao = seed_ciclo_acao_agape_em_andamento
 
     itens_estoque_criados = []
     items_instancia_criados = []
@@ -2072,7 +2073,6 @@ def seed_historico_movimentacoes_agape(
     seed_item_estoque_agape,
     seed_ciclo_acao_com_itens,
     seed_familia_com_endereco,
-    seed_membro,
 ):
     """
     Popula o banco de dados com dados de histórico de movimentações do ágape.
@@ -2462,3 +2462,119 @@ def seed_doacao_em_ciclo_sem_itens(
     database.session.commit()
 
     return ciclo_principal.id, doacao_principal.id
+
+@pytest.fixture
+def seed_leads_com_diversas_permissoes_agape():
+    
+    VOLUNTARIO_AGAPE = 'Voluntario Agape'
+    ADMIN_AGAPE = 'Administrador Agape'
+    OUTRO_PERFIL = 'Outro Perfil Comum'
+
+    created_objects = []
+
+    def _get_or_create_perfil(nome_perfil: str) -> Perfil:
+        perfil = database.session.query(Perfil).filter_by(nome=nome_perfil).first()
+        if not perfil:
+            perfil = PerfilFactory(nome=nome_perfil, status=True)
+            database.session.add(perfil)
+            
+            created_objects.append(perfil)
+            database.session.flush()
+        return perfil
+
+    perfil_voluntario = _get_or_create_perfil(VOLUNTARIO_AGAPE)
+    perfil_admin = _get_or_create_perfil(ADMIN_AGAPE)
+    perfil_outro = _get_or_create_perfil(OUTRO_PERFIL)
+
+    lead_so_voluntario = LeadFactory(
+        email='so.voluntario@example.com', status=True
+    )
+    created_objects.append(lead_so_voluntario)
+    database.session.flush()
+    perm_so_voluntario = PermissaoLeadFactory(
+        lead=lead_so_voluntario,
+        lead_id=lead_so_voluntario.id, 
+        perfil=perfil_voluntario,
+        perfil_id=perfil_voluntario.id
+    )
+    created_objects.append(perm_so_voluntario)
+
+    lead_so_admin = LeadFactory(
+        email='so.admin@example.com', status=True
+    )
+    created_objects.append(lead_so_admin)
+    database.session.flush()
+    perm_so_admin = PermissaoLeadFactory(
+        lead=lead_so_admin,
+        lead_id=lead_so_admin.id, 
+        perfil=perfil_admin,
+        perfil_id=perfil_admin.id
+    )
+    created_objects.append(perm_so_admin)
+
+    lead_voluntario_e_admin = LeadFactory(
+        email='voluntario.admin@example.com', status=True
+    )
+    created_objects.append(lead_voluntario_e_admin)
+    database.session.flush()
+    perm_vol_admin_vol = PermissaoLeadFactory(
+        lead=lead_voluntario_e_admin,
+        lead_id=lead_voluntario_e_admin.id, 
+        perfil=perfil_voluntario,
+        perfil_id=perfil_voluntario.id
+    )
+    perm_vol_admin_adm = PermissaoLeadFactory(
+        lead=lead_voluntario_e_admin,
+        lead_id=lead_voluntario_e_admin.id, 
+        perfil=perfil_admin,
+        perfil_id=perfil_admin.id
+    )
+    created_objects.extend([perm_vol_admin_vol, perm_vol_admin_adm])
+
+    lead_comum = LeadFactory(
+        email='comum.sem.agape@example.com', status=True
+    )
+    created_objects.append(lead_comum)
+    
+    lead_outro_perfil = LeadFactory(
+        email='outro.perfil@example.com', status=True
+    )
+    created_objects.append(lead_outro_perfil)
+    database.session.flush()
+    perm_outro = PermissaoLeadFactory(
+        lead=lead_outro_perfil,
+        lead_id=lead_outro_perfil.id, 
+        perfil=perfil_outro,
+        perfil_id=perfil_outro.id
+    )
+    created_objects.append(perm_outro)
+
+    database.session.add_all(created_objects)
+    database.session.commit()
+
+    return {
+        "lead_so_voluntario": {
+            "id": str(lead_so_voluntario.id), 
+            "email": lead_so_voluntario.email, 
+            "nome": lead_so_voluntario.nome, 
+            "perfis_agape": [VOLUNTARIO_AGAPE]
+        },
+        "lead_so_admin": {
+            "id": str(lead_so_admin.id), 
+            "email": lead_so_admin.email, 
+            "nome": lead_so_admin.nome, 
+            "perfis_agape": [ADMIN_AGAPE]
+        },
+        "lead_voluntario_e_admin": {
+            "id": str(lead_voluntario_e_admin.id), 
+            "email": lead_voluntario_e_admin.email, 
+            "nome": lead_voluntario_e_admin.nome, 
+            "perfis_agape": sorted([VOLUNTARIO_AGAPE, ADMIN_AGAPE])
+        },
+        "lead_comum": {
+            "id": str(lead_comum.id), 
+            "email": lead_comum.email, 
+            "nome": lead_comum.nome, 
+            "perfis_agape": []
+        },
+    }
