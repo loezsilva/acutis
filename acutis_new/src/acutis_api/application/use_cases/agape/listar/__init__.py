@@ -23,6 +23,9 @@ from .listar_status_permissao_voluntarios import (
     ListarStatusPermissaoVoluntariosUseCase,
 )
 from .listar_voluntarios_agape import ListarVoluntariosAgapeUseCase
+from .listar_doacoes_recebidas_familia import (
+    ListarDoacoesRecebidasFamiliaUseCase
+)
 
 __all__ = [
     'BuscarCicloAcaoAgapeUseCase',
@@ -42,4 +45,5 @@ __all__ = [
     'ExportarDoacoesBeneficiadosUseCase',
     'ExportarFamiliasAgapeUseCase',
     'ListarStatusPermissaoVoluntariosUseCase',
+    'ListarDoacoesRecebidasFamiliaUseCase',
 ]

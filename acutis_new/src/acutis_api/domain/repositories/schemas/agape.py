@@ -239,3 +239,13 @@ class DadosExportacaoFamiliaSchema(BaseModel):
 
     class Config:
         from_attributes = True
+class DoacaoRecebidaItemDetalheSchema(BaseModel):
+    nome_item: str
+    quantidade: int
+    
+class DoacaoRecebidaDetalheSchema(BaseModel):
+    id: uuid.UUID
+    data_doacao: datetime
+    itens: list[DoacaoRecebidaItemDetalheSchema]
+
+    

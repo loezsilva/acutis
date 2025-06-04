@@ -47,6 +47,7 @@ from .listar import (
     ListarNomesAcoesAgapeUseCase,
     ListarStatusPermissaoVoluntariosUseCase,
     ListarVoluntariosAgapeUseCase,
+    ListarDoacoesRecebidasFamiliaUseCase,
 )
 from .registrar import (
     RegistrarCicloAcaoAgapeUseCase,
@@ -106,4 +107,5 @@ __all__ = [
     'ExportarFamiliasAgapeUseCase',
     'RegistrarRecibosDoacaoAgapeUseCase',
     'ListarStatusPermissaoVoluntariosUseCase',
+    'ListarDoacoesRecebidasFamiliaUseCase',
 ]

@@ -57,6 +57,7 @@ from acutis_api.application.use_cases.agape import (
     RegistrarNomeAcaoAgapeUseCase,
     RegistrarRecibosDoacaoAgapeUseCase,
     RemoverItemEstoqueAgapeUseCase,
+    ListarDoacoesRecebidasFamiliaUseCase,
 )
 from acutis_api.application.utils.funcoes_auxiliares import (
     transforma_string_para_data,
@@ -112,6 +113,7 @@ from acutis_api.communication.responses.agape import (
     RegistrarItemEstoqueAgapeResponse,
     RegistrarRecibosResponse,
     UltimoCicloAcaoAgapeResponse,
+    ListarDoacoesRecebidasFamiliaResponse,
 )
 from acutis_api.communication.responses.padrao import (
     ErroPadraoResponse,
@@ -1518,5 +1520,33 @@ def listar_status_permissao_voluntarios_route():
         return response.model_dump(), HTTPStatus.OK
 
     except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+@agape_bp.get('/listar-doacoes-recebidas/<uuid:familia_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=ListarDoacoesRecebidasFamiliaResponse,
+        HTTP_404=ErroPadraoResponse,
+        HTTP_422=ErroPadraoResponse,
+    ),
+    tags=['Ágape - Doações'],
+)
+def listar_doacoes_recebidas_familia_agape(familia_id: uuid.UUID):
+    """
+    Retorna todas as doações recebidas pela família ágape especificada pelo ID.
+    """
+    try:
+        repository = AgapeRepository(database)
+        use_case = ListarDoacoesRecebidasFamiliaUseCase(
+            agape_repository=repository
+        )
+        
+        response_data, status_code = use_case.execute(familia_id=familia_id)
+
+        return response_data.model_dump(), status_code
+
+    except Exception as exc:
+        database.session.rollback()
         error_response = errors_handler(exc)
         return error_response

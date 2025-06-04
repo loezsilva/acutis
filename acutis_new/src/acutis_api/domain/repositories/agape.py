@@ -53,6 +53,7 @@ from acutis_api.domain.repositories.schemas.agape import (
     TotalItensRecebidosSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
+    DoacaoRecebidaDetalheSchema,
 )
 
 
@@ -467,3 +468,9 @@ class AgapeRepositoryInterface(ABC):
     def listar_membros_familia(
         self, filtros: ListarMembrosFamiliaAgapeFiltros, familia_id: UUID
     ) -> tuple[list[MembroFamiliaSchema], int]: ...
+
+    abstractmethod
+    def listar_doacoes_recebidas_por_familia(
+        self, familia_id: UUID
+    ) -> list[DoacaoAgape]:
+        ...

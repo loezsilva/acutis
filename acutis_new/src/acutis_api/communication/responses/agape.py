@@ -554,9 +554,48 @@ class StatusPermissaoVoluntario(BaseModel):
 
     lead_id: uuid.UUID
     nome: str
-    email: str  # Considerar EmailStr se validação de formato for desejada
-    perfis_agape: list[str]  # Lista de nomes de perfis Ágape
+    email: str
+    perfis_agape: list[str]
 
 
 class ListarStatusPermissaoVoluntariosResponse(PaginacaoResponse):
     resultados: list[StatusPermissaoVoluntario]
+
+class DoacaoRecebidaItemDetalheSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    nome_item: str
+    quantidade: int
+
+
+class DoacaoRecebidaDetalheSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID  # ID da DoacaoAgape
+    data_doacao: datetime
+    itens: list[DoacaoRecebidaItemDetalheSchema]
+
+
+class ListarDoacoesRecebidasFamiliaResponse(RootModel[list[DoacaoRecebidaDetalheSchema]]):
+    root: list[DoacaoRecebidaDetalheSchema]
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            'example': [
+                {
+                    'id': 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+                    'data_doacao': '01/01/2025 00:00:00',
+                    'itens': [
+                        {
+                            'nome_item': 'Arroz Tipo 1',
+                            'quantidade': 5,
+                        },
+                        {
+                            'nome_item': 'Feijão Carioca',
+                            'quantidade': 3,
+                        },
+                    ],
+                }
+            ]
+        }

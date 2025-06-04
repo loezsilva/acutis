@@ -67,6 +67,8 @@ from acutis_api.domain.repositories.schemas.agape import (
     TotalItensRecebidosSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
+    DoacaoRecebidaDetalheSchema,
+    DoacaoRecebidaItemDetalheSchema,
 )
 from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 from acutis_api.exception.errors.not_found import HttpNotFoundError
@@ -1446,4 +1448,15 @@ class AgapeRepository(AgapeRepositoryInterface):
     ) -> PermissaoLead | None:
         return self._database.session.query(PermissaoLead).filter(
             PermissaoLead.lead_id == lead_id
+        )
+
+    def listar_doacoes_recebidas_por_familia(
+        self, familia_id: UUID
+    ) -> list[DoacaoAgape]:
+        
+        return (
+            self._database.session.query(DoacaoAgape)
+            .filter(DoacaoAgape.fk_familia_agape_id == familia_id)
+            .order_by(desc(DoacaoAgape.criado_em))
+            .all()
         )
