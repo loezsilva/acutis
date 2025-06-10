@@ -20,6 +20,7 @@ def pegar_dados():
         'numero': '1250',
         'complemento': 'complemento teste',
     })
+
     membros = [
         json.dumps({
             'responsavel': True,
@@ -37,22 +38,27 @@ def pegar_dados():
         })
     ]
 
-    return {
+    dados = {
         'endereco': endereco,
         'membros': membros,
         'observacao': 'teste',
+    }
+
+    arquivos = {
         'comprovante_residencia': (BytesIO(b'foto'), 'foto_teste.png'),
         'fotos_familia': [(BytesIO(b'foto'), 'foto_teste.png')],
     }
 
+    return dados, arquivos
+
 
 def test_registrar_familia_sucesso(client: FlaskClient, membro_token):
-    dados = pegar_dados()
+    dados, arquivos = pegar_dados()
 
     response = client.post(
         REGISTRAR_FAMILIA_ENDPOINT,
         headers={'Authorization': f'Bearer {membro_token}'},
-        data=dados,
+        data={**dados, **arquivos},
     )
 
     assert response.status_code == HTTPStatus.CREATED
@@ -62,7 +68,7 @@ def test_registrar_familia_sucesso(client: FlaskClient, membro_token):
 def test_erro_registrar_familia_cep_invalido(
     client: FlaskClient, membro_token
 ):
-    dados = pegar_dados()
+    dados, _ = pegar_dados()
     dados['endereco'] = json.dumps({
         'cep': '58000-000',
         'rua': 'Av. almirante carvalho',

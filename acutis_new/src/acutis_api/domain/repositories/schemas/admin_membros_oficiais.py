@@ -3,6 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from acutis_api.communication.enums import TipoOrdenacaoEnum
+from acutis_api.communication.enums.admin_membros_oficiais import (
+    ListarMembrosOficiaisOrdenarPorEnum,
+)
+
 
 class StatusOficialEnum(str, Enum):
     aprovado = 'aprovado'
@@ -32,6 +37,10 @@ class ListarMembrosOficiaisSchema(BaseModel):
     )
     fk_superior_id: Optional[str] = Field(None, description='ID de superior')
     filtro_dinamico: Optional[str] = Field(None, description='Filtro dinâmico')
+    ordenar_por: ListarMembrosOficiaisOrdenarPorEnum = (
+        ListarMembrosOficiaisOrdenarPorEnum.criado_em
+    )
+    tipo_ordenacao: TipoOrdenacaoEnum = TipoOrdenacaoEnum.decrescente
 
 
 class AlterarCargoOficialSchema(BaseModel):

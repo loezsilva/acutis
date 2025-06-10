@@ -3,8 +3,8 @@ from typing import Optional
 from uuid import UUID
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import desc, distinct, func, select
-from sqlalchemy.orm import aliased, selectinload
+from sqlalchemy import desc, func, select
+from sqlalchemy.orm import selectinload
 
 from acutis_api.communication.enums.membros import PerfilEnum
 from acutis_api.communication.requests.agape import (
@@ -35,8 +35,10 @@ from acutis_api.domain.entities.item_doacao_agape import ItemDoacaoAgape
 from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
 from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.membro_agape import MembroAgape
+from acutis_api.domain.entities.menu_sistema import MenuSistema
 from acutis_api.domain.entities.perfil import Perfil
 from acutis_api.domain.entities.permissao_lead import PermissaoLead
+from acutis_api.domain.entities.permissao_menu import PermissaoMenu
 from acutis_api.domain.entities.recibo_agape import ReciboAgape
 from acutis_api.domain.repositories.agape import (
     AgapeRepositoryInterface,
@@ -67,8 +69,6 @@ from acutis_api.domain.repositories.schemas.agape import (
     TotalItensRecebidosSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
-    DoacaoRecebidaDetalheSchema,
-    DoacaoRecebidaItemDetalheSchema,
 )
 from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 from acutis_api.exception.errors.not_found import HttpNotFoundError
@@ -174,7 +174,7 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         return instancia
 
-    def verificar_item_estoque(self, item: str) -> tuple:
+    def verificar_item_estoque(self, item: str) -> EstoqueAgape:
         return (
             self._database.session.query(EstoqueAgape)
             .filter(EstoqueAgape.item == item.strip())
@@ -374,15 +374,14 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         return instancia
 
-    def deletar_item_ciclo_acao_agape(self, item_ciclo_id: UUID) -> None:
+    def deletar_item_ciclo_acao_agape(
+        self, item_estoque: EstoqueAgape
+    ) -> None:
         """
         Deleta um item de ciclo de ação Ágape.
         """
         session = self._database.session
-
-        instancia = self.buscar_item_ciclo_acao_agape_por_id(item_ciclo_id)
-
-        session.delete(instancia)
+        session.delete(item_estoque)
 
     def retorna_item_estoque_ciclo_acao_agape(
         self, item_ciclo_id: UUID
@@ -409,7 +408,7 @@ class AgapeRepository(AgapeRepositoryInterface):
 
     def registrar_item_ciclo_acao_agape(
         self, ciclo_acao_id, dados: RegistrarItemCicloAcaoAgapeFormData
-    ) -> None:
+    ) -> ItemInstanciaAgape:
         session = self._database.session
 
         item = self.buscar_item_estoque_por_id(dados.item_id)
@@ -530,7 +529,7 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         return ciclo_acao
 
-    def deletar_ciclo_acao_agape(self, acao_agape_id) -> InstanciaAcaoAgape:
+    def deletar_ciclo_acao_agape(self, acao_agape_id) -> None:
         """
         Deleta um ciclo de ação Ágape não iniciado
         """
@@ -541,8 +540,6 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         # Remove ciclo
         session.delete(instancia)
-
-        return {}
 
     def buscar_membro_familia_por_id(self, membro_id: UUID) -> FamiliaAgape:
         """
@@ -676,9 +673,9 @@ class AgapeRepository(AgapeRepositoryInterface):
 
     def movimentar_historico_ciclo_acao_agape(
         self,
-        item_id,
-        ciclo_acao_id,
         quantidade,
+        item_id=None,
+        ciclo_acao_id=None,
     ) -> HistoricoMovimentacaoAgape:
         session = self._database.session
 
@@ -1009,7 +1006,6 @@ class AgapeRepository(AgapeRepositoryInterface):
         session.add(endereco_obj)
 
         if coordenadas:
-            coordenada_obj = endereco_obj.coordenada
             coordenada_obj = Coordenada(
                 fk_endereco_id=endereco_obj.id,
                 latitude=coordenadas.latitude,
@@ -1167,10 +1163,7 @@ class AgapeRepository(AgapeRepositoryInterface):
                 PermissaoLead,
                 PermissaoLead.lead_id == Lead.id,
             )
-            .join(
-                Perfil, 
-                Perfil.id == PermissaoLead.perfil_id
-            )
+            .join(Perfil, Perfil.id == PermissaoLead.perfil_id)
             .filter(Perfil.nome == PerfilEnum.voluntario_agape.value)
             .order_by(Lead.nome)
         )
@@ -1207,24 +1200,36 @@ class AgapeRepository(AgapeRepositoryInterface):
         self._database.session.add(item_instancia)
         return item_instancia
 
-    def buscar_lead_com_permissoes_por_id(self, lead_id: UUID) -> Lead | None:
-        return (
-            self._database.session.query(Lead)
-            .options(
-                selectinload(Lead.permissoes_lead).selectinload(
-                    PermissaoLead.perfil
-                )
-            )
-            .filter(Lead.id == lead_id)
-            .one_or_none()
-        )
-
     def buscar_perfil_por_nome(self, nome_perfil: str) -> Perfil | None:
         return (
             self._database.session.query(Perfil)
             .filter(Perfil.nome == nome_perfil)
             .one_or_none()
         )
+
+    def buscar_permissoes_valuntarios(
+        self, perfil_voluntario: Perfil
+    ) -> PermissaoMenu | None:
+        permissao_query = (
+            self._database.session.query(PermissaoMenu)
+            .join(Perfil, PermissaoMenu.perfil_id == Perfil.id)
+            .join(MenuSistema, PermissaoMenu.menu_id == MenuSistema.id)
+            .filter(
+                Perfil.id == perfil_voluntario.id,
+                MenuSistema.slug == 'familia_agape',
+            )
+        )
+
+        permissao = permissao_query.first()
+
+        return permissao
+
+    def atualizar_permissoes_voluntario_agape(
+        self, permissao: PermissaoMenu
+    ) -> None:
+        permissao.acessar = not permissao.acessar
+        permissao.criar = not permissao.criar
+        permissao.editar = not permissao.editar
 
     def remover_permissao_lead(self, permissao_lead: PermissaoLead) -> None:
         self._database.session.delete(permissao_lead)
@@ -1241,8 +1246,6 @@ class AgapeRepository(AgapeRepositoryInterface):
     def buscar_dados_exportacao_doacoes_ciclo(
         self, ciclo_acao_id: UUID
     ) -> list[DadosCompletosDoacaoSchema]:
-        MembroResponsavel = aliased(MembroAgape)
-
         query_results = (
             self._database.session.query(
                 InstanciaAcaoAgape.id.label('ciclo_acao_id'),
@@ -1254,11 +1257,9 @@ class AgapeRepository(AgapeRepositoryInterface):
                 FamiliaAgape.id.label('familia_id'),
                 FamiliaAgape.nome_familia.label('familia_nome'),
                 FamiliaAgape.observacao.label('familia_observacao'),
-                MembroResponsavel.nome.label('responsavel_familia_nome'),
-                MembroResponsavel.cpf.label('responsavel_familia_cpf'),
-                MembroResponsavel.telefone.label(
-                    'responsavel_familia_telefone'
-                ),
+                MembroAgape.nome.label('responsavel_familia_nome'),
+                MembroAgape.cpf.label('responsavel_familia_cpf'),
+                MembroAgape.telefone.label('responsavel_familia_telefone'),
                 DoacaoAgape.id.label('doacao_id'),
                 DoacaoAgape.criado_em.label('doacao_data'),
                 EstoqueAgape.item.label('item_doado_nome'),
@@ -1274,9 +1275,9 @@ class AgapeRepository(AgapeRepositoryInterface):
                 FamiliaAgape.id == DoacaoAgape.fk_familia_agape_id,
             )
             .outerjoin(
-                MembroResponsavel,
-                (MembroResponsavel.fk_familia_agape_id == FamiliaAgape.id)
-                & (MembroResponsavel.responsavel == True),
+                MembroAgape,
+                (MembroAgape.fk_familia_agape_id == FamiliaAgape.id)
+                & (MembroAgape.responsavel == True),
             )
             .join(
                 ItemInstanciaAgape,
@@ -1313,17 +1314,13 @@ class AgapeRepository(AgapeRepositoryInterface):
     def buscar_dados_completos_familias_agape(
         self,
     ) -> list[DadosExportacaoFamiliaSchema]:
-        MembroResponsavel = aliased(MembroAgape)
-
         query_explicit = (
-            self._database.session.query(
-                FamiliaAgape, Endereco, MembroResponsavel
-            )
+            self._database.session.query(FamiliaAgape, Endereco, MembroAgape)
             .outerjoin(Endereco, FamiliaAgape.fk_endereco_id == Endereco.id)
             .outerjoin(
-                MembroResponsavel,
-                (MembroResponsavel.fk_familia_agape_id == FamiliaAgape.id)
-                & (MembroResponsavel.responsavel == True),
+                MembroAgape,
+                (MembroAgape.fk_familia_agape_id == FamiliaAgape.id)
+                & (MembroAgape.responsavel == True),
             )
             .options(selectinload(FamiliaAgape.membros))
             .filter(FamiliaAgape.deletado_em.is_(None))
@@ -1411,49 +1408,34 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         return instancia
 
-    def listar_leads_por_nomes_de_perfis(
-        self, nomes_perfis: list[str], filtros_paginacao: PaginacaoQuery
-    ) -> tuple[list[Lead], int]:
-        query = (
-            self._database.session.query(Lead)
-            .join(Lead.permissoes_lead)
-            .join(PermissaoLead.perfil)
-            .filter(Perfil.nome.in_(nomes_perfis))
-            .options(
-                selectinload(Lead.permissoes_lead).selectinload(
-                    PermissaoLead.perfil
-                )
+    def buscar_permissoes_perfil(
+        self, perfil: Perfil, slug: str = 'familia_agape'
+    ) -> list[PermissaoMenu]:
+        permissoes_query = (
+            self._database.session.query(PermissaoMenu)
+            .join(Perfil, PermissaoMenu.perfil_id == Perfil.id)
+            .join(MenuSistema, PermissaoMenu.menu_id == MenuSistema.id)
+            .filter(
+                Perfil.id == perfil.id,
+                MenuSistema.slug == slug,
             )
-            .order_by(Lead.nome)
         )
+        permissao = permissoes_query.first()
 
-        count_query = (
-            self._database.session.query(func.count(distinct(Lead.id)))
-            .join(Lead.permissoes_lead)
-            .join(PermissaoLead.perfil)
-            .filter(Perfil.nome.in_(nomes_perfis))
-        )
-        total = count_query.scalar() or 0
+        return permissao
 
-        paginated_query = query.limit(filtros_paginacao.por_pagina).offset(
-            (filtros_paginacao.pagina - 1) * filtros_paginacao.por_pagina
-        )
-
-        leads = paginated_query.all()
-
-        return leads, total
-
-    def buscar_permissoes_por_lead_id(
+    def buscar_primeira_permissao_por_lead_id(
         self, lead_id: UUID
     ) -> PermissaoLead | None:
-        return self._database.session.query(PermissaoLead).filter(
-            PermissaoLead.lead_id == lead_id
+        return (
+            self._database.session.query(PermissaoLead)
+            .filter(PermissaoLead.lead_id == lead_id)
+            .first()
         )
 
     def listar_doacoes_recebidas_por_familia(
         self, familia_id: UUID
     ) -> list[DoacaoAgape]:
-        
         return (
             self._database.session.query(DoacaoAgape)
             .filter(DoacaoAgape.fk_familia_agape_id == familia_id)

@@ -10,6 +10,7 @@ from acutis_api.application.use_cases.admin.membros_oficiais import (
     AlterarStatusMembroOficialUseCase,
     AlterarVinculoOficialUseCase,
     ExcluirMembroOficialUseCase,
+    ListarMembroOficialPorIdUseCase,
     ListarMembrosOficiaisUseCase,
 )
 from acutis_api.communication.requests.admin_membros_oficiais import (
@@ -20,6 +21,7 @@ from acutis_api.communication.requests.admin_membros_oficiais import (
 )
 from acutis_api.communication.responses.admin_membros_oficiais import (
     ListarMembrosOficiaisResponse,
+    MembrosOficiaisResponse,
 )
 from acutis_api.communication.responses.padrao import (
     ErroPadraoResponse,
@@ -153,4 +155,24 @@ def admin_excluir_oficial(fk_membro_oficial_id):
         return {'msg': 'Membro Oficial deletado com sucesso'}, HTTPStatus.OK
     except Exception as exc:
         database.session.rollback()
+        return errors_handler(exc)
+
+
+@admin_membros_oficiais.get('/listar-por-id/<uuid:membro_oficial_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=MembrosOficiaisResponse,
+        HTTP_500=ErroPadraoResponse,
+    ),
+    tags=['Admin - Membros Oficiais'],
+)
+@jwt_required()
+def admin_listar_membro_oficial_por_id(membro_oficial_id):
+    try:
+        file_service = file_service_factory()
+        repository = MembrosOficiaisRepository(database)
+        usecase = ListarMembroOficialPorIdUseCase(repository, file_service)
+        response = usecase.execute(membro_oficial_id)
+        return response, HTTPStatus.OK
+    except Exception as exc:
         return errors_handler(exc)

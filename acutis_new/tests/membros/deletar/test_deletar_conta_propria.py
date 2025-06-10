@@ -42,6 +42,7 @@ def test_usuario_confirma_exclusao_de_conta(
     client: FlaskClient,
     seed_membro_com_todas_relacoes,
 ):
+    seed_membro_com_todas_relacoes = seed_membro_com_todas_relacoes()
     lead = seed_membro_com_todas_relacoes['lead']
     membro = seed_membro_com_todas_relacoes['membro']
     endereco = seed_membro_com_todas_relacoes['endereco']

@@ -47,6 +47,7 @@ class EditarEnderecoFamiliaAgapeUseCase:
         """
 
         coordenadas_obj: CoordenadasSchema
+
         try:
             # geolocalizacao_gmaps_obj é do tipo GoogleMapsGeocode
             geolocalizacao_gmaps_obj: GoogleMapsGeocode = (
@@ -61,29 +62,16 @@ class EditarEnderecoFamiliaAgapeUseCase:
                 longitude_so=geolocalizacao_gmaps_obj.longitude_so,
             )
 
-        except HttpNotFoundError as e:
-            logger.error(
-                f"Erro de geolocalização (HttpNotFoundError) \
-            para endereço '{str_endereco}': {e}"
-            )
+        except HttpNotFoundError:
             raise HttpNotFoundError(
                 'Endereço não pôde ser \
                 geolocalizado ou é inválido.'
             )
-        except Exception as e:
-            logger.error(
-                f"Erro inesperado ao geolocalizar endereço \
-                '{str_endereco}': {e}",
-                exc_info=True,
-            )
-            raise HttpNotFoundError(f'Erro ao geolocalizar endereço: {str(e)}')
-        print(f'Geolocalização obtida: {coordenadas_obj}')
+
         self.__repository.atualizar_endereco_familia(
             familia=familia,
             dados_endereco=dados_endereco,
             coordenadas=coordenadas_obj,
         )
 
-        return ResponsePadraoSchema(
-            msg='Endereço atualizado com sucesso.'
-        ), HTTPStatus.OK
+        self.__repository.salvar_alteracoes()

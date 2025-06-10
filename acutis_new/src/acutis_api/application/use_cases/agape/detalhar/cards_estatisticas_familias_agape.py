@@ -1,5 +1,3 @@
-from http import HTTPStatus
-
 from acutis_api.communication.responses.agape import (
     CardsEstatisticasFamiliasAgapeResponse,
 )
@@ -21,7 +19,7 @@ class CardsEstatisticasFamiliasAgapeUseCase:
 
     def execute(
         self,
-    ) -> tuple[CardsEstatisticasFamiliasAgapeResponse, HTTPStatus]:
+    ) -> CardsEstatisticasFamiliasAgapeResponse:
         dados_familias: InformacoesAgregadasFamiliasSchema = (
             self.__repository.informacoes_agregadas_familias()
         )
@@ -39,9 +37,8 @@ class CardsEstatisticasFamiliasAgapeUseCase:
         quantidade_total_membros = getattr(
             dados_membros, 'quantidade_total_membros', 0
         )
-        soma_total_renda = getattr(dados_renda, 'soma_total_renda', 0.0)
 
-        soma_total_renda = soma_total_renda or 0.0  # ensure it's not None
+        soma_total_renda = getattr(dados_renda, 'soma_total_renda', 0.0)
 
         # Calculate Statistics
         media_membros = (
@@ -67,8 +64,7 @@ class CardsEstatisticasFamiliasAgapeUseCase:
             else 0.0
         )
 
-        # Format Response
-        response_data = CardsEstatisticasFamiliasAgapeResponse(
+        return CardsEstatisticasFamiliasAgapeResponse(
             familias_cadastradas=f'{total_ativas} - Famílias ativas',
             renda_media=f'{renda_media_sm:.1f} Salários minimos',
             membros_por_familia=f'{media_membros:.1f} pessoas',
@@ -76,6 +72,4 @@ class CardsEstatisticasFamiliasAgapeUseCase:
             familias_inativas=(
                 f'{total_inativas} - {porcent_familias_inativas:.0f}%'
             ),
-        )
-
-        return response_data, HTTPStatus.OK
+        ).model_dump()

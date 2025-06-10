@@ -3,6 +3,10 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from acutis_api.communication.enums import TipoOrdenacaoEnum
+from acutis_api.communication.enums.admin_membros_oficiais import (
+    ListarMembrosOficiaisOrdenarPorEnum,
+)
 from acutis_api.communication.enums.membros_oficiais import (
     AdminAcaoMembroOficialEnum,
     StatusOficialEnum,
@@ -33,9 +37,10 @@ class ListarMembrosOficiaisRequest(BaseModel):
     por_pagina: Optional[int] = Field(
         default=10, description='Quantidade por página'
     )
-    ordenar_por: Optional[str] = Field(
-        default='desc', description='desc | asc'
+    ordenar_por: ListarMembrosOficiaisOrdenarPorEnum = (
+        ListarMembrosOficiaisOrdenarPorEnum.criado_em
     )
+    tipo_ordenacao: TipoOrdenacaoEnum = TipoOrdenacaoEnum.decrescente
     filtro_dinamico: Optional[str] = Field(None, description='Filtro dinâmico')
 
     @field_validator('filtro_dinamico')

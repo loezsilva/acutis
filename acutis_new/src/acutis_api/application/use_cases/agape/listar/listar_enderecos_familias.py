@@ -1,5 +1,3 @@
-from http import HTTPStatus
-
 from acutis_api.communication.responses.agape import (
     EnderecoFamiliaAgapeResponse,
     ListarEnderecosFamiliasAgapeResponse,
@@ -17,7 +15,7 @@ class ListarEnderecosFamiliasAgapeUseCase:
 
     def execute(
         self,
-    ) -> tuple[ListarEnderecosFamiliasAgapeResponse, HTTPStatus]:
+    ) -> ListarEnderecosFamiliasAgapeResponse:
         familias_com_enderecos = (
             self.agape_repository.listar_familias_com_enderecos()
         )
@@ -55,4 +53,4 @@ class ListarEnderecosFamiliasAgapeUseCase:
 
         return ListarEnderecosFamiliasAgapeResponse(
             root=enderecos_response_list
-        ), HTTPStatus.OK
+        ).model_dump()

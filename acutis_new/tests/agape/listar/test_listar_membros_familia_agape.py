@@ -83,10 +83,7 @@ def test_listar_membros_familia_id_formato_invalido(
         url, headers={'Authorization': f'Bearer {membro_token}'}
     )
 
-    assert (
-        resposta.status_code
-        in set[
-            HTTPStatus.NOT_FOUND,
-            HTTPStatus.UNPROCESSABLE_ENTITY,
-        ]
-    )
+    assert resposta.status_code in set([
+        HTTPStatus.NOT_FOUND,
+        HTTPStatus.UNPROCESSABLE_ENTITY,
+    ])

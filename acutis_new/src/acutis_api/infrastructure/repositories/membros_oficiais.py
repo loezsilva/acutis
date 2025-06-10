@@ -4,6 +4,10 @@ from flask_jwt_extended import current_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import aliased
 
+from acutis_api.communication.enums import TipoOrdenacaoEnum
+from acutis_api.communication.enums.admin_membros_oficiais import (
+    ListarMembrosOficiaisOrdenarPorEnum,
+)
 from acutis_api.communication.requests.membros_oficiais import (
     RegistrarMembroOficialRequest,
 )
@@ -61,10 +65,33 @@ class MembrosOficiaisRepository(MembrosOficiaisRepositoryInterface):
         superior_alias = aliased(Membro)
         lead_superior_alias = aliased(Lead)
 
-        MAP_ORDER_BY = {
-            'desc': self.__database.desc(Oficial.criado_em),
-            'asc': self.__database.asc(Oficial.criado_em),
+        ordenar_por_map = {
+            ListarMembrosOficiaisOrdenarPorEnum.lead_nome: Lead.nome,
+            ListarMembrosOficiaisOrdenarPorEnum.lead_email: Lead.email,
+            ListarMembrosOficiaisOrdenarPorEnum.membro_documento: (
+                membro_oficial_alias.numero_documento
+            ),
+            ListarMembrosOficiaisOrdenarPorEnum.membro_sexo: (
+                membro_oficial_alias.sexo
+            ),
+            ListarMembrosOficiaisOrdenarPorEnum.oficial_status: Oficial.status,
+            ListarMembrosOficiaisOrdenarPorEnum.cargo_oficial: (
+                CargosOficiais.nome_cargo
+            ),
+            ListarMembrosOficiaisOrdenarPorEnum.superior_nome: (
+                lead_superior_alias.nome
+            ),
+            ListarMembrosOficiaisOrdenarPorEnum.criado_em: Oficial.criado_em,
         }
+
+        campo_sqlalchemy = ordenar_por_map[filtros_da_requisicao.ordenar_por]
+
+        campo_ordenacao = (
+            self.__database.asc(campo_sqlalchemy)
+            if filtros_da_requisicao.tipo_ordenacao
+            == (TipoOrdenacaoEnum.crescente)
+            else self.__database.desc(campo_sqlalchemy)
+        )
 
         filtros = {
             (
@@ -122,13 +149,6 @@ class MembrosOficiaisRepository(MembrosOficiaisRepositoryInterface):
                     Lead.email.ilike(pesquisa),
                     membro_oficial_alias.numero_documento.ilike(pesquisa),
                     membro_oficial_alias.sexo.ilike(pesquisa),
-                    Endereco.logradouro.ilike(pesquisa),
-                    Endereco.numero.ilike(pesquisa),
-                    Endereco.bairro.ilike(pesquisa),
-                    Endereco.codigo_postal.ilike(pesquisa),
-                    Endereco.cidade.ilike(pesquisa),
-                    Endereco.complemento.ilike(pesquisa),
-                    Endereco.pais.ilike(pesquisa),
                     Oficial.status.ilike(pesquisa),
                     CargosOficiais.nome_cargo.ilike(pesquisa),
                     lead_superior_alias.nome.ilike(pesquisa),
@@ -162,8 +182,8 @@ class MembrosOficiaisRepository(MembrosOficiaisRepositoryInterface):
                 lead_superior_alias.id == superior_alias.fk_lead_id,
             )
             .filter(*filtros)
-            .order_by(MAP_ORDER_BY[filtros_da_requisicao.ordenar_por])
         )
+        consulta = consulta.order_by(campo_ordenacao)
 
         return consulta.paginate(
             page=filtros_da_requisicao.pagina,
@@ -270,3 +290,41 @@ class MembrosOficiaisRepository(MembrosOficiaisRepositoryInterface):
         )
 
         return membros_superiores
+
+    def admin_listar_membro_oficial_por_id(
+        self, membro_oficial_id: uuid.UUID
+    ) -> tuple:
+        membro_oficial_alias = aliased(Membro)
+        membro_superior_alias = aliased(Membro)
+        lead_superior_alias = aliased(Lead)
+
+        return (
+            self.__database.session.query(
+                Lead,
+                membro_oficial_alias,
+                Endereco,
+                Oficial,
+                CargosOficiais.nome_cargo,
+                lead_superior_alias.nome.label('nome_superior'),
+            )
+            .join(
+                membro_oficial_alias,
+                membro_oficial_alias.fk_lead_id == Lead.id,
+            )
+            .join(Oficial, Oficial.fk_membro_id == membro_oficial_alias.id)
+            .join(Endereco, Endereco.id == membro_oficial_alias.fk_endereco_id)
+            .outerjoin(
+                membro_superior_alias,
+                membro_superior_alias.id == (Oficial.fk_superior_id),
+            )
+            .outerjoin(
+                lead_superior_alias,
+                lead_superior_alias.id == membro_superior_alias.fk_lead_id,
+            )
+            .outerjoin(
+                CargosOficiais,
+                CargosOficiais.id == Oficial.fk_cargo_oficial_id,
+            )
+            .filter(Oficial.id == membro_oficial_id)
+            .first()
+        )

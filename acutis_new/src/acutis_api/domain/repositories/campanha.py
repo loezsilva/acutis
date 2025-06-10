@@ -7,6 +7,7 @@ from acutis_api.domain.entities.campanha import Campanha
 from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
 from acutis_api.domain.entities.landing_page import LandingPage
 from acutis_api.domain.repositories.schemas.campanhas import (
+    ListarCadastrosCampanhaSchema,
     ListarCampanhasQuery,
     ListarDoacoesCampanhaSchema,
     RegistrarCampanhaSchema,
@@ -113,3 +114,8 @@ class CampanhaRepositoryInterface(ABC):
     def atualizar_campanha_doacao(
         self, chave_pix: str, campanha_doacao: CampanhaDoacao
     ): ...
+
+    @abstractmethod
+    def listar_cadastros_campanha_pelo_id(
+        self, filtros: PaginacaoQuery, campanha_id: uuid.UUID
+    ) -> tuple[list[ListarCadastrosCampanhaSchema], int]: ...

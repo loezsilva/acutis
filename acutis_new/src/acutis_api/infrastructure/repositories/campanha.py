@@ -3,14 +3,20 @@ from datetime import datetime
 
 from flask_jwt_extended import current_user
 from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, select
 
+from acutis_api.communication.enums import TipoOrdenacaoEnum
+from acutis_api.communication.enums.admin_campanhas import (
+    ListarCampanhasOrdenarPorEnum,
+)
 from acutis_api.domain.entities.benfeitor import Benfeitor
 from acutis_api.domain.entities.campanha import Campanha
 from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
 from acutis_api.domain.entities.campo_adicional import CampoAdicional
 from acutis_api.domain.entities.doacao import Doacao
 from acutis_api.domain.entities.landing_page import LandingPage
+from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
 from acutis_api.domain.entities.pagamento_doacao import PagamentoDoacao
 from acutis_api.domain.entities.processamento_doacao import (
@@ -150,12 +156,25 @@ class CampanhaRepository(CampanhaRepositoryInterface):
     def listar_campanhas(
         self, filtros_da_requisicao: ListarCampanhasQuery
     ) -> dict:
-        MAP_ORDER_BY = {
-            'desc': self.__database.desc(Campanha.criado_em),
-            'asc': self.__database.asc(Campanha.criado_em),
+        ordenar_por_map = {
+            ListarCampanhasOrdenarPorEnum.campanha_id: Campanha.id,
+            ListarCampanhasOrdenarPorEnum.campanha_nome: Campanha.nome,
+            ListarCampanhasOrdenarPorEnum.campanha_objetivo: Campanha.objetivo,
+            ListarCampanhasOrdenarPorEnum.campanha_publica: Campanha.publica,
+            ListarCampanhasOrdenarPorEnum.campanha_ativa: Campanha.ativa,
+            ListarCampanhasOrdenarPorEnum.criado_em: Campanha.criado_em,
         }
 
-        filtros = [
+        campo_sqlalchemy = ordenar_por_map[filtros_da_requisicao.ordenar_por]
+
+        campo_ordenacao = (
+            self.__database.asc(campo_sqlalchemy)
+            if filtros_da_requisicao.tipo_ordenacao
+            == (TipoOrdenacaoEnum.crescente)
+            else self.__database.desc(campo_sqlalchemy)
+        )
+
+        filtros = {
             (
                 Campanha.id == filtros_da_requisicao.id
                 if filtros_da_requisicao.id
@@ -192,14 +211,23 @@ class CampanhaRepository(CampanhaRepositoryInterface):
                 and filtros_da_requisicao.data_final is not None
                 else True
             ),
-        ]
+        }
+
+        if filtros_da_requisicao.filtro_dinamico:
+            pesquisa = f'%{filtros_da_requisicao.filtro_dinamico}%'
+            filtros.add(
+                self.__database.or_(
+                    Campanha.nome.ilike(pesquisa),
+                    Campanha.objetivo.ilike(pesquisa),
+                )
+            )
 
         consulta_campanhas = (
             self.__database.session.query(Campanha)
             .outerjoin(LandingPage, LandingPage.fk_campanha_id == Campanha.id)
             .filter(*filtros)
-            .order_by(MAP_ORDER_BY[filtros_da_requisicao.ordenar_por])
         )
+        consulta_campanhas = consulta_campanhas.order_by(campo_ordenacao)
 
         return consulta_campanhas.paginate(
             page=filtros_da_requisicao.pagina,
@@ -345,4 +373,27 @@ class CampanhaRepository(CampanhaRepositoryInterface):
             .join(Campanha, Campanha.id == LandingPage.fk_campanha_id)
             .filter(Campanha.nome == nome_campanha)
             .first()
+        )
+
+    def listar_cadastros_campanha_pelo_id(
+        self, filtros: PaginacaoQuery, campanha_id: uuid.UUID
+    ) -> Pagination:
+        query = (
+            self.__database.session.query(
+                Lead.id,
+                Lead.nome,
+                Lead.email,
+                Lead.telefone,
+                Lead.criado_em.label('data_cadastro'),
+            )
+            .select_from(LeadCampanha)
+            .join(Lead, Lead.id == LeadCampanha.fk_lead_id)
+            .where(LeadCampanha.fk_campanha_id == campanha_id)
+            .order_by(Lead.criado_em.desc())
+        )
+
+        return query.paginate(
+            page=filtros.pagina,
+            per_page=filtros.por_pagina,
+            error_out=False,
         )

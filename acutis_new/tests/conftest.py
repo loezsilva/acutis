@@ -14,7 +14,11 @@ from acutis_api.application.utils.funcoes_auxiliares import buscar_data_valida
 from acutis_api.communication.enums.campanhas import (
     PeriodicidadePainelCampanhasEnum,
 )
-from acutis_api.communication.enums.membros import OrigemCadastroEnum, SexoEnum
+from acutis_api.communication.enums.membros import (
+    OrigemCadastroEnum,
+    PerfilEnum,
+    SexoEnum,
+)
 from acutis_api.domain.entities.campanha import Campanha, ObjetivosCampanhaEnum
 from acutis_api.domain.entities.campo_adicional import TiposCampoEnum
 from acutis_api.domain.entities.doacao import Doacao
@@ -31,6 +35,7 @@ from acutis_api.domain.entities.processamento_doacao import (
 from acutis_api.infrastructure.extensions import database
 from acutis_api.infrastructure.settings import TestingConfig
 from tests.factories import (
+    AquisicaoAgapeFactory,
     AudienciaFactory,
     BenfeitorFactory,
     CampanhaDoacaoFactory,
@@ -59,11 +64,13 @@ from tests.factories import (
     MembroAgapeFactory,
     MembroFactory,
     MembroOficialFactory,
+    MenuSistemaFactory,
     MetadadoLeadFactory,
     NomeAcaoAgapeFactory,
     PagamentoDoacaoFactory,
     PerfilFactory,
     PermissaoLeadFactory,
+    PermissaoMenuFactory,
     ProcessamentoDoacaoFactory,
 )
 
@@ -769,89 +776,6 @@ def seed_registra_15_membros_idade():
     return membros
 
 
-# Ágape
-@pytest.fixture
-def seed_nome_acao_agape():
-    nome_acao_agape = NomeAcaoAgapeFactory()
-
-    database.session.add(nome_acao_agape)
-
-    database.session.commit()
-
-    return nome_acao_agape
-
-
-@pytest.fixture
-def seed_ciclo_acao_agape():
-    endereco = EnderecoFactory()
-    database.session.add(endereco)
-
-    nome_acao_agape = NomeAcaoAgapeFactory()
-    database.session.add(nome_acao_agape)
-
-    ciclo_acao_agape = CicloAcaoAgapeFactory(
-        fk_endereco_id=endereco.id,
-        fk_acao_agape_id=nome_acao_agape.id,
-    )
-
-    database.session.add(ciclo_acao_agape)
-
-    database.session.commit()
-
-    return ciclo_acao_agape, endereco
-
-
-@pytest.fixture
-def seed_ciclo_acao_agape_com_endereco():
-    endereco = EnderecoFactory()
-    database.session.add(endereco)
-
-    nome_acao_agape = NomeAcaoAgapeFactory()
-    database.session.add(nome_acao_agape)
-
-    ciclo_acao_agape = CicloAcaoAgapeFactory(
-        fk_endereco_id=endereco.id,
-        fk_acao_agape_id=nome_acao_agape.id,
-    )
-
-    database.session.add(ciclo_acao_agape)
-
-    database.session.commit()
-
-    return ciclo_acao_agape, endereco
-
-
-@pytest.fixture
-def seed_ciclo_acao_agape_em_andamento():
-    endereco = EnderecoFactory()
-    database.session.add(endereco)
-
-    nome_acao_agape = NomeAcaoAgapeFactory()
-    database.session.add(nome_acao_agape)
-
-    ciclo_acao_agape = CicloAcaoAgapeFactory(
-        fk_endereco_id=endereco.id,
-        fk_acao_agape_id=nome_acao_agape.id,
-        status=StatusAcaoAgapeEnum.em_andamento,
-    )
-
-    database.session.add(ciclo_acao_agape)
-
-    database.session.commit()
-
-    return ciclo_acao_agape
-
-
-@pytest.fixture
-def seed_item_estoque_agape():
-    item_estoque = EstoqueAgapeFactory()
-    database.session.add(item_estoque)
-
-    database.session.commit()
-
-    return item_estoque
-
-
 @pytest.fixture
 def seed_registra_5_membros_campanha(seed_registrar_membro):
     membro_campanha = seed_registrar_membro(status=True)[1]
@@ -1099,51 +1023,130 @@ def seed_landingpage_campanha(seed_registrar_membro):
 
 @pytest.fixture
 def seed_membro_com_todas_relacoes(seed_registrar_membro):
-    lead, membro, endereco = seed_registrar_membro(status=True)
+    def membro_com_todas_relacoes(  # noqa: PLR0914
+        todos_campos_adicionais: bool = False,
+    ):
+        lead, membro, endereco = seed_registrar_membro(status=True)
 
-    membro_campanha = seed_registrar_membro(status=True)[1]
+        membro_campanha = seed_registrar_membro(status=True)[1]
 
-    campanha = CampanhaFactory(
-        objetivo=ObjetivosCampanhaEnum.doacao,
-        criado_por=membro_campanha.id,
-        nome='Campanha Viagem a Lá',
-    )
+        campanha = CampanhaFactory(
+            objetivo=ObjetivosCampanhaEnum.doacao,
+            criado_por=membro_campanha.id,
+            nome='Campanha Viagem a Lá',
+        )
 
-    database.session.add(campanha)
+        database.session.add(campanha)
 
-    database.session.flush()
+        database.session.flush()
 
-    lead_campanha = LeadCampanhaFactory(
-        fk_lead_id=lead.id, fk_campanha_id=campanha.id
-    )
-    database.session.add(lead_campanha)
+        lead_campanha = LeadCampanhaFactory(
+            fk_lead_id=lead.id, fk_campanha_id=campanha.id
+        )
+        database.session.add(lead_campanha)
 
-    campo_adicional_1 = CampoAdicionalFactory(
-        fk_campanha_id=campanha.id,
-        tipo_campo=TiposCampoEnum.string,
-        nome_campo='Nome Completo',
-        obrigatorio=True,
-    )
-    database.session.add(campo_adicional_1)
-    database.session.flush()
+        campo_adicional_1 = CampoAdicionalFactory(
+            fk_campanha_id=campanha.id,
+            tipo_campo=TiposCampoEnum.string,
+            nome_campo='Nome Completo',
+            obrigatorio=True,
+        )
+        database.session.add(campo_adicional_1)
+        database.session.flush()
 
-    meta_data_lead = MetadadoLeadFactory(
-        fk_lead_id=lead.id,
-        fk_campo_adicional_id=campo_adicional_1.id,
-        valor_campo='Valor 1',
-    )
-    database.session.add(meta_data_lead)
-    database.session.flush()
+        meta_data_lead = MetadadoLeadFactory(
+            fk_lead_id=lead.id,
+            fk_campo_adicional_id=campo_adicional_1.id,
+            valor_campo='Valor 1',
+        )
+        database.session.add(meta_data_lead)
+        database.session.flush()
 
-    database.session.commit()
+        if todos_campos_adicionais:
+            meta_data_lead_2 = MetadadoLeadFactory(
+                fk_lead_id=lead.id,
+                fk_campo_adicional_id=campo_adicional_1.id,
+                valor_campo='Valor 2',
+            )
+            database.session.add(meta_data_lead_2)
+            database.session.flush()
 
-    return {
-        'lead': lead,
-        'membro': membro,
-        'endereco': endereco,
-        'lead_campanha': lead_campanha,
-        'meta_data_lead': meta_data_lead,
-    }
+            campo_adicional_2 = CampoAdicionalFactory(
+                fk_campanha_id=campanha.id,
+                tipo_campo=TiposCampoEnum.integer,
+                nome_campo='quantidade_filhos',
+                obrigatorio=True,
+            )
+            database.session.add(campo_adicional_2)
+            database.session.flush()
+
+            meta_data_lead_3 = MetadadoLeadFactory(
+                fk_lead_id=lead.id,
+                fk_campo_adicional_id=campo_adicional_2.id,
+                valor_campo='2',
+            )
+            database.session.add(meta_data_lead_3)
+
+            campo_adicional_3 = CampoAdicionalFactory(
+                fk_campanha_id=campanha.id,
+                tipo_campo=TiposCampoEnum.float,
+                nome_campo='altura',
+                obrigatorio=True,
+            )
+            database.session.add(campo_adicional_3)
+            database.session.flush()
+
+            meta_data_lead_4 = MetadadoLeadFactory(
+                fk_lead_id=lead.id,
+                fk_campo_adicional_id=campo_adicional_3.id,
+                valor_campo='1.80',
+            )
+            database.session.add(meta_data_lead_4)
+
+            campo_adicional_4 = CampoAdicionalFactory(
+                fk_campanha_id=campanha.id,
+                tipo_campo=TiposCampoEnum.date,
+                nome_campo='data_casamento',
+                obrigatorio=True,
+            )
+            database.session.add(campo_adicional_4)
+            database.session.flush()
+
+            meta_data_lead_5 = MetadadoLeadFactory(
+                fk_lead_id=lead.id,
+                fk_campo_adicional_id=campo_adicional_4.id,
+                valor_campo='2020-01-01',
+            )
+            database.session.add(meta_data_lead_5)
+
+            campo_adicional_5 = CampoAdicionalFactory(
+                fk_campanha_id=campanha.id,
+                tipo_campo=TiposCampoEnum.arquivo,
+                nome_campo='foto_perfil',
+                obrigatorio=True,
+            )
+            database.session.add(campo_adicional_5)
+            database.session.flush()
+
+            meta_data_lead_6 = MetadadoLeadFactory(
+                fk_lead_id=lead.id,
+                fk_campo_adicional_id=campo_adicional_5.id,
+                valor_campo='data:image/jpeg;base64',
+            )
+
+            database.session.add(meta_data_lead_6)
+
+        database.session.commit()
+
+        return {
+            'lead': lead,
+            'membro': membro,
+            'endereco': endereco,
+            'lead_campanha': lead_campanha,
+            'meta_data_lead': meta_data_lead,
+        }
+
+    return membro_com_todas_relacoes
 
 
 @pytest.fixture
@@ -1165,7 +1168,7 @@ def seed_registrar_live_avulsa(seed_registrar_membro):
     database.session.flush()
 
     live_avulsa = LiveAvulsaFactory(
-        fk_livemembro_id=live.id,
+        fk_live_id=live.id,
         data_hora_inicio=datetime.now() + timedelta(hours=1),
         criado_por=membro.id,
     )
@@ -1310,27 +1313,258 @@ def seed_gerar_cadastros_campanha_em_periodos(seed_registrar_membro):
 
 
 @pytest.fixture
+def seed_membro_oficial_campos_adicionais(
+    seed_registrar_membro, seed_membro_com_todas_relacoes, seed_cargo_oficial
+):
+    superior = seed_registrar_membro(status=True)[1]
+    seed_membro_com_todas_relacoes = seed_membro_com_todas_relacoes(
+        todos_campos_adicionais=True,
+    )
+
+    membro_oficial = MembroOficialFactory(
+        fk_membro_id=seed_membro_com_todas_relacoes['membro'].id,
+        fk_superior_id=superior.id,
+        fk_cargo_oficial_id=seed_cargo_oficial.id,
+    )
+
+    database.session.add(membro_oficial)
+    database.session.commit()
+
+    return membro_oficial
+
+
+@pytest.fixture
+def seed_membro_com_doacao_e_campanha():
+    lead = LeadFactory(status=True)
+    lead.senha = '#Teste;@123'
+    database.session.add(lead)
+
+    endereco = EnderecoFactory()
+    database.session.add(endereco)
+
+    benfeitor = BenfeitorFactory()
+    database.session.add(benfeitor)
+
+    membro = MembroFactory(
+        fk_lead_id=lead.id,
+        fk_endereco_id=endereco.id,
+        fk_benfeitor_id=benfeitor.id,
+    )
+    database.session.add(membro)
+
+    campanha = CampanhaFactory(
+        objetivo=ObjetivosCampanhaEnum.doacao,
+        criado_por=membro.id,
+    )
+    database.session.add(campanha)
+    database.session.flush()
+
+    campanha_doacao = CampanhaDoacaoFactory(fk_campanha_id=campanha.id)
+    database.session.add(campanha_doacao)
+
+    lead_campanha = LeadCampanhaFactory(
+        fk_lead_id=lead.id, fk_campanha_id=campanha.id
+    )
+    database.session.add(lead_campanha)
+
+    doacao = DoacaoFactory(
+        fk_benfeitor_id=benfeitor.id,
+        fk_campanha_doacao_id=campanha_doacao.id,
+    )
+    database.session.add(doacao)
+
+    pagamento_doacao = PagamentoDoacaoFactory(fk_doacao_id=doacao.id)
+    database.session.add(pagamento_doacao)
+
+    processamento_doacao = ProcessamentoDoacaoFactory(
+        fk_pagamento_doacao_id=pagamento_doacao.id
+    )
+    database.session.add(processamento_doacao)
+    database.session.commit()
+
+    return benfeitor, membro, campanha, doacao
+
+
+# Ágape
+@pytest.fixture
+def seed_nome_acao_agape():
+    nome_acao_agape = NomeAcaoAgapeFactory()
+
+    database.session.add(nome_acao_agape)
+
+    database.session.commit()
+
+    return nome_acao_agape
+
+
+@pytest.fixture
+def seed_ciclo_acao_agape():
+    endereco = EnderecoFactory()
+    database.session.add(endereco)
+    coordenada = CoordenadaFactory(
+        fk_endereco_id=endereco.id,
+    )
+    database.session.add(coordenada)
+
+    nome_acao_agape = NomeAcaoAgapeFactory()
+    database.session.add(nome_acao_agape)
+
+    ciclo_acao_agape = CicloAcaoAgapeFactory(
+        fk_endereco_id=endereco.id,
+        fk_acao_agape_id=nome_acao_agape.id,
+    )
+
+    database.session.add(ciclo_acao_agape)
+
+    database.session.commit()
+
+    return ciclo_acao_agape, endereco
+
+
+@pytest.fixture
+def seed_ciclo_acao_agape_com_endereco():
+    endereco = EnderecoFactory()
+    database.session.add(endereco)
+
+    nome_acao_agape = NomeAcaoAgapeFactory()
+    database.session.add(nome_acao_agape)
+
+    ciclo_acao_agape = CicloAcaoAgapeFactory(
+        fk_endereco_id=endereco.id,
+        fk_acao_agape_id=nome_acao_agape.id,
+    )
+
+    database.session.add(ciclo_acao_agape)
+
+    database.session.commit()
+
+    return ciclo_acao_agape, endereco
+
+
+@pytest.fixture
+def seed_ciclo_acao_agape_em_andamento():
+    endereco = EnderecoFactory()
+    database.session.add(endereco)
+
+    nome_acao_agape = NomeAcaoAgapeFactory()
+    database.session.add(nome_acao_agape)
+
+    ciclo_acao_agape = CicloAcaoAgapeFactory(
+        fk_endereco_id=endereco.id,
+        fk_acao_agape_id=nome_acao_agape.id,
+        status=StatusAcaoAgapeEnum.em_andamento,
+    )
+
+    database.session.add(ciclo_acao_agape)
+
+    database.session.commit()
+
+    return ciclo_acao_agape
+
+
+@pytest.fixture
+def seed_item_estoque_agape():
+    item_estoque = EstoqueAgapeFactory()
+    database.session.add(item_estoque)
+
+    database.session.commit()
+
+    return item_estoque
+
+
+@pytest.fixture
+def seed_perfil_voluntario(seed_lead_voluntario_e_token):
+    lead_voluntario = seed_lead_voluntario_e_token[0]
+    perfil_voluntario = (
+        database.session.query(Perfil)
+        .filter_by(nome=PerfilEnum.voluntario_agape.value)
+        .one_or_none()
+    )
+
+    if not perfil_voluntario:
+        perfil_voluntario = PerfilFactory(
+            nome=PerfilEnum.voluntario_agape.value,
+            criado_por_id=lead_voluntario.id,
+        )
+        database.session.add(perfil_voluntario)
+        database.session.commit()
+
+    return perfil_voluntario
+
+
+@pytest.fixture
+def seed_perfil_benfeitor(seed_lead_voluntario_e_token):
+    lead_voluntario = seed_lead_voluntario_e_token[0]
+    perfil_benfeitor = (
+        database.session.query(Perfil)
+        .filter_by(nome=PerfilEnum.benfeitor.value)
+        .one_or_none()
+    )
+
+    if not perfil_benfeitor:
+        perfil_benfeitor = PerfilFactory(
+            nome=PerfilEnum.benfeitor.value,
+            criado_por_id=lead_voluntario.id,
+        )
+        database.session.add(perfil_benfeitor)
+        database.session.commit()
+
+    return perfil_benfeitor
+
+
+@pytest.fixture
+def seed_menu_agape_e_permissoes(
+    seed_perfil_voluntario,
+    seed_lead_voluntario_e_token,
+):
+    lead_voluntario = seed_lead_voluntario_e_token[0]
+    menu_sistema = MenuSistemaFactory(
+        slug='familia_agape',
+        criado_por_id=lead_voluntario.id,
+    )
+
+    database.session.add(menu_sistema)
+    database.session.commit()
+
+    permissao_menu = PermissaoMenuFactory(
+        perfil_id=seed_perfil_voluntario.id,
+        menu_id=menu_sistema.id,
+        acessar=True,
+        criar=True,
+        editar=True,
+        deletar=True,
+    )
+    database.session.add(permissao_menu)
+    database.session.commit()
+
+    return menu_sistema, permissao_menu
+
+
+@pytest.fixture
 def seed_lead_voluntario_e_token(client: FlaskClient):
     lead = LeadFactory(status=True)
+    lead.senha = '#Teste;@123'
     database.session.add(lead)
     database.session.commit()
 
     perfil_voluntario = (
         database.session.query(Perfil)
         .filter_by(nome='Voluntario Agape')
-        .first()
+        .one_or_none()
     )
 
     if not perfil_voluntario:
-        perfil_voluntario = PerfilFactory(nome='Voluntario Agape')
+        perfil_voluntario = PerfilFactory(
+            nome='Voluntario Agape',
+            criado_por_id=lead.id,
+        )
         database.session.add(perfil_voluntario)
         database.session.commit()
 
     permissao = PermissaoLeadFactory(
         lead_id=lead.id,
-        lead=lead,
         perfil_id=perfil_voluntario.id,
-        perfil=perfil_voluntario,
+        criado_por_id=lead.id,
     )
 
     database.session.add(permissao)
@@ -1424,6 +1658,33 @@ def seed_familia_com_cpf_especifico(
 @pytest.fixture
 def seed_ciclo_acao_com_itens(seed_ciclo_acao_agape_em_andamento):
     ciclo_acao = seed_ciclo_acao_agape_em_andamento
+
+    itens_estoque_criados = []
+    items_instancia_criados = []
+    for i in range(3):
+        item_estoque = EstoqueAgapeFactory(item=f'Item de Teste {i + 1}')
+        database.session.add(item_estoque)
+        itens_estoque_criados.append(item_estoque)
+
+    database.session.commit()
+
+    for item_estoque in itens_estoque_criados:
+        item_instancia = ItemInstanciaAgapeFactory(
+            fk_instancia_acao_agape_id=ciclo_acao.id,
+            fk_estoque_agape_id=item_estoque.id,
+            quantidade=5 + itens_estoque_criados.index(item_estoque),
+        )
+        database.session.add(item_instancia)
+        items_instancia_criados.append(item_instancia)
+
+    database.session.commit()
+
+    return ciclo_acao, items_instancia_criados
+
+
+@pytest.fixture
+def seed_ciclo_acao_nao_iniciado_com_itens(seed_ciclo_acao_agape):
+    ciclo_acao = seed_ciclo_acao_agape[0]
 
     itens_estoque_criados = []
     items_instancia_criados = []
@@ -1716,12 +1977,39 @@ def seed_varias_familias_para_estatisticas(seed_membro):
 
 
 @pytest.fixture
-def seed_varios_itens_estoque_para_estatisticas():
+def seed_ciclo_acao_agape_finalizado():
+    endereco = EnderecoFactory()
+    database.session.add(endereco)
+
+    nome_acao_agape = NomeAcaoAgapeFactory()
+    database.session.add(nome_acao_agape)
+
+    ciclo_acao_agape = CicloAcaoAgapeFactory(
+        fk_endereco_id=endereco.id,
+        fk_acao_agape_id=nome_acao_agape.id,
+        data_termino=datetime(2023, 12, 20),
+        status=StatusAcaoAgapeEnum.finalizado,
+    )
+
+    database.session.add(ciclo_acao_agape)
+
+    database.session.commit()
+
+    return ciclo_acao_agape
+
+
+@pytest.fixture
+def seed_varios_itens_estoque_para_estatisticas(
+    seed_ciclo_acao_agape_finalizado,
+):
     """
     Cria vários itens no estoque com diferentes quantidades para testar
     o endpoint de estatísticas de itens de estoque.
     Retorna um dicionário com as estatísticas esperadas.
     """
+
+    ciclo_acao = seed_ciclo_acao_agape_finalizado
+
     itens_criados_detalhes = [
         {'item': 'Arroz 1kg', 'quantidade': 20},
         {'item': 'Feijão Carioca 1kg', 'quantidade': 15},
@@ -1733,7 +2021,24 @@ def seed_varios_itens_estoque_para_estatisticas():
     ]
 
     for detalhe_item in itens_criados_detalhes:
-        database.session.add(EstoqueAgapeFactory(**detalhe_item))
+        item_estoque = EstoqueAgapeFactory(**detalhe_item)
+        database.session.add(item_estoque)
+        database.session.flush()
+
+        database.session.add(
+            ItemInstanciaAgapeFactory(
+                fk_instancia_acao_agape_id=ciclo_acao.id,
+                fk_estoque_agape_id=item_estoque.id,
+                quantidade=5,
+            )
+        )
+        database.session.add(
+            AquisicaoAgapeFactory(
+                fk_estoque_agape_id=item_estoque.id,
+                quantidade=5,
+            )
+        )
+
     database.session.commit()
 
     total_tipos_item = len(itens_criados_detalhes)
@@ -2462,119 +2767,3 @@ def seed_doacao_em_ciclo_sem_itens(
     database.session.commit()
 
     return ciclo_principal.id, doacao_principal.id
-
-@pytest.fixture
-def seed_leads_com_diversas_permissoes_agape():
-    
-    VOLUNTARIO_AGAPE = 'Voluntario Agape'
-    ADMIN_AGAPE = 'Administrador Agape'
-    OUTRO_PERFIL = 'Outro Perfil Comum'
-
-    created_objects = []
-
-    def _get_or_create_perfil(nome_perfil: str) -> Perfil:
-        perfil = database.session.query(Perfil).filter_by(nome=nome_perfil).first()
-        if not perfil:
-            perfil = PerfilFactory(nome=nome_perfil, status=True)
-            database.session.add(perfil)
-            
-            created_objects.append(perfil)
-            database.session.flush()
-        return perfil
-
-    perfil_voluntario = _get_or_create_perfil(VOLUNTARIO_AGAPE)
-    perfil_admin = _get_or_create_perfil(ADMIN_AGAPE)
-    perfil_outro = _get_or_create_perfil(OUTRO_PERFIL)
-
-    lead_so_voluntario = LeadFactory(
-        email='so.voluntario@example.com', status=True
-    )
-    created_objects.append(lead_so_voluntario)
-    database.session.flush()
-    perm_so_voluntario = PermissaoLeadFactory(
-        lead=lead_so_voluntario,
-        lead_id=lead_so_voluntario.id, 
-        perfil=perfil_voluntario,
-        perfil_id=perfil_voluntario.id
-    )
-    created_objects.append(perm_so_voluntario)
-
-    lead_so_admin = LeadFactory(
-        email='so.admin@example.com', status=True
-    )
-    created_objects.append(lead_so_admin)
-    database.session.flush()
-    perm_so_admin = PermissaoLeadFactory(
-        lead=lead_so_admin,
-        lead_id=lead_so_admin.id, 
-        perfil=perfil_admin,
-        perfil_id=perfil_admin.id
-    )
-    created_objects.append(perm_so_admin)
-
-    lead_voluntario_e_admin = LeadFactory(
-        email='voluntario.admin@example.com', status=True
-    )
-    created_objects.append(lead_voluntario_e_admin)
-    database.session.flush()
-    perm_vol_admin_vol = PermissaoLeadFactory(
-        lead=lead_voluntario_e_admin,
-        lead_id=lead_voluntario_e_admin.id, 
-        perfil=perfil_voluntario,
-        perfil_id=perfil_voluntario.id
-    )
-    perm_vol_admin_adm = PermissaoLeadFactory(
-        lead=lead_voluntario_e_admin,
-        lead_id=lead_voluntario_e_admin.id, 
-        perfil=perfil_admin,
-        perfil_id=perfil_admin.id
-    )
-    created_objects.extend([perm_vol_admin_vol, perm_vol_admin_adm])
-
-    lead_comum = LeadFactory(
-        email='comum.sem.agape@example.com', status=True
-    )
-    created_objects.append(lead_comum)
-    
-    lead_outro_perfil = LeadFactory(
-        email='outro.perfil@example.com', status=True
-    )
-    created_objects.append(lead_outro_perfil)
-    database.session.flush()
-    perm_outro = PermissaoLeadFactory(
-        lead=lead_outro_perfil,
-        lead_id=lead_outro_perfil.id, 
-        perfil=perfil_outro,
-        perfil_id=perfil_outro.id
-    )
-    created_objects.append(perm_outro)
-
-    database.session.add_all(created_objects)
-    database.session.commit()
-
-    return {
-        "lead_so_voluntario": {
-            "id": str(lead_so_voluntario.id), 
-            "email": lead_so_voluntario.email, 
-            "nome": lead_so_voluntario.nome, 
-            "perfis_agape": [VOLUNTARIO_AGAPE]
-        },
-        "lead_so_admin": {
-            "id": str(lead_so_admin.id), 
-            "email": lead_so_admin.email, 
-            "nome": lead_so_admin.nome, 
-            "perfis_agape": [ADMIN_AGAPE]
-        },
-        "lead_voluntario_e_admin": {
-            "id": str(lead_voluntario_e_admin.id), 
-            "email": lead_voluntario_e_admin.email, 
-            "nome": lead_voluntario_e_admin.nome, 
-            "perfis_agape": sorted([VOLUNTARIO_AGAPE, ADMIN_AGAPE])
-        },
-        "lead_comum": {
-            "id": str(lead_comum.id), 
-            "email": lead_comum.email, 
-            "nome": lead_comum.nome, 
-            "perfis_agape": []
-        },
-    }

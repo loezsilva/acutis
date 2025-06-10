@@ -13,7 +13,7 @@ def test_remover_item_sucesso(
     response = client.put(
         f'/api/agape/remover-item/{seed_item_estoque_agape.id}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'quantidade': quantidade_removida},
+        json={'quantidade': quantidade_removida},
     )
 
     response_json = response.json
@@ -27,7 +27,7 @@ def test_erro_remover_item_inexistente(client: FlaskClient, membro_token):
     response = client.put(
         f'/api/agape/remover-item/{str(uuid.uuid4())}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'quantidade': 1},
+        json={'quantidade': 1},
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert 'msg' in response.json[0]
@@ -39,7 +39,7 @@ def test_erro_remover_item_quantidade_invalida(
     response = client.put(
         f'/api/agape/remover-item/{seed_item_estoque_agape.id}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'quantidade': -1},
+        json={'quantidade': -1},
     )
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY

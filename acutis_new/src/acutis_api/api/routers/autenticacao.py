@@ -272,7 +272,7 @@ def usuario_logado():
     security={},
     tags=['Autenticação'],
 )
-def post_forgot_password():
+def recuperar_senha():
     """Envia um email para recuperar a senha da conta"""
     try:
         repository = AutenticacaoRepository(database)

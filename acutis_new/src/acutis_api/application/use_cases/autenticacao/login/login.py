@@ -43,17 +43,16 @@ class LoginUseCase:
         if not lead:
             raise HttpNotFoundError('Ops, email ou senha incorretos.')
 
-        if settings.ENVIRONMENT != 'development':
-            if not lead.status:
-                payload = {'email': request.email}
-                token = gerar_token(payload, TokenSaltEnum.ativar_conta)
-                conteudo = ativar_conta_email_template(lead.nome, token)
-                self._notification.enviar_email(
-                    request.email, AssuntosEmailEnum.verificacao, conteudo
-                )
-                raise HttpForbiddenError(
-                    'Ative sua conta pelo link enviado ao seu e-mail antes de fazer login.'  # noqa
-                )
+        if settings.ENVIRONMENT != 'development' and not lead.status:
+            payload = {'email': request.email}
+            token = gerar_token(payload, TokenSaltEnum.ativar_conta)
+            conteudo = ativar_conta_email_template(lead.nome, token)
+            self._notification.enviar_email(
+                request.email, AssuntosEmailEnum.verificacao, conteudo
+            )
+            raise HttpForbiddenError(
+                'Ative sua conta pelo link enviado ao seu e-mail antes de fazer login.'  # noqa
+            )
 
         if not lead.verificar_senha(request.senha.get_secret_value()):
             raise HttpNotFoundError('Ops, email ou senha incorretos.')

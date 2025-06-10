@@ -144,6 +144,28 @@ class ListarDoacoesCampanhaResponse(PaginacaoResponse):
     doacoes: list[ListarDoacoesCampanhaSchema]
 
 
+class ListarCadastrosCampanhaSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    nome: str
+    email: str
+    telefone: str
+    data_cadastro: datetime | str | None
+
+    @field_validator('data_cadastro')
+    @classmethod
+    def formatar_datetime(cls, value: datetime):
+        if isinstance(value, (str, NoneType)):
+            return value
+
+        return value.strftime('%d/%m/%Y - %H:%M:%S')
+
+
+class ListarCadastrosCampanhaResponse(PaginacaoResponse):
+    cadastros: list[ListarCadastrosCampanhaSchema]
+
+
 class CadastrosCampanhaPorPeriodoResponse(BaseModel):
     ultimas_24h: int
     ultimos_7_dias: int

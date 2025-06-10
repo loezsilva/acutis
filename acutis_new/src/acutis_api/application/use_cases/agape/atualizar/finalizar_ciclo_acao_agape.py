@@ -17,7 +17,7 @@ class FinalizarCicloAcaoAgapeUseCase:
     def __init__(self, repository: AgapeRepositoryInterface):
         self.__repository = repository
 
-    def execute(self, acao_agape_id):
+    def execute(self, acao_agape_id) -> None:
         ciclo_acao = self.__repository.buscar_ciclo_acao_agape_por_id(
             acao_agape_id
         )
@@ -47,9 +47,9 @@ class FinalizarCicloAcaoAgapeUseCase:
                 item_estoque.quantidade += item.quantidade
 
             self.__repository.movimentar_historico_ciclo_acao_agape(
-                item_estoque.id,
-                ciclo_acao.id,
                 quantidade=item.quantidade,
+                item_id=item_estoque.id,
+                ciclo_acao_id=ciclo_acao.id,
             )
 
             item.quantidade = 0
@@ -57,5 +57,3 @@ class FinalizarCicloAcaoAgapeUseCase:
         self.__repository.finalizar_ciclo_acao_agape(ciclo_acao)
 
         self.__repository.salvar_alteracoes()
-
-        return {'msg': 'Ciclo da ação finalizado com sucesso.'}

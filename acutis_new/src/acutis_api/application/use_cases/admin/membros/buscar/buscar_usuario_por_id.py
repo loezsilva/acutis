@@ -1,7 +1,8 @@
 import uuid
-from datetime import datetime
-from typing import Any
 
+from acutis_api.application.utils.funcoes_auxiliares import (
+    tratar_valor_campo_por_tipo_valor,
+)
 from acutis_api.communication.responses.admin_membros import (
     BuscarDetalhesDoLeadResponse,
     CampanhasRegistradasSchema,
@@ -9,7 +10,6 @@ from acutis_api.communication.responses.admin_membros import (
     LeadSchema,
     MembroSchema,
 )
-from acutis_api.domain.entities.campo_adicional import TiposCampoEnum
 from acutis_api.domain.repositories.admin_membros import (
     AdminMembrosRepositoryInterface,
 )
@@ -71,7 +71,7 @@ class BuscarUsuarioPorIDUseCase:
                 nome_campanha = metadado.campo_adicional.campanha.nome
                 nome_campo = metadado.campo_adicional.nome_campo
                 tipo_campo = metadado.campo_adicional.tipo_campo
-                valor_campo = self._tratar_valor_campo_por_tipo_valor(
+                valor_campo = tratar_valor_campo_por_tipo_valor(
                     metadado.valor_campo, tipo_campo
                 )
 
@@ -116,27 +116,3 @@ class BuscarUsuarioPorIDUseCase:
         ).model_dump()
 
         return response
-
-    def _tratar_valor_campo_por_tipo_valor(
-        self, valor_campo: str, tipo_valor: str
-    ) -> Any:
-        match tipo_valor:
-            case TiposCampoEnum.integer:
-                return int(valor_campo)
-
-            case TiposCampoEnum.float:
-                return float(valor_campo)
-
-            case TiposCampoEnum.date:
-                data_obj = datetime.strptime(valor_campo, '%Y-%m-%d')
-                return data_obj.strftime('%d/%m/%Y')
-
-            case TiposCampoEnum.datetime:
-                data_obj = datetime.strptime(valor_campo, '%Y-%m-%d %H:%M:%S')
-                return data_obj.strftime('%d/%m/%Y %H:%M')
-
-            case TiposCampoEnum.arquivo:
-                return self._file_service.buscar_url_arquivo(valor_campo)
-
-            case _:
-                return valor_campo

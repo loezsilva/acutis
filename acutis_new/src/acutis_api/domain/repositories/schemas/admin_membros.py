@@ -47,3 +47,9 @@ class ListarLeadsMembrosSchema(BaseModel):
     data_cadastro_membro: str | None
     membro_atualizado_em: str | None
     cadastro_membro_atualizado_em: str | None
+
+
+class BuscarEstatisticasDoacoesMembroSchema(BaseModel):
+    quantidade_doacoes: int
+    valor_total_doacoes: float
+    ultima_doacao: datetime | None

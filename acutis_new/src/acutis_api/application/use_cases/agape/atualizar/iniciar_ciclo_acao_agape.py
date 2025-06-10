@@ -17,7 +17,7 @@ class IniciarCicloAcaoAgapeUseCase:
     def __init__(self, agape_repository: AgapeRepositoryInterface):
         self.__repository = agape_repository
 
-    def execute(self, acao_agape_id):
+    def execute(self, acao_agape_id) -> None:
         ciclo_acao = self.__repository.buscar_ciclo_acao_agape_por_id(
             acao_agape_id
         )
@@ -38,5 +38,3 @@ class IniciarCicloAcaoAgapeUseCase:
         self.__repository.iniciar_ciclo_acao_agape(ciclo_acao)
 
         self.__repository.salvar_alteracoes()
-
-        return {'msg': 'Ciclo da ação iniciado com sucesso.'}

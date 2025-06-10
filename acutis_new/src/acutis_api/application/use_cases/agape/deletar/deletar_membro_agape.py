@@ -1,5 +1,4 @@
 import uuid
-from http import HTTPStatus
 
 from acutis_api.domain.entities.membro_agape import MembroAgape
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
@@ -10,7 +9,7 @@ class DeletarMembroAgapeUseCase:
     def __init__(self, repository: AgapeRepositoryInterface):
         self.__repository = repository
 
-    def execute(self, membro_agape_id: uuid.UUID) -> tuple[None, HTTPStatus]:
+    def execute(self, membro_agape_id: uuid.UUID) -> None:
         membro: MembroAgape | None = (
             self.__repository.buscar_membro_familia_por_id(
                 membro_id=membro_agape_id
@@ -24,4 +23,4 @@ class DeletarMembroAgapeUseCase:
 
         self.__repository.deletar_membro(membro_id=membro_agape_id)
 
-        return None, HTTPStatus.NO_CONTENT
+        self.__repository.salvar_alteracoes()

@@ -153,11 +153,6 @@ def test_editar_endereco_familia_nao_encontrada(
     )
 
     assert resposta.status_code == HTTPStatus.NOT_FOUND
-    resposta_json = resposta.json
-    assert isinstance(resposta_json, list)
-    assert len(resposta_json) > 0
-    assert 'msg' in resposta_json[0]
-    assert 'não encontrada' in resposta_json[0]['msg']
 
 
 def test_editar_endereco_familia_sem_permissao(

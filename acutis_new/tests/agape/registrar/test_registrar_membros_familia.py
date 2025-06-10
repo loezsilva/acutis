@@ -14,9 +14,9 @@ def _gerar_payload_membro_valido(responsavel=False, cpf='184.860.290-15'):
     """Gera um dicionário com dados válidos para um membro."""
     data_nascimento = datetime.date.today() - datetime.timedelta(days=365 * 20)
     return {
-        'email': faker.email(),
+        'email': faker.email(domain='headers.com.br'),
         'telefone': faker.phone_number(),
-        'nome': faker.name(),
+        'nome': 'João Maria da Silva',
         'cpf': cpf if cpf else faker.cpf(),
         'data_nascimento': data_nascimento.isoformat(),
         'funcao_familiar': 'Filho(a)',
@@ -125,7 +125,6 @@ def test_registrar_membro_cpf_duplicado_na_mesma_requisicao(
         headers={'Authorization': f'Bearer {membro_token}'},
         json=payload,
     )
-
     assert int(response.status_code) == HTTPStatus.CONFLICT
 
 
@@ -135,9 +134,9 @@ def test_registrar_membro_email_duplicado_na_mesma_requisicao(
     """Testa registrar dois membros com o mesmo CPF na mesma requisição."""
     familia = seed_familia_com_endereco[0]
     membro1 = _gerar_payload_membro_valido()
-    membro1['email'] = 'lucilene.norte@geradornv.com.br'
+    membro1['email'] = 'lucilene.norte@headers.com.br'
     membro2 = _gerar_payload_membro_valido()
-    membro2['email'] = 'lucilene.norte@geradornv.com.br'
+    membro2['email'] = 'lucilene.norte@headers.com.br'
 
     payload = {'membros': [membro1, membro2]}
 

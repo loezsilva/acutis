@@ -42,7 +42,7 @@ def test_total_cadastros_por_cargo_oficial_sucesso(
 
 
 @patch.object(ObterTotalCadastrosCargoOficialUseCase, 'execute')
-def test_buscar_membros_mes_erro_interno_servidor(
+def test_obter_total_cadastros_cargo_oficial_erro_interno_servidor(
     mock_target,
     client: FlaskClient,
     membro_token,

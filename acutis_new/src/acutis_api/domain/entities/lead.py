@@ -68,7 +68,10 @@ class Lead:
     )
 
     permissoes_lead: Mapped[list['PermissaoLead']] = relationship(
-        init=False, back_populates='lead', cascade='all, delete-orphan'
+        init=False,
+        back_populates='lead',
+        cascade='all, delete-orphan',
+        foreign_keys='PermissaoLead.lead_id',
     )
 
     @property

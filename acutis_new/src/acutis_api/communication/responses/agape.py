@@ -4,6 +4,9 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
+from acutis_api.application.utils.funcoes_auxiliares import (
+    transforma_string_para_data,
+)
 from acutis_api.communication.responses.padrao import PaginacaoResponse
 from acutis_api.domain.entities.historico_movimentacao_agape import (
     HistoricoDestinoEnum,
@@ -14,6 +17,35 @@ from acutis_api.domain.entities.instancia_acao_agape import (
     AbrangenciaInstanciaAcaoAgapeEnum,
     StatusAcaoAgapeEnum,
 )
+
+
+def format_datetime(value):
+    return value.strftime('%d/%m/%Y %H:%M')
+
+
+def format_date(value):
+    return value.strftime('%d/%m/%Y')
+
+
+def parse_value(value):
+    if isinstance(value, datetime):
+        return format_datetime(value)
+    if isinstance(value, date):
+        return format_date(value)
+    if isinstance(value, str):
+        parsed = transforma_string_para_data(value)
+        return format_datetime(parsed) if parsed else value
+    if isinstance(value, (list, dict)):
+        return parse_datas_padrao_brasileiro(value)
+    return value
+
+
+def parse_datas_padrao_brasileiro(obj):
+    if isinstance(obj, list):
+        return [parse_datas_padrao_brasileiro(item) for item in obj]
+    if isinstance(obj, dict):
+        return {key: parse_value(value) for key, value in obj.items()}
+    return obj
 
 
 class RegistrarAcaoAgapeResponse(BaseModel):
@@ -526,12 +558,6 @@ class AtualizacaoPermissaoStatus(BaseModel):
     perfis_concedidos: Optional[list[str]] = None
 
 
-class AtualizarPermissoesVoluntariosResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    resultados: list[AtualizacaoPermissaoStatus]
-
-
 # Schemas para Registrar Recibos de Doação Ágape (Response)
 class ReciboAgapeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -548,18 +574,14 @@ class RegistrarRecibosResponse(BaseModel):
     recibos_criados: list[ReciboAgapeResponse]
 
 
-# Schemas para Listar Status de Permissões de Voluntários Ágape (Response)
-class StatusPermissaoVoluntario(BaseModel):
+class ListarStatusPermissaoVoluntariosResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    lead_id: uuid.UUID
-    nome: str
-    email: str
-    perfis_agape: list[str]
+    acessar: bool
+    criar: bool
+    editar: bool
+    deletar: bool
 
-
-class ListarStatusPermissaoVoluntariosResponse(PaginacaoResponse):
-    resultados: list[StatusPermissaoVoluntario]
 
 class DoacaoRecebidaItemDetalheSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -576,7 +598,9 @@ class DoacaoRecebidaDetalheSchema(BaseModel):
     itens: list[DoacaoRecebidaItemDetalheSchema]
 
 
-class ListarDoacoesRecebidasFamiliaResponse(RootModel[list[DoacaoRecebidaDetalheSchema]]):
+class ListarDoacoesRecebidasFamiliaResponse(
+    RootModel[list[DoacaoRecebidaDetalheSchema]]
+):
     root: list[DoacaoRecebidaDetalheSchema]
 
     class Config:

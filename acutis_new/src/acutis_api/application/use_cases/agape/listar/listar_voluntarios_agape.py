@@ -19,7 +19,7 @@ class ListarVoluntariosAgapeUseCase:
         membros_agape, total = self.agape_repository.listar_voluntarios_agape(
             filtros=filtros
         )
-        
+
         voluntarios_response = [
             VoluntarioAgapeResponse(
                 id=membro.id,

@@ -7,6 +7,7 @@ from flask_jwt_extended import jwt_required
 from spectree import Response
 
 from acutis_api.application.use_cases.admin import (
+    BuscarDoacoesECampanhasDoMembroUseCase,
     BuscarLeadsMesUseCase,
     BuscarMembrosMesUseCase,
     BuscarTotalLeadsUseCase,
@@ -22,6 +23,7 @@ from acutis_api.communication.requests.admin_membros import (
 )
 from acutis_api.communication.responses.admin_membros import (
     BuscarDetalhesDoLeadResponse,
+    BuscarDoacoesECampanhasDoMembroResponse,
     BuscarLeadsMesResponse,
     BuscarMembrosMesResponse,
     BuscarTotalLeadsResponse,
@@ -196,6 +198,30 @@ def buscar_membros_mes():
         usecase = BuscarMembrosMesUseCase(repository)
 
         response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_membros_bp.get('/buscar-doacoes-e-campanhas-membro/<uuid:membro_id>')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=BuscarDoacoesECampanhasDoMembroResponse,
+    ),
+    tags=['Admin - Membros'],
+)
+@jwt_required()
+def buscar_doacoes_e_campanhas_membro(membro_id: uuid):
+    """
+    Busca os dados de doações e campanhas de um membro por seu UUID
+    """
+    try:
+        repository = AdminMembrosRepository(database)
+        usecase = BuscarDoacoesECampanhasDoMembroUseCase(repository)
+
+        response = usecase.execute(membro_id)
+
         return response, HTTPStatus.OK
     except Exception as exc:
         error_response = errors_handler(exc)

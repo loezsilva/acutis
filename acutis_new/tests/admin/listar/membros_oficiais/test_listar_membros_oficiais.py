@@ -60,7 +60,7 @@ def test_listar_membros_oficiais_filtro_dinamico(
 def test_listar_membros_oficiais_filtro_dinamico_numero(
     client: FlaskClient, seed_membros_oficial_status_dinamico, membro_token
 ):
-    total_registros = 1
+    total_registros = 2
     seed_membros_oficial_status_dinamico(
         status='pendente',
         numero_documento='2104456789',
@@ -71,18 +71,20 @@ def test_listar_membros_oficiais_filtro_dinamico_numero(
         numero_documento='987654321',
     )
 
+    seed_membros_oficial_status_dinamico(
+        status='pendente',
+        numero_documento='12104456789',
+    )
+
     response = client.get(
-        '/api/admin/membros-oficiais/listar?filtro_dinamico=2104456',
+        '/api/admin/membros-oficiais/listar?filtro_dinamico=2104456&ordenar_por=membro_numero_documento&tipo_ordenacao=desc',
         headers={'Authorization': f'Bearer {membro_token}'},
     )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json['total'] == total_registros
     membros_oficiais = response.json['membros_oficiais']
-    assert any(
-        membro['numero_documento'] == '2104456789'
-        for membro in (membros_oficiais)
-    )
+    assert membros_oficiais[0]['numero_documento'] == '2104456789'
 
 
 def test_listar_membros_oficiais_filtro_dinamico_menos_4_caracteres(

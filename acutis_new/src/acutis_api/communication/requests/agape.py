@@ -1,13 +1,12 @@
 import json
 from datetime import date
-from typing import List, Optional
+from typing import Any, List, Optional
 from uuid import UUID
 
 from pydantic import (
     BaseModel,
     EmailStr,
     Field,
-    constr,
     model_validator,
 )
 from pydantic_core import PydanticCustomError
@@ -25,7 +24,7 @@ from acutis_api.domain.entities.instancia_acao_agape import (
 )
 
 
-class RegistrarNomeAcaoAgapeFormData(BaseModel):
+class RegistrarNomeAcaoAgapeRequest(BaseModel):
     nome: str = Field(..., min_length=3, max_length=100)
 
     @model_validator(mode='before')
@@ -71,8 +70,8 @@ class DoacaoAgapeRequestSchema(BaseModel):
 
 
 # Schema para cadastrar ciclo de ação Ágape
-class RegistrarOuEditarCicloAcaoAgapeFormData(BaseModel):
-    nome_acao_id: UUID = Field(..., description='ID da ação Ágape')
+class RegistrarOuEditarCicloAcaoAgapeRequest(BaseModel):
+    nome_acao_id: UUID = Field(..., description='ID do nome da ação Ágape')
     abrangencia: AbrangenciaInstanciaAcaoAgapeEnum
     endereco: EnderecoAgapeFormData
     doacoes: List[DoacaoAgapeRequestSchema]
@@ -102,7 +101,7 @@ class ListarCiclosAcoesAgapeQueryPaginada(PaginacaoQuery):
     )
 
 
-class RegistrarItemEstoqueAgapeFormData(BaseModel):
+class RegistrarItemEstoqueAgapeRequest(BaseModel):
     item: str = Field(
         ..., description='Nome do item', min_length=3, max_length=100
     )
@@ -118,50 +117,34 @@ class ListarItensEstoqueAgapeQueryPaginada(PaginacaoQuery):
     item: Optional[str] = Field(None, description='Nome do item')
 
 
+class ItemQuantityValidation:
+    @model_validator(mode='before')
+    @classmethod
+    def validar_formdata(cls, form_data: dict):
+        if int(form_data['quantidade']) < 0:
+            raise PydanticCustomError(
+                'quantidade', 'A quantidade deve ser maior ou igual a 1.'
+            )
+        return form_data
+
+
 # Form data para abastecer item de estoque
-class AbastecerItemEstoqueAgapeFormData(BaseModel):
+class AbastecerItemEstoqueAgapeRequest(BaseModel, ItemQuantityValidation):
     quantidade: int = Field(
         ..., description='Quantidade a acrescentar', example=1
     )
 
-    @model_validator(mode='before')
-    @classmethod
-    def validar_formdata(cls, form_data: dict):
-        if int(form_data['quantidade']) < 0:
-            raise PydanticCustomError(
-                'quantidade', 'A quantidade deve ser maior ou igual a 1.'
-            )
-        return form_data
-
 
 # Form data para remover quantidade de item de estoque
-class RemoverItemEstoqueAgapeFormData(BaseModel):
+class RemoverItemEstoqueAgapeRequest(BaseModel, ItemQuantityValidation):
     quantidade: int = Field(
         ..., description='Quantidade a subtrair', example=1
     )
 
-    @model_validator(mode='before')
-    @classmethod
-    def validar_formdata(cls, form_data: dict):
-        if int(form_data['quantidade']) < 0:
-            raise PydanticCustomError(
-                'quantidade', 'A quantidade deve ser maior ou igual a 1.'
-            )
-        return form_data
 
-
-class RegistrarItemCicloAcaoAgapeFormData(BaseModel):
-    item_id: UUID = Field(..., description='ID da ação Ágape')
+class RegistrarItemCicloAcaoAgapeFormData(BaseModel, ItemQuantityValidation):
+    item_id: UUID = Field(..., description='ID do item')
     quantidade: int = Field(..., description='Quantidade', example=1)
-
-    @model_validator(mode='before')
-    @classmethod
-    def validar_formdata(cls, form_data: dict):
-        if int(form_data['quantidade']) < 0:
-            raise PydanticCustomError(
-                'quantidade', 'A quantidade deve ser maior ou igual a 1.'
-            )
-        return form_data
 
 
 class MembroFamiliaAgapeFormData(BaseModel):
@@ -175,7 +158,7 @@ class MembroFamiliaAgapeFormData(BaseModel):
     escolaridade: str = Field(..., min_length=3, max_length=50)
     ocupacao: str = Field(..., min_length=3, max_length=100)
     renda: Optional[float] = None
-    beneficiario_assistencial: Optional[float] = False
+    beneficiario_assistencial: Optional[bool] = False
     foto_documento: Optional[str] = None
 
     @model_validator(mode='before')
@@ -197,50 +180,62 @@ class RegistrarOuEditarFamiliaAgapeFormData(BaseModel):
     membros: list[MembroFamiliaAgapeFormData]
     observacao: Optional[str] = Field('', max_length=255)
     comprovante_residencia: BaseFile = None
-    fotos_familia: list[BaseFile] = None
+    fotos_familia: list[BaseFile] = []
 
     @model_validator(mode='before')
     @classmethod
-    def validar_formdata(cls, form_data: dict):
-        form_data = form_data.copy()
+    def validar_formdata(cls, form_data: dict[str, Any]) -> dict[str, Any]:
+        form_data = dict(form_data)
 
-        if 'membros' in form_data and isinstance(form_data['membros'], str):
-            try:
-                if not form_data['membros'].startswith('['):
-                    form_data['membros'] = f'[{form_data["membros"]}]'
-                form_data['membros'] = json.loads(form_data['membros'])
+        membros_key = 'membros'
+        endereco_key = 'endereco'
 
-                for membro in form_data['membros']:
-                    nome_valido, erro = valida_nome(membro['nome'])
+        if membros_key in form_data:
+            membros_data = form_data[membros_key]
+
+            if isinstance(membros_data, str):
+                membros_data = [membros_data]
+
+            if isinstance(membros_data, list):
+                try:
+                    membros = [
+                        json.loads(m) if isinstance(m, str) else m
+                        for m in membros_data
+                    ]
+                except json.JSONDecodeError:
+                    raise PydanticCustomError(
+                        'value_error', "'membros' deve conter JSONs válidos."
+                    )
+
+                for membro in membros:
+                    nome_valido, erro = valida_nome(membro.get('nome', ''))
                     if not nome_valido:
                         raise PydanticCustomError('nome', erro)
 
                     email_valido, erro = valida_email(
-                        email=membro['email'],
+                        email=membro.get('email', ''),
                         verificar_entregabilidade=True,
                         verificar_dominio=False,
                     )
                     if not email_valido:
                         raise PydanticCustomError('email', erro)
 
-                    if not valida_cpf_cnpj(
-                        membro['cpf'], 'cpf', gerar_excesao=False
-                    ):
+                    cpf = membro.get('cpf', '')
+                    if not valida_cpf_cnpj(cpf, 'cpf', gerar_excesao=False):
                         raise PydanticCustomError(
-                            'cpf', f'O cpf {membro["cpf"]} é inválido.'
+                            'cpf', f'O cpf {cpf} é inválido.'
                         )
 
-            except json.JSONDecodeError:
-                raise PydanticCustomError(
-                    'value_error', "'membros' deve ser um JSON valido."
-                )
+                form_data[membros_key] = membros
 
-        if 'endereco' in form_data and isinstance(form_data['endereco'], str):
+        if endereco_key in form_data and isinstance(
+            form_data[endereco_key], str
+        ):
             try:
-                form_data['endereco'] = json.loads(form_data['endereco'])
+                form_data[endereco_key] = json.loads(form_data[endereco_key])
             except json.JSONDecodeError:
                 raise PydanticCustomError(
-                    'value_error', "'endereco' deve ser um JSON valido."
+                    'value_error', "'endereco' deve ser um JSON válido."
                 )
 
         return form_data
@@ -254,28 +249,91 @@ class ListarMembrosFamiliaAgapeQueryPaginada(PaginacaoQuery):
     pass
 
 
-class AdicionarVoluntarioAgapeFormData(BaseModel):
-    lead_id: UUID = Field(..., description='ID do Lead')
-
-
 # Schemas para cadastrar membros em uma família ágape
 class MembroAgapeCadastroItemSchema(BaseModel):
-    responsavel: bool = False
-    nome: constr(min_length=3, max_length=100, strip_whitespace=True)  # type: ignore
-    email: EmailStr | None = None
-    telefone: str | None = None
-    cpf: str | None = None
-    data_nascimento: date
-    funcao_familiar: constr(min_length=1, max_length=50, strip_whitespace=True)  # type: ignore
-    escolaridade: constr(min_length=1, max_length=50, strip_whitespace=True)  # type: ignore
-    ocupacao: constr(min_length=1, max_length=100, strip_whitespace=True)  # type: ignore
-    renda: float | None = Field(default=None, ge=0)
-    beneficiario_assistencial: bool = False
-    foto_documento: str | None = None  # Esperado como string base64
+    responsavel: Optional[bool] = Field(
+        ..., description='Indica se o membro é o responsável pela família'
+    )
+    nome: str = Field(
+        ...,
+        description='Nome completo do membro',
+        min_length=3,
+        max_length=100,
+    )
+    email: Optional[EmailStr] = Field(
+        None,
+        description='Email do membro',
+        min_length=3,
+        max_length=100,
+    )
+    telefone: Optional[str] = Field(
+        None,
+        description='Telefone do membro',
+        max_length=20,
+    )
+    cpf: Optional[str] = Field(
+        None,
+        description='CPF do membro',
+        pattern=r'^\d{3}\.\d{3}\.\d{3}-\d{2}$',
+        max_length=14,
+    )
+    data_nascimento: date = Field(
+        ..., description='Data de nascimento do membro (YYYY-MM-DD)'
+    )
+    funcao_familiar: str = Field(
+        None,
+        description='Função do membro na família (ex: Pai, Mãe, Filho)',
+        min_length=3,
+        max_length=50,
+    )
+    escolaridade: str = Field(
+        None,
+        description='Nível de escolaridade do membro',
+        min_length=5,
+        max_length=50,
+    )
+    ocupacao: Optional[str] = Field(
+        None,
+        description='Ocupação atual do membro',
+        min_length=3,
+        max_length=50,
+    )
+    renda: Optional[float] = Field(
+        None, description='Renda mensal do membro', ge=0
+    )
+    beneficiario_assistencial: bool = Field(
+        None,
+        description='Indica se o membro é beneficiário de \
+            algum programa assistencial',
+    )
+    foto_documento: BaseFile = Field(
+        None, description='Foto do documento do membro'
+    )
 
 
-class MembrosAgapeCadastroRequestSchema(BaseModel):
+class MembrosAgapeCadastroRequest(BaseModel):
     membros: list[MembroAgapeCadastroItemSchema]
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            'example': [
+                {
+                    'responsavel': True,
+                    'nome': 'Fulano de Tal Atualizado',
+                    'email': 'fulano.atualizado@example.com',
+                    'telefone': '11987654321',
+                    'cpf': '12345678900',
+                    'data_nascimento': '1990-01-15',
+                    'funcao_familiar': 'Pai',
+                    'escolaridade': 'Ensino Superior Completo',
+                    'ocupacao': 'Engenheiro de Software',
+                    'renda': 5000.00,
+                    'foto_documento': '(Foto do documento em base64)',
+                    'beneficiario_assistencial': False,
+                }
+            ]
+        }
 
 
 class EditarEnderecoFamiliaAgapeRequest(BaseModel):
@@ -303,40 +361,64 @@ class EditarEnderecoFamiliaAgapeRequest(BaseModel):
     )
 
 
-class EditarMembroAgapeRequestData(BaseModel):
+class EditarMembroAgapeFormData(BaseModel):
     responsavel: Optional[bool] = Field(
-        None, description='Indica se o membro é o responsável pela família'
+        ..., description='Indica se o membro é o responsável pela família'
     )
-    nome: Optional[str] = Field(None, description='Nome completo do membro')
-    email: Optional[EmailStr] = Field(None, description='Email do membro')
-    telefone: Optional[str] = Field(None, description='Telefone do membro')
+    nome: str = Field(
+        ...,
+        description='Nome completo do membro',
+        min_length=3,
+        max_length=100,
+    )
+    email: Optional[EmailStr] = Field(
+        None,
+        description='Email do membro',
+        min_length=3,
+        max_length=100,
+    )
+    telefone: Optional[str] = Field(
+        None,
+        description='Telefone do membro',
+        max_length=20,
+    )
     cpf: Optional[str] = Field(
         None,
         description='CPF do membro',
         pattern=r'^\d{3}\.\d{3}\.\d{3}-\d{2}$',
+        max_length=14,
     )
-    data_nascimento: Optional[date] = Field(
-        None, description='Data de nascimento do membro (YYYY-MM-DD)'
+    data_nascimento: date = Field(
+        ..., description='Data de nascimento do membro (YYYY-MM-DD)'
     )
-    funcao_familiar: Optional[str] = Field(
-        None, description='Função do membro na família (ex: Pai, Mãe, Filho)'
+    funcao_familiar: str = Field(
+        None,
+        description='Função do membro na família (ex: Pai, Mãe, Filho)',
+        min_length=3,
+        max_length=50,
     )
-    escolaridade: Optional[str] = Field(
-        None, description='Nível de escolaridade do membro'
+    escolaridade: str = Field(
+        None,
+        description='Nível de escolaridade do membro',
+        min_length=5,
+        max_length=50,
     )
     ocupacao: Optional[str] = Field(
-        None, description='Ocupação atual do membro'
+        None,
+        description='Ocupação atual do membro',
+        min_length=3,
+        max_length=50,
     )
     renda: Optional[float] = Field(
         None, description='Renda mensal do membro', ge=0
     )
-    foto_documento: Optional[str] = Field(
-        None, description='Foto do documento do membro (base64 ou URL)'
-    )
-    beneficiario_assistencial: Optional[bool] = Field(
+    beneficiario_assistencial: bool = Field(
         None,
         description='Indica se o membro é beneficiário de \
             algum programa assistencial',
+    )
+    foto_documento: BaseFile = Field(
+        None, description='Foto do documento do membro'
     )
 
     class Config:
@@ -353,9 +435,7 @@ class EditarMembroAgapeRequestData(BaseModel):
                 'escolaridade': 'Ensino Superior Completo',
                 'ocupacao': 'Engenheiro de Software',
                 'renda': 5000.00,
-                'foto_documento': (
-                    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...'
-                ),
+                'foto_documento': '',
                 'beneficiario_assistencial': False,
             }
         }
@@ -401,18 +481,9 @@ class InfoPermissaoVoluntarioSchema(BaseModel):
     perfis_agape: List[str]
 
 
-class AtualizarPermissoesVoluntariosRequestSchema(BaseModel):
-    atualizacoes: List[InfoPermissaoVoluntarioSchema]
-
-
 class RegistrarRecibosRequestSchema(BaseModel):
     recibo: str = Field(..., description='URL ou identificador do recibo')
 
 
 class RegistrarRecibosRequestScheme(BaseModel):
     recibos: List[RegistrarRecibosRequestSchema]
-
-
-class InfoPermissaoVoluntarioSchema(BaseModel):
-    lead_id: UUID
-    perfis_agape: List[str]

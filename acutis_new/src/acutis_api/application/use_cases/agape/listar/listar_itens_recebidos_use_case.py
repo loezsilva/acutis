@@ -1,5 +1,4 @@
 import uuid
-from http import HTTPStatus
 
 from acutis_api.communication.responses.agape import (
     ItemDoadoBeneficiarioResponse,
@@ -15,7 +14,7 @@ class ListarItensRecebidosUseCase:
 
     def execute(
         self, ciclo_acao_id: uuid.UUID, doacao_id: uuid.UUID
-    ) -> tuple[ListarItensDoadosBeneficiarioResponse, HTTPStatus]:
+    ) -> ListarItensDoadosBeneficiarioResponse:
         ciclo_acao = self.agape_repository.buscar_ciclo_acao_agape_por_id(
             ciclo_acao_id
         )
@@ -54,4 +53,4 @@ class ListarItensRecebidosUseCase:
 
         return ListarItensDoadosBeneficiarioResponse(
             root=resultados_response
-        ), HTTPStatus.OK
+        ).model_dump()

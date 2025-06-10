@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, func
+from sqlalchemy import Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from acutis_api.domain.database import table_registry
@@ -16,9 +15,6 @@ if TYPE_CHECKING:
 class PermissaoMenu(ModeloBase):
     __tablename__ = 'permissoes_menu'
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        init=False, primary_key=True, default_factory=uuid.uuid4
-    )
     perfil_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey('perfis.id'), nullable=False, index=True
     )
@@ -27,10 +23,12 @@ class PermissaoMenu(ModeloBase):
     )
 
     perfil: Mapped['Perfil'] = relationship(
+        init=False,
+        foreign_keys=[perfil_id],
         back_populates='permissoes_menu',
     )
     menu: Mapped['MenuSistema'] = relationship(
-        back_populates='permissoes_menu'
+        init=False, foreign_keys=[menu_id], back_populates='permissoes_menu'
     )
 
     # Campos com valor padrão
@@ -43,12 +41,4 @@ class PermissaoMenu(ModeloBase):
     )
     deletar: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
-    )
-
-    # Timestamps
-    criado_em: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
-    atualizado_em: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now(), onupdate=func.now()
     )

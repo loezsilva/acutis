@@ -36,6 +36,7 @@ from .listar import (
     ExportarFamiliasAgapeUseCase,
     ListarBeneficiariosAgapeUseCase,
     ListarCicloAcoesAgapeUseCase,
+    ListarDoacoesRecebidasFamiliaUseCase,
     ListarEnderecosFamiliasAgapeUseCase,
     ListarFamiliasUseCase,
     ListarGeolocalizacoesBeneficiariosUseCase,
@@ -47,7 +48,6 @@ from .listar import (
     ListarNomesAcoesAgapeUseCase,
     ListarStatusPermissaoVoluntariosUseCase,
     ListarVoluntariosAgapeUseCase,
-    ListarDoacoesRecebidasFamiliaUseCase,
 )
 from .registrar import (
     RegistrarCicloAcaoAgapeUseCase,

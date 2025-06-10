@@ -5,13 +5,14 @@ from base64 import b64decode
 from calendar import monthrange
 from datetime import date, datetime
 from enum import Enum
-from typing import Union
+from typing import Any, Union
 
 import pandas as pd
 from email_validator import EmailNotValidError, validate_email
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from validate_docbr import CNPJ, CPF
 
+from acutis_api.communication.enums.campanhas import TiposCampoEnum
 from acutis_api.domain.services.schemas.gateway_pagamento import (
     TipoDocumentoEnum,
 )
@@ -116,61 +117,13 @@ def valida_cpf_cnpj(
     return cpf_cnpj
 
 
-def valida_nome(nome: str) -> tuple[bool, str]:
-    if nome is None:
-        return False, 'Você deve inserir um nome.'
-
-    name_regex = r'^[a-zA-ZáÁâÂãÃàÀéÉêÊèÈíÍóÓôÔõÕúÚùÙçÇ\s]+$'
-
-    if not bool(re.match(name_regex, nome)):
-        return False, f'O nome {nome} inserido possui caracteres inválidos.'
-
-    return True, nome
-
-
-def valida_email(
-    email: str, verificar_entregabilidade: bool, verificar_dominio: bool
-) -> tuple[bool, str]:
-    if not email:
-        return False, 'Você deve inserir um email.'
-
-    try:
-        emailinfo = validate_email(
-            email, check_deliverability=verificar_entregabilidade
-        )
-
-        email = emailinfo.normalized
-    except EmailNotValidError:
-        return False, 'O email inserido é inválido.'
-
-    if verificar_dominio:
-        ALLOWED_DOMAINS = [
-            'gmail.com',
-            'outlook.com',
-            'hotmail.com',
-            'icloud.com',
-            'me.com',
-            'apple.com',
-            'headers.com.br',
-            'institutohesed.org.br',
-            'yahoo.com',
-        ]
-        email_regex = (
-            r'^[a-zA-Z0-9._%+-]+@(' + '|'.join(ALLOWED_DOMAINS) + r')$'
-        )
-        if not bool(re.match(email_regex, email)):
-            return False, 'O domínio do email inserido não é permitido.'
-
-    return True, email
-
-
 def formatar_string(texto: str | None) -> str | None:
     # Substituir "ç" por "c"
     texto = re.sub('[ç]', 'c', texto)  # NOSONAR
 
     # Remover acentos
     texto = re.sub('[áàãâä]', 'a', texto)
-    texto = re.sub('[éèêë]', 'e', texto)
+    texto = re.sub('[éèêëÉ]', 'e', texto)
     texto = re.sub('[íìîï]', 'i', texto)
     texto = re.sub('[óòõôö]', 'o', texto)
     texto = re.sub('[úùûü]', 'u', texto)
@@ -219,14 +172,6 @@ def calcular_data_vencimento(data: date) -> str:
     return data_vencimento.strftime('%Y-%m-%d')
 
 
-def transforma_string_para_data(value):
-    try:
-        # Tenta RFC 1123
-        return datetime.strptime(value, '%a, %d %b %Y %H:%M:%S GMT')
-    except (ValueError, TypeError):
-        return None
-
-
 def remove_caracteres_ascii(texto):
     if isinstance(texto, str):
         texto_sanitizado = re.sub(
@@ -263,6 +208,67 @@ def exporta_csv(data, nome_arquivo):
         raise errors_handler(exc)
 
 
+def buscar_data_valida(dia: int, mes: int, ano: int) -> date:
+    ultimo_dia = monthrange(ano, mes)[1]
+    return date(ano, mes, (min(dia, ultimo_dia)))
+
+
+def valida_nome(nome: str) -> tuple[bool, str]:
+    if nome is None:
+        return False, 'Você deve inserir um nome.'
+
+    name_regex = r'^[a-zA-ZáÁâÂãÃàÀéÉêÊèÈíÍóÓôÔõÕúÚùÙçÇ\s]+$'
+
+    if not bool(re.match(name_regex, nome)):
+        return False, f'O nome {nome} inserido possui caracteres inválidos.'
+
+    return True, nome
+
+
+def valida_email(
+    email: str, verificar_entregabilidade: bool, verificar_dominio: bool
+) -> tuple[bool, str]:
+    if not email:
+        return False, 'Você deve inserir um email.'
+
+    try:
+        emailinfo = validate_email(
+            email, check_deliverability=verificar_entregabilidade
+        )
+
+        email = emailinfo.normalized
+    except EmailNotValidError:
+        return False, 'O email inserido é inválido.'
+
+    if verificar_dominio:
+        ALLOWED_DOMAINS = [
+            'gmail.com',
+            'outlook.com',
+            'hotmail.com',
+            'icloud.com',
+            'me.com',
+            'apple.com',
+            'headers.com.br',
+            'institutohesed.org.br',
+            'yahoo.com',
+        ]
+        email_regex = (
+            r'^[a-zA-Z0-9._%+-]+@(' + '|'.join(ALLOWED_DOMAINS) + r')$'
+        )
+        if not bool(re.match(email_regex, email)):
+            return False, 'O domínio do email inserido não é permitido.'
+
+    return True, email
+
+
+def transforma_string_para_data(value):
+    try:
+        # Tenta RFC 1123
+        return datetime.strptime(value, '%a, %d %b %Y %H:%M:%S GMT')
+    except (ValueError, TypeError):
+        return None
+
+
 def calcular_idade(
     data_nascimento: Union[str, date], formato: str = '%Y-%m-%d'
 ) -> int:
@@ -285,6 +291,26 @@ def calcular_idade(
     return idade
 
 
-def buscar_data_valida(dia: int, mes: int, ano: int) -> date:
-    ultimo_dia = monthrange(ano, mes)[1]
-    return date(ano, mes, (min(dia, ultimo_dia)))
+def tratar_valor_campo_por_tipo_valor(
+    self, valor_campo: str, tipo_valor: str
+) -> Any:
+    match tipo_valor:
+        case TiposCampoEnum.integer:
+            return int(valor_campo)
+
+        case TiposCampoEnum.float:
+            return float(valor_campo)
+
+        case TiposCampoEnum.date:
+            data_obj = datetime.strptime(valor_campo, '%Y-%m-%d')
+            return data_obj.strftime('%d/%m/%Y')
+
+        case TiposCampoEnum.datetime:
+            data_obj = datetime.strptime(valor_campo, '%Y-%m-%d %H:%M:%S')
+            return data_obj.strftime('%d/%m/%Y %H:%M')
+
+        case TiposCampoEnum.arquivo:
+            return self._file_service.buscar_url_arquivo(valor_campo)
+
+        case _:
+            return valor_campo

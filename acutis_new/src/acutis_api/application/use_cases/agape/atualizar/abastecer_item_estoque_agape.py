@@ -1,3 +1,6 @@
+from acutis_api.communication.requests.agape import (
+    AbastecerItemEstoqueAgapeRequest,
+)
 from acutis_api.communication.responses.agape import ItemEstoqueAgapeResponse
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 
@@ -17,19 +20,21 @@ class AbastecerItemEstoqueAgapeUseCase:
     def execute(
         self,
         item_id,
-        quantidade: int,
-    ) -> dict:
+        dados: AbastecerItemEstoqueAgapeRequest,
+    ) -> ItemEstoqueAgapeResponse:
         # Busca o item de estoque pelo ID
         item = self.__repository.buscar_item_estoque_por_id(item_id)
         item_quantidade = int(item.quantidade)
 
         # Incrementa a quantidade
-        item.quantidade = item_quantidade + quantidade
+        item.quantidade = item_quantidade + dados.quantidade
 
         # Persiste as alterações
         self.__repository.salvar_alteracoes()
 
         # Prepara a resposta
-        response = ItemEstoqueAgapeResponse.model_validate(item).model_dump()
-
-        return response
+        return ItemEstoqueAgapeResponse(
+            id=item.id,
+            item=item.item,
+            quantidade=item.quantidade,
+        ).model_dump()

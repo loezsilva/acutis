@@ -1,5 +1,4 @@
 import uuid
-from http import HTTPStatus
 
 from acutis_api.communication.responses.agape import (
     CardTotalRecebimentosAgapeResponse,
@@ -19,7 +18,7 @@ class CardTotalRecebimentosAgapeUseCase:
 
     def execute(
         self, familia_id: uuid.UUID
-    ) -> tuple[CardTotalRecebimentosAgapeResponse, HTTPStatus]:
+    ) -> CardTotalRecebimentosAgapeResponse:
         familia = self.__repository.buscar_familia_por_id(
             familia_id=familia_id
         )
@@ -40,8 +39,6 @@ class CardTotalRecebimentosAgapeUseCase:
         ):
             total_itens = dados_recebimentos.total_recebidas
 
-        response_data = CardTotalRecebimentosAgapeResponse(
+        return CardTotalRecebimentosAgapeResponse(
             total_itens_recebidos=f'{total_itens} Itens recebidos'
-        )
-
-        return response_data, HTTPStatus.OK
+        ).model_dump()

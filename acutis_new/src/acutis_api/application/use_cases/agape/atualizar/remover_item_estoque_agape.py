@@ -1,3 +1,6 @@
+from acutis_api.communication.requests.agape import (
+    AbastecerItemEstoqueAgapeRequest,
+)
 from acutis_api.communication.responses.agape import ItemEstoqueAgapeResponse
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.exception.errors.bad_request import HttpBadRequestError
@@ -18,25 +21,27 @@ class RemoverItemEstoqueAgapeUseCase:
     def execute(
         self,
         item_id,
-        quantidade: int,
+        dados: AbastecerItemEstoqueAgapeRequest,
     ) -> ItemEstoqueAgapeResponse:
         # Busca o item de estoque pelo ID
         item = self.__repository.buscar_item_estoque_por_id(item_id)
         item_quantidade = int(item.quantidade)
 
         # Verifica se há estoque suficiente
-        if quantidade > item_quantidade:
+        if dados.quantidade > item_quantidade:
             raise HttpBadRequestError(
                 'Quantidade a remover maior que a quantidade em estoque'
             )
 
         # Decrementa a quantidade
-        item.quantidade -= quantidade
+        item.quantidade -= dados.quantidade
 
         # Persiste as alterações
         self.__repository.salvar_alteracoes()
 
         # Prepara a resposta
-        response = ItemEstoqueAgapeResponse.model_validate(item).model_dump()
+        response = ItemEstoqueAgapeResponse(
+            id=item.id, item=item.item, quantidade=item.quantidade
+        ).model_dump()
 
         return response

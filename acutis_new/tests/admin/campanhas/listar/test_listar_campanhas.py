@@ -156,3 +156,37 @@ def test_listar_campanhas_erro_interno_servidor(
 
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response.json == [{'msg': 'Erro interno no servidor.'}]
+
+
+def test_listar_campanhas_filtro_dinamico(
+    client: FlaskClient, membro_token, seed_15_leads_campanhas
+):
+    total_registros = 1
+    response = client.get(
+        f'{ROTA}?filtro_dinamico=Peixe',
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json['total'] == total_registros
+    assert response.json['campanhas'][0]['campanha']['nome'] == (
+        'Campanha do Peixe'
+    )
+
+
+def test_listar_campanhas_filtro_dinamico_ordenado(
+    client: FlaskClient, membro_token, seed_15_leads_campanhas
+):
+    total_registros = 2
+
+    response = client.get(
+        f'{ROTA}?filtro_dinamico=Campanha do'
+        '&ordenar_por=campanha_nome&tipo_ordenacao=asc',
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json['total'] == total_registros
+    assert response.json['campanhas'][0]['campanha']['nome'] == (
+        'Campanha do General'
+    )

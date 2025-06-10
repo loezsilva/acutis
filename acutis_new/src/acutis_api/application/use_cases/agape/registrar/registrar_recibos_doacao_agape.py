@@ -10,8 +10,8 @@ from acutis_api.communication.responses.agape import (
 )
 from acutis_api.domain.entities.recibo_agape import ReciboAgape
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
-from acutis_api.exception.errors.not_found import HttpNotFoundError
 from acutis_api.exception.errors.bad_request import HttpBadRequestError
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class RegistrarRecibosDoacaoAgapeUseCase:
@@ -21,7 +21,6 @@ class RegistrarRecibosDoacaoAgapeUseCase:
     def execute(
         self, doacao_id: uuid.UUID, request_data: RegistrarRecibosRequestSchema
     ) -> RegistrarRecibosResponse:
-        
         doacao = self.agape_repository.buscar_doacao_agape_por_id(doacao_id)
 
         if not doacao:
@@ -32,9 +31,7 @@ class RegistrarRecibosDoacaoAgapeUseCase:
         recibos_criados_entidades: List[ReciboAgape] = []
 
         if not request_data.recibos:
-            raise HttpBadRequestError(
-                'Você deve informar os recibos'
-            )
+            raise HttpBadRequestError('Você deve informar os recibos')
 
         for recibo_input in request_data.recibos:
             novo_recibo = ReciboAgape(
@@ -53,4 +50,6 @@ class RegistrarRecibosDoacaoAgapeUseCase:
             for recibo_ent in recibos_criados_entidades
         ]
 
-        return RegistrarRecibosResponse(recibos_criados=recibos_response_list)
+        return RegistrarRecibosResponse(
+            recibos_criados=recibos_response_list
+        ).model_dump()

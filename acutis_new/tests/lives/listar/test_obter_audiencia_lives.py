@@ -1,4 +1,5 @@
 import uuid
+from datetime import date, timedelta
 from http import HTTPStatus
 from unittest.mock import patch
 
@@ -105,8 +106,10 @@ def test_obter_dados_audiencia_lives_com_datas(
 
     url = (
         f'{LISTAR_AUDIENCIA_LIVES_ENDPOINT}?live_id={str(live.id)}'
-        f'&data_inicial=2025-05-01'
-        f'&data_final=2025-05-31'
+        f'&data_inicial={date.today().replace(day=1).strftime("%Y-%m-%d")}'
+        f'&data_final={
+            (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        }'
     )
 
     response = client.get(

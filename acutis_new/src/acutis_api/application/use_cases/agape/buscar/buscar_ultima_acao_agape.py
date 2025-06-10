@@ -17,7 +17,7 @@ class BuscarUltimaAcaoAgapeUseCase:
         nome_acao = self._agape_repository.buscar_nome_acao_por_id(
             nome_acao_id
         )
-        if not nome_acao:
+        if nome_acao is None:
             raise HttpNotFoundError(
                 f'Nome da ação com ID {nome_acao_id} não encontrado.'
             )
@@ -27,7 +27,7 @@ class BuscarUltimaAcaoAgapeUseCase:
                 nome_acao_id
             )
         )
-        if not ultimo_ciclo_acao:
+        if ultimo_ciclo_acao is None:
             raise HttpNotFoundError(
                 f"""Nenhum ciclo de ação encontrado para o
                 nome da ação com ID {nome_acao_id}."""

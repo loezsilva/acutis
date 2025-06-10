@@ -7,13 +7,13 @@ authors = [
 ]
 requires-python = ">=3.13,<4.0"
 dependencies = [
-    "flask (>=3.1.0,<4.0.0)",
+    "flask (==3.1.1)",
     "flask-sqlalchemy (>=3.1.1,<4.0.0)",
     "flask-migrate (>=4.1.0,<5.0.0)",
     "pydantic[email] (>=2.10.6,<3.0.0)",
     "pydantic-settings (>=2.8.0,<3.0.0)",
     "spectree (>=1.4.4,<2.0.0)",
-    "flask-cors (>=5.0.1,<6.0.0)",
+    "flask-cors (>=6.0.0)",
     "flask-limiter (>=3.10.1,<4.0.0)",
     "flask-jwt-extended (>=4.7.1,<5.0.0)",
     "pyodbc (>=5.2.0,<6.0.0)",
@@ -26,10 +26,11 @@ dependencies = [
     "requests (>=2.32.3,<3.0.0)",
     "gevent (>=24.11.1,<25.0.0)",
     "validate-docbr (>=1.10.0,<2.0.0)",
-    "googlemaps (>=4.10.0,<5.0.0)",
     "openpyxl (>=3.1.5,<4.0.0)",
     "xmltodict (>=0.14.2,<0.15.0)",
-    "pandas (>=2.2.3,<3.0.0)"
+    "pandas (>=2.2.3,<3.0.0)",
+    "flask-mail (>=0.10.0,<0.11.0)",
+    "googlemaps (>=4.10.0,<5.0.0)"
 ]
 
 [tool.poetry]
@@ -48,6 +49,7 @@ pre-commit = "^4.1.0"
 poethepoet = "^0.32.2"
 ruff = "^0.9.7"
 pillow = "^11.1.0"
+freezegun = "^1.5.1"
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -68,6 +70,9 @@ ignore = [
     "PLR2004",
     "PLR6301",
     "PLR0904",
+    "E712",
+    "PLR0914",
+    "PLR0915",
 ]
 
 [tool.ruff.format]

@@ -3,6 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from acutis_api.communication.enums import TipoOrdenacaoEnum
+from acutis_api.communication.enums.admin_campanhas import (
+    ListarCampanhasOrdenarPorEnum,
+)
+
 
 class ListarCampanhasQuery(BaseModel):
     pagina: int
@@ -15,6 +20,11 @@ class ListarCampanhasQuery(BaseModel):
     data_inicial: Optional[str]
     data_final: Optional[str]
     ordenar_por: Optional[str]
+    filtro_dinamico: Optional[str] = None
+    ordenar_por: ListarCampanhasOrdenarPorEnum = (
+        ListarCampanhasOrdenarPorEnum.criado_em
+    )
+    tipo_ordenacao: TipoOrdenacaoEnum = TipoOrdenacaoEnum.decrescente
 
 
 class RegistrarCampanhaSchema(BaseModel):
@@ -45,3 +55,11 @@ class ListarDoacoesCampanhaSchema(BaseModel):
     data_doacao: datetime
     forma_pagamento: str
     nome: str
+
+
+class ListarCadastrosCampanhaSchema(BaseModel):
+    id: str
+    nome: str
+    email: str
+    telefone: str
+    data_cadastro: datetime

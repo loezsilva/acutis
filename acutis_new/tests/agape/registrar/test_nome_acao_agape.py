@@ -14,7 +14,7 @@ def test_registrar_nome_acao_sucesso(client: FlaskClient, membro_token):
     response = client.post(
         REGISTRAR_NOME_ACAO_AGAPE_ENDPOINT,
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'nome': nome_acao},
+        json={'nome': nome_acao},
     )
 
     assert response.status_code == HTTPStatus.CREATED
@@ -30,6 +30,6 @@ def test_erro_nome_registrar_nome_acao(
     response = client.post(
         REGISTRAR_NOME_ACAO_AGAPE_ENDPOINT,
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'nome': nome_acao},
+        json={'nome': nome_acao},
     )
     assert response.status_code == HTTPStatus.CONFLICT

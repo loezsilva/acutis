@@ -1,12 +1,9 @@
 from datetime import datetime, timedelta
 from http import HTTPStatus
-from unittest.mock import patch
 
 from flask.testing import FlaskClient
 
-from acutis_api.application.use_cases.campanha.listar.painel_campanhas import (
-    PainelCampanhasUseCase,
-)
+from acutis_api.application.utils.funcoes_auxiliares import buscar_data_valida
 from acutis_api.communication.enums.campanhas import (
     ObjetivosCampanhaEnum,
     PeriodicidadePainelCampanhasEnum,
@@ -90,6 +87,23 @@ def test_painel_campanhas_doacao_mensal(
 ):
     campanha_doacao = seed_campanha_doacao
 
+    hoje = datetime.now()
+    dia = hoje.day
+    mes = hoje.month
+    ano = hoje.year
+
+    if mes == 1:
+        mes_anterior = 12
+        ano_anterior = ano - 1
+    else:
+        mes_anterior = mes - 1
+        ano_anterior = ano
+
+    data_mes_passado = datetime.combine(
+        buscar_data_valida(dia, mes_anterior, ano_anterior),
+        datetime.min.time(),
+    )
+
     seed_dados_doacao(
         campanha=campanha_doacao,
         criado_em=datetime.now(),
@@ -97,12 +111,10 @@ def test_painel_campanhas_doacao_mensal(
     )
     seed_dados_doacao(
         campanha=campanha_doacao,
-        criado_em=datetime.now() - timedelta(days=35),
+        criado_em=data_mes_passado,
         numero_documento='10122088388',
     )
-    seed_dados_doacao(
-        campanha=campanha_doacao, criado_em=datetime.now() - timedelta(days=35)
-    )
+    seed_dados_doacao(campanha=campanha_doacao, criado_em=data_mes_passado)
 
     payload = {
         'lista_painel': [
@@ -224,21 +236,6 @@ def test_painel_campanhas_oficial_mensal(
     assert response.status_code == HTTPStatus.OK
     assert response.json['campanhas'][0].get('total') == 4
     assert response.json['campanhas'][0].get('porcentagem_crescimento') == 300
-
-
-@patch.object(PainelCampanhasUseCase, 'execute')
-def test_buscar_membros_mes_erro_interno_servidor(
-    mock_target, client: FlaskClient, membro_token
-):
-    mock_target.side_effect = Exception('Erro interno no servidor')
-
-    response = client.post(
-        ROTA,
-        headers={'Authorization': f'Bearer {membro_token}'},
-    )
-
-    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-    assert response.json == [{'msg': 'Erro interno no servidor.'}]
 
 
 def test_painel_campanhas_campanha_nao_encontrada(

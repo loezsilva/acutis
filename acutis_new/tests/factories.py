@@ -4,10 +4,8 @@ from random import choice
 import factory
 from faker import Faker
 
-from acutis_api.application.utils.funcoes_auxiliares import (
-    valida_cpf_cnpj,
-)
 from acutis_api.domain.entities.acao_agape import AcaoAgape
+from acutis_api.domain.entities.aquisicao_agape import AquisicaoAgape
 from acutis_api.domain.entities.audiencia_live import AudienciaLive
 from acutis_api.domain.entities.benfeitor import Benfeitor
 from acutis_api.domain.entities.campanha import Campanha, ObjetivosCampanhaEnum
@@ -46,6 +44,7 @@ from acutis_api.domain.entities.live_avulsa import LiveAvulsa
 from acutis_api.domain.entities.live_recorrente import LiveRecorrente
 from acutis_api.domain.entities.membro import Membro, SexoEnum
 from acutis_api.domain.entities.membro_agape import MembroAgape
+from acutis_api.domain.entities.menu_sistema import MenuSistema
 from acutis_api.domain.entities.metadado_lead import MetadadoLead
 from acutis_api.domain.entities.oficial import Oficial
 from acutis_api.domain.entities.pagamento_doacao import (
@@ -55,6 +54,7 @@ from acutis_api.domain.entities.pagamento_doacao import (
 )
 from acutis_api.domain.entities.perfil import Perfil
 from acutis_api.domain.entities.permissao_lead import PermissaoLead
+from acutis_api.domain.entities.permissao_menu import PermissaoMenu
 from acutis_api.domain.entities.processamento_doacao import (
     ProcessamentoDoacao,
     StatusProcessamentoEnum,
@@ -78,11 +78,6 @@ class LeadFactory(factory.Factory):
     )
     ultimo_acesso = None
     status = False
-
-    @factory.post_generation
-    def criar_senha(obj, create, extracted, **kwargs):
-        if create:
-            obj.senha = '#Teste;@123'
 
 
 class EnderecoFactory(factory.Factory):
@@ -377,32 +372,6 @@ class ProcessamentoDoacaoFactory(factory.Factory):
     status = StatusProcessamentoEnum.pago
 
 
-class NomeAcaoAgapeFactory(factory.Factory):
-    class Meta:
-        model = AcaoAgape
-
-    nome = factory.Faker('name', locale='pt-BR')
-
-
-class CicloAcaoAgapeFactory(factory.Factory):
-    class Meta:
-        model = InstanciaAcaoAgape
-
-    data_inicio = None
-    data_termino = None
-    abrangencia = factory.Faker(
-        'random_element', elements=AbrangenciaInstanciaAcaoAgapeEnum
-    )
-
-
-class EstoqueAgapeFactory(factory.Factory):
-    class Meta:
-        model = EstoqueAgape
-
-    item = factory.Faker('name', locale='pt-BR')
-    quantidade = factory.Faker('random_int')
-
-
 class LiveFactory(factory.Factory):
     class Meta:
         model = Live
@@ -452,10 +421,37 @@ class AudienciaFactory(factory.Factory):
     titulo = factory.LazyFunction(
         lambda: f'Live - {faker.sentence(nb_words=2)}'
     )
-    audiencia = factory.Faker('random_int', min_value=0, max=500)
+    audiencia = factory.Faker('random_int', min=0, max=500)
     data_hora_registro = factory.LazyFunction(
         lambda: datetime.now(timezone.utc)
     )
+
+
+# Ágape
+class NomeAcaoAgapeFactory(factory.Factory):
+    class Meta:
+        model = AcaoAgape
+
+    nome = factory.Faker('name', locale='pt-BR')
+
+
+class CicloAcaoAgapeFactory(factory.Factory):
+    class Meta:
+        model = InstanciaAcaoAgape
+
+    data_inicio = None
+    data_termino = None
+    abrangencia = factory.Faker(
+        'random_element', elements=AbrangenciaInstanciaAcaoAgapeEnum
+    )
+
+
+class EstoqueAgapeFactory(factory.Factory):
+    class Meta:
+        model = EstoqueAgape
+
+    item = factory.Faker('name', locale='pt-BR')
+    quantidade = factory.Faker('random_int')
 
 
 class PerfilFactory(factory.Factory):
@@ -502,9 +498,7 @@ class MembroAgapeFactory(factory.Factory):
     nome = factory.Faker('name', locale='pt-BR')
     email = factory.Faker('email', locale='pt-BR')
     telefone = factory.Faker('phone_number', locale='pt-BR')
-    cpf = factory.LazyFunction(
-        lambda: valida_cpf_cnpj(faker.cpf(), tipo_documento='cpf')
-    )
+    cpf = faker.cpf()
     data_nascimento = factory.Faker(
         'date_of_birth', minimum_age=1, maximum_age=100
     )
@@ -571,3 +565,20 @@ class CoordenadaFactory(factory.Factory):
     longitude_ne = factory.Faker('longitude')
     latitude_so = factory.Faker('latitude')
     longitude_so = factory.Faker('longitude')
+
+
+class AquisicaoAgapeFactory(factory.Factory):
+    class Meta:
+        model = AquisicaoAgape
+
+
+class MenuSistemaFactory(factory.Factory):
+    class Meta:
+        model = MenuSistema
+
+    nome = factory.Faker('name', locale='pt-BR')
+
+
+class PermissaoMenuFactory(factory.Factory):
+    class Meta:
+        model = PermissaoMenu

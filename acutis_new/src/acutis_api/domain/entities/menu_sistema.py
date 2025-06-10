@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, func
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from acutis_api.domain.database import table_registry
@@ -16,20 +15,24 @@ if TYPE_CHECKING:
 class MenuSistema(ModeloBase):
     __tablename__ = 'menus_sistema'
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        init=False, primary_key=True, default_factory=uuid.uuid4
+    nome: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    slug: str = mapped_column(String(50), nullable=False, unique=True)
+    sistema_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey('sistema.id'),
+        init=False,
+        nullable=True,
     )
-    nome: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    descricao: Mapped[str | None] = mapped_column(String(255))
+    criado_por_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey('leads.id'),
+        nullable=True,
+    )
+    alterado_por_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey('leads.id'),
+        init=False,
+        nullable=True,
+    )
 
     # Relationships
     permissoes_menu: Mapped[list['PermissaoMenu']] = relationship(
-        back_populates='menu', cascade='all, delete-orphan'
-    )
-
-    criado_em: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
-    atualizado_em: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now(), onupdate=func.now()
+        init=False, back_populates='menu', cascade='all, delete-orphan'
     )

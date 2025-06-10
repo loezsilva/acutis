@@ -4,6 +4,7 @@ from acutis_api.communication.responses.agape import (
 )
 from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class BuscarCicloAcaoAgapeUseCase:
@@ -18,6 +19,9 @@ class BuscarCicloAcaoAgapeUseCase:
         ciclo_acao_agape = self._repository.buscar_ciclo_acao_agape_por_id(
             acao_agape_id
         )
+
+        if ciclo_acao_agape is None:
+            raise HttpNotFoundError('Ciclo ação não encontrado.')
 
         endereco: Endereco = self._repository.buscar_endereco_ciclo_acao_agape(
             acao_agape_id

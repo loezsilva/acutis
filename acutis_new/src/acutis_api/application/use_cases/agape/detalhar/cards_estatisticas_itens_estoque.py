@@ -1,5 +1,4 @@
 from datetime import date  # Assuming date is sufficient for 'data' fields
-from http import HTTPStatus
 
 from acutis_api.communication.responses.agape import (
     CardsEstatisticasItensEstoqueResponse,
@@ -20,7 +19,7 @@ class CardsEstatisticasItensEstoqueUseCase:
 
     def execute(
         self,
-    ) -> tuple[CardsEstatisticasItensEstoqueResponse, HTTPStatus]:
+    ) -> CardsEstatisticasItensEstoqueResponse:
         dados_itens_estoque: ContagemItensEstoqueSchema = (
             self.__repository.contagem_itens_estoque()
         )
@@ -70,6 +69,6 @@ class CardsEstatisticasItensEstoqueUseCase:
             itens_em_estoque=itens_em_estoque_str,
             ultima_acao=ultima_acao_str,
             ultima_entrada=ultima_entrada_str,
-        )
+        ).model_dump()
 
-        return response_data, HTTPStatus.OK
+        return response_data

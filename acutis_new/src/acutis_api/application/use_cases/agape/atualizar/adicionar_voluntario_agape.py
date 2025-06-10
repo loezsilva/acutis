@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from acutis_api.communication.enums.membros import PerfilEnum
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.exception.errors.not_found import HttpNotFoundError
@@ -16,8 +18,8 @@ class AdicionarVoluntarioAgapeUseCase:
 
     def execute(
         self,
-        lead_id,
-    ) -> dict:
+        lead_id: UUID,
+    ) -> None:
         lead = self.__repository.buscar_lead_por_id(lead_id)
         if not lead:
             raise HttpNotFoundError('Usuário não encontrado.')
@@ -29,14 +31,10 @@ class AdicionarVoluntarioAgapeUseCase:
         if not perfil:
             raise HttpNotFoundError('Perfil de voluntário não encontrado.')
 
-        permissoes = self.__repository.buscar_permissoes_por_lead_id(lead_id)
+        primeira_permissao_lead = (
+            self.__repository.buscar_primeira_permissao_por_lead_id(lead_id)
+        )
 
-        primeira_permissao = permissoes.first()
-
-        primeira_permissao.perfil_id = perfil.id
+        primeira_permissao_lead.perfil_id = perfil.id
 
         self.__repository.salvar_alteracoes()
-
-        return {
-            'msg': 'Voluntário adicionado com sucesso.',
-        }

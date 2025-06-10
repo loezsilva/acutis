@@ -1,13 +1,13 @@
 from http import HTTPStatus
+
 from flask.testing import FlaskClient
 
 LISTAR_VOLUNTARIOS_ENDPOINT = 'api/agape/listar-voluntarios-agape'
 
+
 def test_listar_voluntarios_agape_sucesso(
-    client: FlaskClient, 
-    seed_lead_voluntario_e_token
+    client: FlaskClient, seed_lead_voluntario_e_token
 ):
-    
     token = seed_lead_voluntario_e_token[1]
 
     resposta = client.get(
@@ -34,7 +34,6 @@ def test_listar_voluntarios_agape_sucesso(
 
 
 def test_listar_voluntarios_agape_sem_permissao(client: FlaskClient):
-    
     resposta = client.get(LISTAR_VOLUNTARIOS_ENDPOINT)
 
     assert resposta.status_code == HTTPStatus.UNAUTHORIZED

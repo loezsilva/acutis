@@ -81,3 +81,8 @@ class MembrosOficiaisRepositoryInterface(ABC):
     def busca_superiores_de_cargo_oficial(
         self, fk_cargo_oficial_id: uuid.UUID
     ) -> Oficial: ...
+
+    @abstractmethod
+    def admin_listar_membro_oficial_por_id(
+        self, membro_oficial_id: uuid.UUID
+    ) -> tuple: ...

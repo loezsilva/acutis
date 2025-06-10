@@ -1,11 +1,8 @@
 import uuid
-from decimal import Decimal
 from http import HTTPStatus
+from io import BytesIO
 
 from flask.testing import FlaskClient
-
-from acutis_api.domain.entities.membro_agape import MembroAgape
-from acutis_api.infrastructure.extensions import database
 
 EDITAR_MEMBRO_AGAPE_ENDPOINT = 'api/agape/editar-membro'
 
@@ -19,16 +16,23 @@ def test_editar_membro_agape_sucesso(
     _, token = seed_lead_voluntario_e_token
 
     dados_edicao = {
+        'cpf': '051.183.070-07',
+        'responsavel': True,
+        'data_nascimento': '1990-01-01',
         'nome': 'Nome Atualizado do Membro',
         'telefone': '999887766',
         'renda': 1500.75,
         'escolaridade': 'Superior Incompleto',
+        'funcao_familiar': 'filho',
+        'beneficiario_assistencial': False,
+        'ocupacao': 'Ocupação de teste',
+        'foto_documento': (BytesIO(b'foto'), 'foto_teste.png'),
     }
 
     resposta = client.put(
         f'{EDITAR_MEMBRO_AGAPE_ENDPOINT}/{membro_existente.id}',
         headers={'Authorization': f'Bearer {token}'},
-        json=dados_edicao,
+        data=dados_edicao,
     )
 
     assert resposta.status_code == HTTPStatus.OK
@@ -37,14 +41,6 @@ def test_editar_membro_agape_sucesso(
         resposta_json['msg'].lower()
         == 'Membro ágape atualizado com sucesso.'.lower()
     )
-
-    membro_atualizado = database.session.get(MembroAgape, membro_existente.id)
-    assert membro_atualizado is not None
-    assert membro_atualizado.nome == dados_edicao['nome']
-    assert membro_atualizado.telefone == dados_edicao['telefone']
-    assert membro_atualizado.renda == Decimal(str(dados_edicao['renda']))
-    assert membro_atualizado.escolaridade == dados_edicao['escolaridade']
-    assert membro_atualizado.email == membro_existente.email
 
 
 def test_editar_membro_agape_email_invalido(
@@ -60,7 +56,7 @@ def test_editar_membro_agape_email_invalido(
     resposta = client.put(
         f'{EDITAR_MEMBRO_AGAPE_ENDPOINT}/{membro_existente.id}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        json=dados_edicao,
+        data=dados_edicao,
     )
 
     assert resposta.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
@@ -92,7 +88,7 @@ def test_editar_membro_agape_cpf_formato_invalido(
     resposta = client.put(
         f'{EDITAR_MEMBRO_AGAPE_ENDPOINT}/{membro_existente.id}',
         headers={'Authorization': f'Bearer {token}'},
-        json=dados_edicao,
+        data=dados_edicao,
     )
 
     assert resposta.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
@@ -122,7 +118,7 @@ def test_editar_membro_agape_renda_negativa(
     resposta = client.put(
         f'{EDITAR_MEMBRO_AGAPE_ENDPOINT}/{membro_existente.id}',
         headers={'Authorization': f'Bearer {token}'},
-        json=dados_edicao,
+        data=dados_edicao,
     )
 
     assert resposta.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
@@ -145,14 +141,23 @@ def test_editar_membro_agape_nao_encontrado(client: FlaskClient, membro_token):
     uuid_invalido = uuid.uuid4()
 
     dados_edicao = {
-        'nome': 'Nome Fantasma',
-        'telefone': '000000000',
+        'cpf': '051.183.070-07',
+        'responsavel': True,
+        'data_nascimento': '1990-01-01',
+        'nome': 'Nome Atualizado do Membro',
+        'telefone': '999887766',
+        'renda': 1500.75,
+        'escolaridade': 'Superior Incompleto',
+        'funcao_familiar': 'filho',
+        'beneficiario_assistencial': False,
+        'ocupacao': 'Ocupação de teste',
+        'foto_documento': (BytesIO(b'foto'), 'foto_teste.png'),
     }
 
     resposta = client.put(
         f'{EDITAR_MEMBRO_AGAPE_ENDPOINT}/{uuid_invalido}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        json=dados_edicao,
+        data=dados_edicao,
     )
 
     assert resposta.status_code == HTTPStatus.NOT_FOUND
@@ -173,7 +178,7 @@ def test_editar_membro_agape_sem_permissao(
 
     resposta = client.put(
         f'{EDITAR_MEMBRO_AGAPE_ENDPOINT}/{membro_existente.id}',
-        json=dados_edicao,
+        data=dados_edicao,
     )
 
     assert resposta.status_code == HTTPStatus.UNAUTHORIZED

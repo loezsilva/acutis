@@ -14,7 +14,7 @@ def test_abastecer_item_sucesso(
     response = client.put(
         f'/api/agape/abastecer-item/{seed_item_estoque_agape.id}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'quantidade': quantidade_acrescentada},
+        json={'quantidade': quantidade_acrescentada},
     )
 
     response_json = response.json
@@ -28,7 +28,7 @@ def test_erro_abastecer_item_inexistente(client: FlaskClient, membro_token):
     response = client.put(
         f'/api/agape/abastecer-item/{str(uuid.uuid4())}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'quantidade': 1},
+        json={'quantidade': 1},
     )
 
     assert response.status_code == HTTPStatus.NOT_FOUND
@@ -41,7 +41,7 @@ def test_erro_abastecer_item_quantidade_invalida(
     response = client.put(
         f'/api/agape/abastecer-item/{seed_item_estoque_agape.id}',
         headers={'Authorization': f'Bearer {membro_token}'},
-        data={'quantidade': -1},
+        json={'quantidade': -1},
     )
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY

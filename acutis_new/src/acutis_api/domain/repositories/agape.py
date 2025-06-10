@@ -25,6 +25,7 @@ from acutis_api.domain.entities.lead import Lead
 from acutis_api.domain.entities.membro_agape import MembroAgape
 from acutis_api.domain.entities.perfil import Perfil
 from acutis_api.domain.entities.permissao_lead import PermissaoLead
+from acutis_api.domain.entities.permissao_menu import PermissaoMenu
 from acutis_api.domain.entities.recibo_agape import ReciboAgape
 from acutis_api.domain.repositories.schemas.agape import (
     ContagemItensEstoqueSchema,
@@ -53,7 +54,6 @@ from acutis_api.domain.repositories.schemas.agape import (
     TotalItensRecebidosSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
-    DoacaoRecebidaDetalheSchema,
 )
 
 
@@ -93,7 +93,9 @@ class AgapeRepositoryInterface(ABC):
     ) -> list[DoacaoAgapeSchema]: ...
 
     @abstractmethod
-    def deletar_item_ciclo_acao_agape(self, item_ciclo_id: UUID) -> None: ...
+    def deletar_item_ciclo_acao_agape(
+        self, item_estoque: EstoqueAgape
+    ) -> None: ...
 
     @abstractmethod
     def retorna_item_estoque_ciclo_acao_agape(
@@ -124,7 +126,7 @@ class AgapeRepositoryInterface(ABC):
     ) -> tuple[list[NomeAcaoAgapeSchema], int]: ...
 
     @abstractmethod
-    def verificar_item_estoque(self, item: str) -> tuple: ...
+    def verificar_item_estoque(self, item: str) -> EstoqueAgape: ...
 
     @abstractmethod
     def registrar_item_estoque(
@@ -190,14 +192,12 @@ class AgapeRepositoryInterface(ABC):
     def finalizar_ciclo_acao_agape(self, ciclo_acao) -> InstanciaAcaoAgape: ...
 
     @abstractmethod
-    def deletar_ciclo_acao_agape(
-        self, acao_agape_id
-    ) -> InstanciaAcaoAgape: ...
+    def deletar_ciclo_acao_agape(self, acao_agape_id) -> None: ...
 
     @abstractmethod
     def registrar_item_ciclo_acao_agape(
         self, ciclo_acao_id, dados: RegistrarItemCicloAcaoAgapeFormData
-    ) -> None: ...
+    ) -> ItemInstanciaAgape: ...
 
     @abstractmethod
     def registrar_familia(
@@ -238,9 +238,9 @@ class AgapeRepositoryInterface(ABC):
     @abstractmethod
     def movimentar_historico_ciclo_acao_agape(
         self,
-        item_id,
-        ciclo_acao_id,
         quantidade,
+        item_id=None,
+        ciclo_acao_id=None,
     ) -> HistoricoMovimentacaoAgape: ...
 
     @abstractmethod
@@ -340,8 +340,7 @@ class AgapeRepositoryInterface(ABC):
     def ultima_entrada_estoque(self) -> Optional[UltimaEntradaEstoqueSchema]:
         pass
 
-    abstractmethod
-
+    @abstractmethod
     def deletar_familia_e_membros(self, familia: FamiliaAgape) -> None:
         # Este método irá deletar (hard delete) os membros da família
         # e depois marcar a família como deletada (soft delete).
@@ -417,12 +416,17 @@ class AgapeRepositoryInterface(ABC):
     ) -> ItemInstanciaAgape: ...
 
     @abstractmethod
-    def buscar_lead_com_permissoes_por_id(
-        self, lead_id: UUID
-    ) -> Lead | None: ...
+    def buscar_perfil_por_nome(self, nome_perfil: str) -> Perfil | None: ...
 
     @abstractmethod
-    def buscar_perfil_por_nome(self, nome_perfil: str) -> Perfil | None: ...
+    def buscar_permissoes_valuntarios(
+        self, perfil_voluntario: Perfil
+    ) -> PermissaoMenu: ...
+
+    @abstractmethod
+    def atualizar_permissoes_voluntario_agape(
+        self, permissao: PermissaoMenu
+    ) -> None: ...
 
     @abstractmethod
     def remover_permissao_lead(
@@ -455,12 +459,12 @@ class AgapeRepositoryInterface(ABC):
     ) -> DoacaoAgape | None: ...
 
     @abstractmethod
-    def listar_leads_por_nomes_de_perfis(
-        self, nomes_perfis: list[str], filtros_paginacao: PaginacaoSchema
-    ) -> tuple[list[Lead], int]: ...
+    def buscar_permissoes_perfil(
+        self, perfil: list[PermissaoMenu], slug: str = 'familia_agape'
+    ) -> list[PermissaoMenu]: ...
 
     @abstractmethod
-    def buscar_permissoes_por_lead_id(
+    def buscar_primeira_permissao_por_lead_id(
         self, lead_id: UUID
     ) -> PermissaoLead | None: ...
 
@@ -469,8 +473,7 @@ class AgapeRepositoryInterface(ABC):
         self, filtros: ListarMembrosFamiliaAgapeFiltros, familia_id: UUID
     ) -> tuple[list[MembroFamiliaSchema], int]: ...
 
-    abstractmethod
+    @abstractmethod
     def listar_doacoes_recebidas_por_familia(
         self, familia_id: UUID
-    ) -> list[DoacaoAgape]:
-        ...
+    ) -> list[DoacaoAgape]: ...

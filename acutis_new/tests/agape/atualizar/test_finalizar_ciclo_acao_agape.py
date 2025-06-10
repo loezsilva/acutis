@@ -4,14 +4,14 @@ from http import HTTPStatus
 from flask.testing import FlaskClient
 
 
-def test_finalizar_ciclo_acao_sucesso_e_erro_ciclo_ja_finalizado(
-    client: FlaskClient, seed_ciclo_acao_agape_em_andamento, membro_token
+def test_finalizar_ciclo_acao_sucesso(
+    client: FlaskClient, seed_ciclo_acao_com_itens, membro_token
 ):
+    ciclo_acao = seed_ciclo_acao_com_itens[0]
+
     def _request():
         response = client.put(
-            f'/api/agape/finalizar-ciclo-acao-agape/{
-                seed_ciclo_acao_agape_em_andamento.id
-            }',
+            f'/api/agape/finalizar-ciclo-acao-agape/{ciclo_acao.id}',
             headers={'Authorization': f'Bearer {membro_token}'},
         )
 
@@ -42,3 +42,11 @@ def test_erro_finalizar_ciclo_acao_inexistente(
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json[0]['msg'].lower() == 'ciclo da ação não encontrado.'
+
+
+def test_erro_finalizar_ciclo_acao_sem_token(client: FlaskClient):
+    response = client.put(
+        f'/api/agape/finalizar-ciclo-acao-agape/{str(uuid.uuid4())}',
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED

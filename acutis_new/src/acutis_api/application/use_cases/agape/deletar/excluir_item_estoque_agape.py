@@ -15,13 +15,10 @@ class ExcluirItemEstoqueAgapeUseCase:
     def execute(
         self,
         item_id,
-    ) -> dict:
+    ) -> None:
         # Busca o item de estoque pelo ID
         item = self.__repository.buscar_item_estoque_por_id(item_id)
 
         # Remove o item do banco
         self.__repository.remover_item_estoque(item)
         self.__repository.salvar_alteracoes()
-
-        # Retorna mensagem de sucesso
-        return {'msg': 'Item de estoque excluído com sucesso.'}

@@ -138,4 +138,4 @@ class RegistrarDoacaoAgapeUseCase:
             instancia_acao_agape_id=ciclo_acao.id,
             itens_doados=itens_doados_response,
             criado_em=doacao_registrada.criado_em,
-        )
+        ).model_dump()

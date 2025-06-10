@@ -40,5 +40,6 @@ from .permissao_menu import PermissaoMenu as PermissaoMenu
 from .processamento_doacao import ProcessamentoDoacao as ProcessamentoDoacao
 from .recibo_agape import ReciboAgape as ReciboAgape
 from .sacramento_vocacional import SacramentoVocacional as SacramentoVocacional
+from .sistema import Sistema as Sistema
 from .template_lp import TemplateLP as TemplateLP
 from .usuario_vocacional import UsuarioVocacional as UsuarioVocacional

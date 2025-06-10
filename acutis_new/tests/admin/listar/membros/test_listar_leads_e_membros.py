@@ -122,7 +122,7 @@ def test_listar_leads_e_membros_filtro_numero_documento(
     seed_registrar_membro(numero_documento='48596874125')
     total_registros = 1
 
-    lead = LeadFactory()
+    lead = LeadFactory(telefone='83991234567')
     lead.senha = SENHA_TESTE
     database.session.add(lead)
     database.session.commit()

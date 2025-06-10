@@ -17,6 +17,10 @@ from pydantic_core import PydanticCustomError
 from spectree import BaseFile
 from werkzeug.datastructures import FileStorage
 
+from acutis_api.communication.enums import TipoOrdenacaoEnum
+from acutis_api.communication.enums.admin_campanhas import (
+    ListarCampanhasOrdenarPorEnum,
+)
 from acutis_api.communication.enums.campanhas import (
     ObjetivosCampanhaEnum,
     PeriodicidadePainelCampanhasEnum,
@@ -150,9 +154,11 @@ class ListarCampanhasQuery(BaseModel):
         description='Data de criação final para filtro (formato: Y-m-d).',
     )
 
-    ordenar_por: Optional[str] = Field(
-        default='desc', description='desc | asc'
+    ordenar_por: ListarCampanhasOrdenarPorEnum = (
+        ListarCampanhasOrdenarPorEnum.criado_em
     )
+    tipo_ordenacao: TipoOrdenacaoEnum = TipoOrdenacaoEnum.decrescente
+    filtro_dinamico: Optional[str] = Field(None, description='Filtro dinâmico')
 
     @field_validator('data_inicial', 'data_final')
     def validar_data(cls, value: str) -> str:
@@ -162,6 +168,15 @@ class ListarCampanhasQuery(BaseModel):
             return value
         except ValueError:
             raise ValueError("A data deve estar no formato 'Y-m-d'")
+
+    @field_validator('filtro_dinamico')
+    @classmethod
+    def filtro_minimo_quatro_caracteres(cls, value):
+        if value is not None and len(value.strip()) < 4:
+            raise ValueError(
+                'O filtro dinâmico deve ter pelo menos 4 caracteres.'
+            )
+        return value
 
 
 class CadastroPorCampanhaFormData(BaseModel):

@@ -1,7 +1,5 @@
-from http import HTTPStatus
-
 from acutis_api.communication.requests.agape import (
-    RegistrarItemEstoqueAgapeFormData,
+    RegistrarItemEstoqueAgapeRequest,
 )
 from acutis_api.communication.responses.agape import (
     RegistrarItemEstoqueAgapeResponse,
@@ -20,8 +18,8 @@ class RegistrarEstoqueAgapeUseCase:
         self.__agape_repository = agape_repository
 
     def execute(
-        self, dados: RegistrarItemEstoqueAgapeFormData
-    ) -> tuple[dict, HTTPStatus]:
+        self, dados: RegistrarItemEstoqueAgapeRequest
+    ) -> RegistrarItemEstoqueAgapeResponse:
         verifica_item_estoque_ja_cadastrado = (
             self.__agape_repository.verificar_item_estoque(dados.item)
         )
@@ -33,8 +31,7 @@ class RegistrarEstoqueAgapeUseCase:
 
         self.__agape_repository.salvar_alteracoes()
 
-        response = RegistrarItemEstoqueAgapeResponse.model_validate(
-            item
+        return RegistrarItemEstoqueAgapeResponse(
+            id=item.id,
+            item=item.item,
         ).model_dump()
-
-        return response

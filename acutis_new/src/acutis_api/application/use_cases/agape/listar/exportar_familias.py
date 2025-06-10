@@ -13,7 +13,7 @@ class ExportarFamiliasAgapeUseCase:
     def __init__(self, agape_repository: AgapeRepositoryInterface):
         self.agape_repository = agape_repository
 
-    def execute(self) -> str:
+    def execute(self) -> dict:
         dados_exportacao: List[DadosExportacaoFamiliaSchema] = (
             self.agape_repository.buscar_dados_completos_familias_agape()
         )

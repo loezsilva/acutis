@@ -26,6 +26,7 @@ def test_admin_excluir_conta_usuario_not_found(
 def test_admin_excluir_conta_usuario(
     client: FlaskClient, membro_token: str, seed_membro_com_todas_relacoes
 ):
+    seed_membro_com_todas_relacoes = seed_membro_com_todas_relacoes()
     lead = seed_membro_com_todas_relacoes['lead']
     membro = seed_membro_com_todas_relacoes['membro']
     endereco = seed_membro_com_todas_relacoes['endereco']

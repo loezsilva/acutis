@@ -1,6 +1,13 @@
-from typing import Optional
+from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+
+class CampanhasRegistradasSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    nome: str | None
+    campos_adicionais: list[dict[str, Any]]
 
 
 class MembrosOficiaisResponse(BaseModel):
@@ -22,6 +29,7 @@ class MembrosOficiaisResponse(BaseModel):
     cidade: Optional[str]
     complemento: Optional[str]
     pais: str
+    campanhas_registradas: Optional[list[CampanhasRegistradasSchema]] = None
 
 
 class ListarMembrosOficiaisResponse(BaseModel):

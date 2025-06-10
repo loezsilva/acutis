@@ -34,7 +34,7 @@ def test_listar_cadastros_campanha_por_periodo_sucesso(
 
 
 @patch.object(CadastrosCampanhaPorPeriodoUseCase, 'execute')
-def test_buscar_membros_mes_erro_interno_servidor(
+def test_cadastros_campanha_por_periodo_erro_interno_servidor(
     mock_target,
     client: FlaskClient,
     seed_gerar_cadastros_campanha_em_periodos,

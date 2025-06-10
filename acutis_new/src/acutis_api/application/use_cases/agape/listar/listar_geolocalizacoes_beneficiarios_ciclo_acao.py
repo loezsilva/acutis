@@ -1,5 +1,4 @@
 import uuid
-from http import HTTPStatus
 
 from acutis_api.communication.responses.agape import (
     GeolocalizacaoBeneficiarioResponse,
@@ -15,7 +14,7 @@ class ListarGeolocalizacoesBeneficiariosUseCase:
 
     def execute(
         self, ciclo_acao_id: uuid.UUID
-    ) -> tuple[ListarGeolocalizacoesBeneficiariosResponse, HTTPStatus]:
+    ) -> ListarGeolocalizacoesBeneficiariosResponse:
         """
         Executa a lógica para listar as geolocalizações dos beneficiários.
         """
@@ -34,23 +33,21 @@ class ListarGeolocalizacoesBeneficiariosUseCase:
         if familias_beneficiadas:
             for familia_entity in familias_beneficiadas:
                 if familia_entity.fk_endereco_id:
-                    if (
-                        endereco
-                        := self.agape_repository.buscar_endereco_por_id(
-                            familia_entity.fk_endereco_id
-                        )
-                    ):
-                        if coordenada := endereco.coordenada:
-                            geolocalizacoes_list.append(
-                                GeolocalizacaoBeneficiarioResponse(
-                                    familia_id=familia_entity.id,
-                                    nome_familia=(familia_entity.nome_familia),
-                                    latitude=coordenada.latitude,
-                                    longitude=coordenada.longitude,
-                                    endereco_id=familia_entity.fk_endereco_id,
-                                )
+                    endereco = self.agape_repository.buscar_endereco_por_id(
+                        familia_entity.fk_endereco_id
+                    )
+                    if endereco and endereco.coordenada:
+                        coordenada = endereco.coordenada
+                        geolocalizacoes_list.append(
+                            GeolocalizacaoBeneficiarioResponse(
+                                familia_id=familia_entity.id,
+                                nome_familia=(familia_entity.nome_familia),
+                                latitude=coordenada.latitude,
+                                longitude=coordenada.longitude,
+                                endereco_id=familia_entity.fk_endereco_id,
                             )
+                        )
 
         return ListarGeolocalizacoesBeneficiariosResponse(
             root=geolocalizacoes_list
-        ), HTTPStatus.OK
+        ).model_dump()

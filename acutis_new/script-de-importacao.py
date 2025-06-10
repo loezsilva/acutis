@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from acutis_api.api.app import app
 from acutis_api.domain.entities.campanha import Campanha
+from acutis_api.domain.entities.campanha_doacao import CampanhaDoacao
 from acutis_api.domain.entities.campo_adicional import CampoAdicional
 from acutis_api.domain.entities.cargo_oficial import CargosOficiais
 from acutis_api.domain.entities.endereco import Endereco
@@ -115,6 +116,16 @@ def _importar_campanhas():
             ).where(Campanha.nome.contains(campanha_v0.titulo))
         )
         if campanha_existente_v1:
+            if (
+                campanha_existente_v1.objetivo == 'doacao' and not 
+                campanha_existente_v1.campanha_doacao
+            ):
+                campanha_doacao = CampanhaDoacao(
+                    chave_pix=campanha_existente_v1.chave_pix,
+                    fk_campanha_id=campanha_existente_v1.id
+                )
+                database.session.add(campanha_doacao)
+                database.session.commit()
             continue
 
         campanha = Campanha(
@@ -133,6 +144,13 @@ def _importar_campanhas():
             superior_obrigatorio=False,
         )
         database.session.add(campanha)
+
+        if campanha.objetivo == 'doacao':
+            campanha_doacao = CampanhaDoacao(
+                chave_pix=campanha.chave_pix,
+                fk_campanha_id=campanha.id
+            )
+            database.session.add(campanha_doacao)
     database.session.commit()
 
     logging.warning('---> Importar Campanhas Finalizado')
@@ -521,3 +539,4 @@ def _importar_users_imports():
 
 if __name__ == '__main__':
     script_equalizacao_cadastros()
+

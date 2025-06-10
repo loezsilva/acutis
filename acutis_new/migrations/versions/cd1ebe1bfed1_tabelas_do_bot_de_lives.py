@@ -89,4 +89,5 @@ def downgrade():
 
     op.drop_table('audiencia_lives')
     op.drop_table('lives')
+
     # ### end Alembic commands ###

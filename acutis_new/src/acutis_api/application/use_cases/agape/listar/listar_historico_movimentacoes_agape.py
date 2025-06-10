@@ -1,5 +1,4 @@
 import math  # Para cálculo do total de páginas
-from http import HTTPStatus
 
 from acutis_api.communication.requests.agape import (
     ListarHistoricoMovimentacoesAgapeQueryPaginada,
@@ -17,7 +16,7 @@ class ListarHistoricoMovimentacoesAgapeUseCase:
 
     def execute(
         self, filtros: ListarHistoricoMovimentacoesAgapeQueryPaginada
-    ) -> tuple[ListarHistoricoMovimentacoesAgapeResponsePaginada, HTTPStatus]:
+    ) -> ListarHistoricoMovimentacoesAgapeResponsePaginada:
         """
         Executa a lógica para listar o histórico de movimentações.
         """
@@ -53,11 +52,9 @@ class ListarHistoricoMovimentacoesAgapeUseCase:
         if total_paginas == 0 and total_itens > 0:
             total_paginas = 1
 
-        response_paginada = ListarHistoricoMovimentacoesAgapeResponsePaginada(
+        return ListarHistoricoMovimentacoesAgapeResponsePaginada(
             pagina=filtros.pagina,
             paginas=total_paginas,
             total=total_itens,
             resultados=resultados_response,
-        )
-
-        return response_paginada, HTTPStatus.OK
+        ).model_dump()

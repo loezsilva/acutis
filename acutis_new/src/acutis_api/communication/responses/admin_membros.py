@@ -105,3 +105,18 @@ class BuscarLeadsMesResponse(BaseModel):
 class BuscarMembrosMesResponse(BaseModel):
     membros_mes: int
     porcentagem_crescimento: float
+
+
+class BuscarDoacoesECampanhasDoMembroResponse(BaseModel):
+    quantia_total_doada: float | None
+    num_doacoes: int | None
+    num_registros_em_campanhas: int | None
+    data_ultima_doacao: datetime | str | None
+
+    @field_validator('data_ultima_doacao')
+    @classmethod
+    def formatar_datetime(cls, value: datetime):
+        if isinstance(value, (str, NoneType)):
+            return value
+
+        return value.strftime('%d/%m/%Y %H:%M')

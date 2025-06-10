@@ -1,5 +1,3 @@
-from http import HTTPStatus
-
 from flask import request as flask_request
 from flask_jwt_extended import current_user
 
@@ -35,9 +33,7 @@ class RegistrarFamiliaAgapeUseCase:
         self.__gmaps: GoogleMapsAPI = gmaps
         self.__file_service = file_service
 
-    def execute(
-        self, dados: RegistrarOuEditarFamiliaAgapeFormData
-    ) -> tuple[dict, HTTPStatus]:
+    def execute(self, dados: RegistrarOuEditarFamiliaAgapeFormData) -> dict:
         formulario = RegistrarOuEditarFamiliaAgapeFormData(
             endereco=dados['endereco'],
             membros=dados['membros'],
@@ -139,23 +135,22 @@ class RegistrarFamiliaAgapeUseCase:
 
     @staticmethod
     def gerar_nome_da_familia(nomes: list[str]) -> str:
-        nomes_validos = []
+        nomes_validos = [nome for nome in nomes if valida_nome(nome)[0]]
 
-        for nome in nomes:
-            nome_valido, erro = valida_nome(nome)
-            if nome_valido:
-                nomes_validos.append(nome)
-
-        LEN_CONST = 2
-
-        if nomes_validos:
-            primeiro_nome: str = nomes_validos[0].split()[0]
-            sobrenome: str = nomes_validos[0].split()[-1]
-            return f'{primeiro_nome} {sobrenome.upper()}'
-        elif len(nomes_validos) >= LEN_CONST:
-            primeiro_nome: str = nomes_validos[0].split()[0]
-            segundo_nome: str = nomes_validos[1].split()[0]
-            sobrenome: str = nomes_validos[0].split()[-1]
-            return f'{primeiro_nome} e {segundo_nome} {sobrenome.upper()}'
-        else:
+        if not nomes_validos:
             return 'Família Sem Responsável'
+
+        # Extração de nomes já com split seguro
+        nomes_split = [nome.split() for nome in nomes_validos if nome.strip()]
+        if not nomes_split:
+            return 'Família Sem Responsável'
+
+        # Nome base (primeiro nome + sobrenome em maiúsculas)
+        primeiro = nomes_split[0][0]
+        sobrenome = nomes_split[0][-1].upper()
+
+        if len(nomes_split) == 1:
+            return f'{primeiro} {sobrenome}'
+        else:
+            segundo = nomes_split[1][0]
+            return f'{primeiro} e {segundo} {sobrenome}'
