@@ -33,15 +33,9 @@ class RegistrarFamiliaAgapeUseCase:
         self.__gmaps: GoogleMapsAPI = gmaps
         self.__file_service = file_service
 
-    def execute(self, dados: RegistrarOuEditarFamiliaAgapeFormData) -> dict:
-        formulario = RegistrarOuEditarFamiliaAgapeFormData(
-            endereco=dados['endereco'],
-            membros=dados['membros'],
-            observacao=(
-                dados['observacao'] if hasattr(dados, 'observacao') else None
-            ),
-            fotos_familia=[],
-        )
+    def execute(self, dados: RegistrarOuEditarFamiliaAgapeFormData) -> None:
+        formulario = dados
+
         comprovante_residencia = flask_request.files.get(
             'comprovante_residencia'
         )
@@ -130,8 +124,6 @@ class RegistrarFamiliaAgapeUseCase:
                 )
 
         self.__repository.salvar_alteracoes()
-
-        return {'msg': 'Família cadastrada com sucesso.'}
 
     @staticmethod
     def gerar_nome_da_familia(nomes: list[str]) -> str:

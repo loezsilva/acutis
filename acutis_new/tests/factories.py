@@ -39,6 +39,9 @@ from acutis_api.domain.entities.item_instancia_agape import ItemInstanciaAgape
 from acutis_api.domain.entities.landing_page import LandingPage
 from acutis_api.domain.entities.lead import Lead, OrigemCadastroEnum
 from acutis_api.domain.entities.lead_campanha import LeadCampanha
+from acutis_api.domain.entities.lembrete_doacao_recorrente import (
+    LembreteDoacaoRecorrente,
+)
 from acutis_api.domain.entities.live import Live
 from acutis_api.domain.entities.live_avulsa import LiveAvulsa
 from acutis_api.domain.entities.live_recorrente import LiveRecorrente
@@ -582,3 +585,13 @@ class MenuSistemaFactory(factory.Factory):
 class PermissaoMenuFactory(factory.Factory):
     class Meta:
         model = PermissaoMenu
+
+
+class LembreteDoacaoRecorrenteFactory(factory.Factory):
+    class Meta:
+        model = LembreteDoacaoRecorrente
+
+    fk_processamento_doacao_id = factory.LazyAttribute(
+        lambda _: ProcessamentoDoacaoFactory().id
+    )
+    criado_por = factory.LazyAttribute(lambda _: MembroFactory().id)

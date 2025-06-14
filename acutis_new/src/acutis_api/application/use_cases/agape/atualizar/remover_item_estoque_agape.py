@@ -4,6 +4,7 @@ from acutis_api.communication.requests.agape import (
 from acutis_api.communication.responses.agape import ItemEstoqueAgapeResponse
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.exception.errors.bad_request import HttpBadRequestError
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class RemoverItemEstoqueAgapeUseCase:
@@ -25,6 +26,8 @@ class RemoverItemEstoqueAgapeUseCase:
     ) -> ItemEstoqueAgapeResponse:
         # Busca o item de estoque pelo ID
         item = self.__repository.buscar_item_estoque_por_id(item_id)
+        if item is None:
+            raise HttpNotFoundError('Item não encontrado.')
         item_quantidade = int(item.quantidade)
 
         # Verifica se há estoque suficiente

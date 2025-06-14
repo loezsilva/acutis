@@ -1,5 +1,6 @@
 import uuid
 from http import HTTPStatus
+from io import BytesIO
 
 from flask.testing import FlaskClient
 
@@ -16,27 +17,21 @@ def test_registrar_recibos_sucesso(
 
     endpoint = f'{REGISTRAR_RECIBOS_BASE_ENDPOINT}/{doacao_id}'
 
-    recibo_data_str = f'https://example.com/recibo/{uuid.uuid4()}'
-
-    payload = {'recibos': [{'recibo': recibo_data_str}]}
-
+    data = {
+        'recibos': [
+            (BytesIO(b'foto'), 'foto_teste.png'),
+        ]
+    }
     resposta = client.post(
-        endpoint, headers={'Authorization': f'Bearer {token}'}, json=payload
+        endpoint,
+        headers={
+            'Authorization': f'Bearer {token}',
+        },
+        content_type='multipart/form-data',
+        data=data,
     )
 
     assert resposta.status_code == HTTPStatus.CREATED
-
-    resposta_json = resposta.json
-
-    assert 'recibos_criados' in resposta_json
-    assert isinstance(resposta_json['recibos_criados'], list)
-    assert len(resposta_json['recibos_criados']) == 1
-
-    recibo_criado_resposta = resposta_json['recibos_criados'][0]
-    assert 'id' in recibo_criado_resposta
-    assert recibo_criado_resposta['fk_doacao_agape_id'] == str(doacao_id)
-    assert recibo_criado_resposta['recibo'] == recibo_data_str
-    assert 'criado_em' in recibo_criado_resposta
 
 
 def test_registrar_recibos_doacao_inexistente(
@@ -45,11 +40,20 @@ def test_registrar_recibos_doacao_inexistente(
     token = seed_lead_voluntario_e_token[1]
     random_doacao_id = uuid.uuid4()
     endpoint = f'{REGISTRAR_RECIBOS_BASE_ENDPOINT}/{random_doacao_id}'
-    payload = {'recibos': [{'recibo': 'https://example.com/recibo/test'}]}
-
+    data = {
+        'recibos': [
+            (BytesIO(b'foto'), 'foto_teste.png'),
+        ]
+    }
     resposta = client.post(
-        endpoint, headers={'Authorization': f'Bearer {token}'}, json=payload
+        endpoint,
+        headers={
+            'Authorization': f'Bearer {token}',
+        },
+        content_type='multipart/form-data',
+        data=data,
     )
+
     assert resposta.status_code == HTTPStatus.NOT_FOUND
 
 
@@ -61,12 +65,16 @@ def test_registrar_recibos_payload_invalido_recibo_vazio(
     token = seed_lead_voluntario_e_token[1]
     doacao_id, _ = seed_doacao_com_itens_doados
     endpoint = f'{REGISTRAR_RECIBOS_BASE_ENDPOINT}/{doacao_id}'
-    payload = {'recibos': []}  # Recibo vazio
-
+    data = {'recibos': []}
     resposta = client.post(
-        endpoint, headers={'Authorization': f'Bearer {token}'}, json=payload
+        endpoint,
+        headers={
+            'Authorization': f'Bearer {token}',
+        },
+        content_type='multipart/form-data',
+        data=data,
     )
-    assert resposta.status_code == HTTPStatus.BAD_REQUEST
+    assert resposta.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_registrar_recibos_payload_invalido_sem_campo_recibo(
@@ -80,7 +88,7 @@ def test_registrar_recibos_payload_invalido_sem_campo_recibo(
     payload = {}  # Payload sem o campo 'recibo'
 
     resposta = client.post(
-        endpoint, headers={'Authorization': f'Bearer {token}'}, json=payload
+        endpoint, headers={'Authorization': f'Bearer {token}'}, data=payload
     )
     assert resposta.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
@@ -90,11 +98,9 @@ def test_registrar_recibos_sem_permissao(
 ):
     doacao_id, _ = seed_doacao_com_itens_doados
     endpoint = f'{REGISTRAR_RECIBOS_BASE_ENDPOINT}/{doacao_id}'
-    payload = {
-        'recibos': [
-            {'recibo': 'https://example.com/recibo/test_sem_permissao'}
-        ]
-    }
+    data = {'recibos': []}
+    resposta = client.post(
+        endpoint, content_type='multipart/form-data', data=data
+    )
 
-    resposta = client.post(endpoint, json=payload)
     assert resposta.status_code == HTTPStatus.UNAUTHORIZED

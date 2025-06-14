@@ -1,5 +1,7 @@
 import uuid
+from datetime import datetime
 
+from dateutil.relativedelta import relativedelta
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Date, asc, between, cast, desc, func
 
@@ -15,6 +17,9 @@ from acutis_api.domain.entities import (
     Membro,
     PagamentoDoacao,
     ProcessamentoDoacao,
+)
+from acutis_api.domain.entities.lembrete_doacao_recorrente import (
+    LembreteDoacaoRecorrente,
 )
 from acutis_api.domain.repositories.admin_doacoes import (
     AdminDoacoesRepositoryInterface,
@@ -370,3 +375,173 @@ class AdminDoacoesRepository(AdminDoacoesRepositoryInterface):
         )
 
         return (total_doacao, primeira_doacao)
+
+    def contabilizar_recorrencia_nao_efetuada_periodo(
+        self, data_inicio: datetime, data_fim: datetime
+    ):
+        data_limite_inicio = data_inicio - relativedelta(months=1)
+        data_limite_fim = data_fim - relativedelta(months=1)
+
+        query = (
+            self._database.session.query(
+                func.count(PagamentoDoacao.id),
+                func.sum(PagamentoDoacao.valor),
+            )
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(Benfeitor, Benfeitor.id == Doacao.fk_benfeitor_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(
+                Doacao.contabilizar == True,
+                Benfeitor.contabilizar == True,
+                PagamentoDoacao.recorrente == True,
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.expirado,
+                ProcessamentoDoacao.criado_em >= data_limite_inicio,
+                ProcessamentoDoacao.criado_em <= data_limite_fim,
+            )
+            .first()
+        )
+
+        quantidade, total = query if query else (0, 0)
+        return (quantidade or 0, total or 0)
+
+    def contabilizar_recorrencia_total(self) -> tuple[int, float, int]:
+        query = (
+            self._database.session.query(
+                func.count(PagamentoDoacao.id),
+                func.sum(PagamentoDoacao.valor),
+                func.count(func.distinct(Doacao.fk_benfeitor_id)),
+            )
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(Benfeitor, Benfeitor.id == Doacao.fk_benfeitor_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(
+                Doacao.contabilizar == True,
+                Benfeitor.contabilizar == True,
+                PagamentoDoacao.recorrente == True,
+            )
+            .first()
+        )
+
+        qtd_doacoes, total, qtd_doadores = query if query else (0, 0, 0)
+        return (qtd_doacoes or 0, total or 0, qtd_doadores or 0)
+
+    def contabilizar_recorrencia_prevista_periodo(
+        self, data_inicio: datetime, data_fim: datetime
+    ) -> tuple[int, float]:
+        query = (
+            self._database.session.query(
+                func.count(PagamentoDoacao.id),
+                func.sum(PagamentoDoacao.valor),
+            )
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(Benfeitor, Benfeitor.id == Doacao.fk_benfeitor_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(
+                Doacao.contabilizar == True,
+                Benfeitor.contabilizar == True,
+                PagamentoDoacao.recorrente == True,
+                ProcessamentoDoacao.status != StatusProcessamentoEnum.pago,
+                ProcessamentoDoacao.criado_em >= data_inicio,
+                ProcessamentoDoacao.criado_em <= data_fim,
+            )
+            .first()
+        )
+
+        quantidade, total = query if query else (0, 0)
+        return (quantidade or 0, total or 0)
+
+    def contabilizar_lembretes_efetivos(self) -> tuple[int, float]:
+        query = (
+            self._database.session.query(
+                func.count(PagamentoDoacao.id),
+                func.sum(PagamentoDoacao.valor),
+                func.count(func.distinct(Doacao.fk_benfeitor_id)),
+            )
+            .select_from(LembreteDoacaoRecorrente)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.id
+                == LembreteDoacaoRecorrente.fk_processamento_doacao_id,
+            )
+            .join(
+                PagamentoDoacao,
+                PagamentoDoacao.id
+                == ProcessamentoDoacao.fk_pagamento_doacao_id,
+            )
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(Benfeitor, Benfeitor.id == Doacao.fk_benfeitor_id)
+            .filter(
+                Doacao.contabilizar == True,
+                Benfeitor.contabilizar == True,
+                PagamentoDoacao.recorrente == True,
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+            )
+            .first()
+        )
+
+        qtd_doacoes, total, qtd_doadores = query if query else (0, 0, 0)
+        return (qtd_doacoes or 0, total or 0, qtd_doadores or 0)
+
+    def contabilizar_recorrencias_efetuadas_periodo(
+        self, data_inicio: datetime, data_fim: datetime
+    ) -> tuple[int, float]:
+        consulta = (
+            self._database.session.query(
+                func.count(PagamentoDoacao.id),
+                func.sum(PagamentoDoacao.valor),
+            )
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(Benfeitor, Benfeitor.id == Doacao.fk_benfeitor_id)
+            .filter(
+                Benfeitor.contabilizar == True,
+                Doacao.contabilizar == True,
+                ProcessamentoDoacao.status == StatusProcessamentoEnum.pago,
+                PagamentoDoacao.recorrente == True,
+                ProcessamentoDoacao.criado_em >= data_inicio,
+                ProcessamentoDoacao.criado_em <= data_fim,
+            )
+            .first()
+        )
+
+        quantidade, total = consulta if consulta else (0, 0)
+        return (quantidade or 0, total or 0)
+
+    def contabilizar_recorrencias_canceladas(self) -> tuple[int, float]:
+        query = (
+            self._database.session.query(
+                func.count(PagamentoDoacao.id),
+                func.sum(PagamentoDoacao.valor),
+            )
+            .join(Doacao, Doacao.id == PagamentoDoacao.fk_doacao_id)
+            .join(
+                ProcessamentoDoacao,
+                ProcessamentoDoacao.fk_pagamento_doacao_id
+                == PagamentoDoacao.id,
+            )
+            .filter(
+                Doacao.contabilizar == True,
+                PagamentoDoacao.recorrente == True,
+                PagamentoDoacao.ativo == False,
+            )
+            .first()
+        )
+
+        quantidade, total = query if query else (0, 0)
+        return (quantidade or 0, total or 0)

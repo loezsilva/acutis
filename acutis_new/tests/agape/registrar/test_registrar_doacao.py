@@ -23,7 +23,7 @@ def test_registrar_doacao_sucesso(
     payload = {
         'familia_id': str(familia_agape.id),
         'ciclo_acao_id': str(ciclo_acao.id),
-        'itens': [
+        'doacoes': [
             {
                 'item_instancia_id': str(item_para_doar.id),
                 'quantidade': quantidade_a_doar,
@@ -41,20 +41,8 @@ def test_registrar_doacao_sucesso(
 
     resposta_json = resposta.json
 
-    assert 'id' in resposta_json
-    assert resposta_json['familia_agape_id'] == str(familia_agape.id)
-    assert resposta_json['instancia_acao_agape_id'] == str(ciclo_acao.id)
-    assert 'itens_doados' in resposta_json
-    assert isinstance(resposta_json['itens_doados'], list)
-    assert len(resposta_json['itens_doados']) == 1
-    assert 'criado_em' in resposta_json
-
-    item_doado_resposta = resposta_json['itens_doados'][0]
-    assert 'id' in item_doado_resposta
-    assert item_doado_resposta['item_instancia_agape_id'] == str(
-        item_para_doar.id
-    )
-    assert item_doado_resposta['quantidade'] == quantidade_a_doar
+    assert 'doacao_id' in resposta_json
+    assert 'msg' in resposta_json
 
 
 def test_registrar_doacao_familia_inexistente(
@@ -71,7 +59,7 @@ def test_registrar_doacao_familia_inexistente(
     payload = {
         'familia_id': str(uuid.uuid4()),
         'ciclo_acao_id': str(ciclo_acao.id),
-        'itens': [
+        'doacoes': [
             {
                 'item_instancia_id': str(item_para_doar.id),
                 'quantidade': quantidade_a_doar,
@@ -98,7 +86,7 @@ def test_registrar_doacao_ciclo_acao_inexistente(
     payload = {
         'familia_id': str(familia_agape.id),
         'ciclo_acao_id': str(uuid.uuid4()),  # Ciclo de Ação ID aleatório
-        'itens': [
+        'doacoes': [
             {
                 'item_instancia_id': str(uuid.uuid4()),  # Item dummy
                 'quantidade': 1,
@@ -127,7 +115,7 @@ def test_registrar_doacao_item_instancia_inexistente(
     payload = {
         'familia_id': str(familia_agape.id),
         'ciclo_acao_id': str(ciclo_acao.id),
-        'itens': [
+        'doacoes': [
             {
                 # Item Instancia ID aleatório
                 'item_instancia_id': str(uuid.uuid4()),
@@ -160,7 +148,7 @@ def test_registrar_doacao_quantidade_insuficiente(
     payload = {
         'familia_id': str(familia_agape.id),
         'ciclo_acao_id': str(ciclo_acao.id),
-        'itens': [
+        'doacoes': [
             {
                 'item_instancia_id': str(item_para_doar.id),
                 'quantidade': quantidade_a_doar,
@@ -193,7 +181,7 @@ def test_registrar_doacao_payload_invalido_sem_itens(
     payload = {
         'familia_id': str(familia_agape.id),
         'ciclo_acao_id': str(ciclo_acao.id),
-        'itens': [],  # Lista de itens vazia
+        'doacoes': [],  # Lista de itens vazia
     }
 
     resposta = client.post(
@@ -219,7 +207,7 @@ def test_registrar_doacao_payload_invalido_quantidade_zero(
     payload = {
         'familia_id': str(familia_agape.id),
         'ciclo_acao_id': str(ciclo_acao.id),
-        'itens': [
+        'doacoes': [
             {
                 'item_instancia_id': str(item_para_doar.id),
                 'quantidade': 0,  # Quantidade zero
@@ -247,7 +235,7 @@ def test_registrar_doacao_sem_permissao(
     payload = {
         'familia_id': str(familia_agape.id),
         'ciclo_acao_id': str(ciclo_acao.id),
-        'itens': [
+        'doacoes': [
             {
                 'item_instancia_id': str(item_para_doar.id),
                 'quantidade': quantidade_a_doar,

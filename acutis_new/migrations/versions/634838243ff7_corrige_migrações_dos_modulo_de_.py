@@ -1,9 +1,7 @@
 """corrige migrações dos modulo de permissões agape
-
 Revision ID: 634838243ff7
 Revises: 2b3b62ab9d6d
 Create Date: 2025-06-08 00:32:09.429608
-
 """
 from alembic import op
 import sqlalchemy as sa

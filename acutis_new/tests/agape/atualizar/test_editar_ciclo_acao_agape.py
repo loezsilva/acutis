@@ -23,17 +23,16 @@ def json_padrao(
             'estado': 'RN',
             'rua': 'Rua de teste',
         },
-        'nome_acao_id': str(seed_ciclo_acao_agape_id),
     }
 
 
 def test_editar_ciclo_acao_sucesso(
     client: FlaskClient,
-    seed_ciclo_acao_agape,
+    seed_ciclo_acao_nao_iniciado_com_itens,
     seed_item_estoque_agape,
     membro_token,
 ):
-    ciclo_acao = seed_ciclo_acao_agape[0]
+    ciclo_acao = seed_ciclo_acao_nao_iniciado_com_itens[0]
     dados_json = json_padrao(
         ciclo_acao.fk_acao_agape_id, seed_item_estoque_agape.id
     )
@@ -48,28 +47,6 @@ def test_editar_ciclo_acao_sucesso(
     assert (
         response.json['msg'].lower() == 'ciclo da ação atualizado com sucesso.'
     )
-
-
-def test_erro_editar_ciclo_acao_nome_acao_inexistente(
-    client: FlaskClient,
-    seed_ciclo_acao_agape,
-    seed_item_estoque_agape,
-    membro_token,
-):
-    ciclo_acao = seed_ciclo_acao_agape[0]
-    dados_json = json_padrao(
-        seed_item_estoque_agape_id=seed_item_estoque_agape.id
-    )
-    dados_json['nome_acao_id'] = uuid.uuid4()
-
-    response = client.put(
-        f'/api/agape/editar-ciclo-acao/{ciclo_acao.id}',
-        headers={'Authorization': f'Bearer {membro_token}'},
-        json=dados_json,
-    )
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert 'msg' in response.json[0]
 
 
 def test_erro_editar_ciclo_acao_cep_invalido(
@@ -116,6 +93,39 @@ def test_erro_editar_ciclo_acao_abrencencia_invalida(
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     dados_resposta = response.json[0]
     assert dados_resposta['loc'][0] == 'abrangencia'
+
+
+def test_erro_editar_ciclo_acao_ciclo_inexistente(
+    client: FlaskClient, seed_ciclo_acao_agape, membro_token
+):
+    ciclo_acao = seed_ciclo_acao_agape[0]
+    dados_json = json_padrao(
+        seed_ciclo_acao_agape_id=ciclo_acao.fk_acao_agape_id
+    )
+
+    response = client.put(
+        f'/api/agape/editar-ciclo-acao/{uuid.uuid4()}',
+        headers={'Authorization': f'Bearer {membro_token}'},
+        json=dados_json,
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert 'msg' in response.json[0]
+
+
+def test_erro_editar_ciclo_acao_ciclo_nao_iniciado(
+    client: FlaskClient, seed_ciclo_acao_agape_finalizado, membro_token
+):
+    ciclo_acao = seed_ciclo_acao_agape_finalizado
+    dados_json = json_padrao(seed_ciclo_acao_agape_id=ciclo_acao.id)
+
+    response = client.put(
+        f'/api/agape/editar-ciclo-acao/{ciclo_acao.id}',
+        headers={'Authorization': f'Bearer {membro_token}'},
+        json=dados_json,
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
 def test_erro_editar_ciclo_acao_item_inexistente(

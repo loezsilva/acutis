@@ -1,16 +1,29 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import desc, func, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import (
+    Date,
+    between,
+    cast,
+    desc,
+    func,
+    literal_column,
+    or_,
+    select,
+)
+from sqlalchemy.orm import Query, selectinload
 
+from acutis_api.application.utils.funcoes_auxiliares import valida_cpf_cnpj
 from acutis_api.communication.enums.membros import PerfilEnum
 from acutis_api.communication.requests.agape import (
+    BeneficiariosCicloAcaoQuery,
     CoordenadaFormData,
     EditarEnderecoFamiliaAgapeRequest,
     EnderecoAgapeFormData,
+    ListarHistoricoMovimentacoesAgapeQueryPaginada,
+    ReceiptsEnum,
     RegistrarItemCicloAcaoAgapeFormData,
 )
 from acutis_api.domain.entities.acao_agape import AcaoAgape
@@ -44,33 +57,26 @@ from acutis_api.domain.repositories.agape import (
     AgapeRepositoryInterface,
 )
 from acutis_api.domain.repositories.schemas.agape import (
-    ContagemItensEstoqueSchema,
     CoordenadasSchema,
     DadosCompletosDoacaoSchema,
     DadosExportacaoFamiliaSchema,
     DoacaoAgapeSchema,
+    EnderecoScheme,
     EstoqueAgapeSchema,
+    FamiliaBeneficiariaSchema,
     FotoFamiliaAgapeSchema,
+    GeoLocalizadoresFamiliaSchema,
     InformacoesAgregadasFamiliasSchema,
     ListarCicloAcoesAgapeFiltros,
     ListarItensEstoqueAgapeFiltros,
-    ListarMembrosFamiliaAgapeFiltros,
-    ListarNomesAcoesAgapeFiltros,
     MembroFamiliaSchema,
     NomeAcaoAgapeSchema,
-    NumeroMembrosFamiliaAgapeSchema,
-    NumeroTotalMembrosSchema,
     RegistrarCicloAcaoAgapeScheme,
     RegistrarFamiliaAgapeSchema,
-    RegistrarItemEstoqueAgapeSchema,
-    RegistrarNomeAcaoAgapeSchema,
     SomaRendaFamiliarAgapeSchema,
-    SomaTotalRendaSchema,
-    TotalItensRecebidosSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
 )
-from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
@@ -81,11 +87,9 @@ class AgapeRepository(AgapeRepositoryInterface):
     def salvar_alteracoes(self):
         self._database.session.commit()
 
-    def registrar_nome_acao_agape(
-        self, dados: RegistrarNomeAcaoAgapeSchema
-    ) -> AcaoAgape:
+    def registrar_nome_acao_agape(self, nome_acao) -> AcaoAgape:
         instancia = AcaoAgape(
-            nome=dados.nome,
+            nome=nome_acao,
         )
         self._database.session.add(instancia)
 
@@ -96,19 +100,12 @@ class AgapeRepository(AgapeRepositoryInterface):
             select(AcaoAgape).where(AcaoAgape.nome == nome_acao)
         )
 
-        if instancia is None:
-            raise HttpNotFoundError(f'Ação {nome_acao} não encontrada.')
-
         return instancia
 
     def buscar_nome_acao_por_id(self, nome_acao_id: UUID) -> AcaoAgape | None:
         instancia = self._database.session.scalar(
             select(AcaoAgape).where(AcaoAgape.id == nome_acao_id)
         )
-        if instancia is None:
-            raise HttpNotFoundError(
-                f'Nome da ação {nome_acao_id} não encontrada.'
-            )
 
         return instancia
 
@@ -119,23 +116,12 @@ class AgapeRepository(AgapeRepositoryInterface):
             .first()
         )
 
-    def listar_nomes_acoes_agape(
-        self, filtros: ListarNomesAcoesAgapeFiltros
-    ) -> tuple[list[NomeAcaoAgapeSchema], int]:
+    def listar_nomes_acoes_agape(self) -> list[NomeAcaoAgapeSchema]:
         query = self._database.session.query(AcaoAgape).order_by(
             desc(AcaoAgape.nome)
         )
 
-        if filtros.nome:
-            query = query.filter(AcaoAgape.nome.like(f'%{filtros.nome}%'))
-
-        paginacao = query.paginate(
-            page=filtros.pagina,
-            per_page=filtros.por_pagina,
-            error_out=False,
-        )
-
-        return paginacao.items, paginacao.total
+        return query
 
     def listar_membros_por_familia_id(
         self, familia_id: UUID
@@ -147,30 +133,21 @@ class AgapeRepository(AgapeRepositoryInterface):
         )
 
     def listar_membros_familia(
-        self, filtros: ListarMembrosFamiliaAgapeFiltros, familia_id: UUID
-    ) -> tuple[list[MembroFamiliaSchema], int]:
-        query = self._database.session.query(MembroAgape).order_by(
-            desc(MembroAgape.nome)
+        self, familia_id: UUID
+    ) -> list[MembroFamiliaSchema]:
+        membros_query = (
+            self._database.session.query(MembroAgape)
+            .filter(MembroAgape.fk_familia_agape_id == familia_id)
+            .order_by(MembroAgape.responsavel.desc(), MembroAgape.nome)
         )
 
-        query = query.filter(MembroAgape.fk_familia_agape_id == familia_id)
-
-        paginacao = query.paginate(
-            page=filtros.pagina,
-            per_page=filtros.por_pagina,
-            error_out=False,
-        )
-
-        return paginacao.items, paginacao.total
+        return membros_query
 
     def buscar_item_estoque_por_id(self, item_id) -> EstoqueAgape | None:
         """
         Retorna um item de estoque pelo seu ID.
         """
         instancia = self._database.session.get(EstoqueAgape, item_id)
-
-        if instancia is None:
-            raise HttpNotFoundError(f'Item {item_id} não encontrado.')
 
         return instancia
 
@@ -182,11 +159,11 @@ class AgapeRepository(AgapeRepositoryInterface):
         )
 
     def registrar_item_estoque(
-        self, dados: RegistrarItemEstoqueAgapeSchema
+        self, item_nome: str, quantidade: int = 0
     ) -> EstoqueAgape:
         instancia = EstoqueAgape(
-            item=dados.item,
-            quantidade=dados.quantidade,
+            item=item_nome,
+            quantidade=quantidade,
         )
         self._database.session.add(instancia)
 
@@ -217,7 +194,9 @@ class AgapeRepository(AgapeRepositoryInterface):
         return paginacao.items, paginacao.total
 
     # Ciclo de ação Ágape
-    def buscar_ciclo_acao_agape_por_id(self, acao_agape_id):
+    def buscar_ciclo_acao_agape_por_id(
+        self, acao_agape_id: UUID
+    ) -> InstanciaAcaoAgape:
         """Retorna a instância de ciclo de ação Ágape pelo ID da instância."""
 
         instancia = self._database.session.get(
@@ -271,7 +250,7 @@ class AgapeRepository(AgapeRepositoryInterface):
         return instancias
 
     def listar_itens_ciclo_acao_agape(
-        self, acao_agape_id
+        self, acao_agape_id: UUID
     ) -> list[ItemInstanciaAgape]:
         """Retorna lista de itens de um ciclo de ação Ágape."""
 
@@ -381,6 +360,7 @@ class AgapeRepository(AgapeRepositoryInterface):
         Deleta um item de ciclo de ação Ágape.
         """
         session = self._database.session
+
         session.delete(item_estoque)
 
     def retorna_item_estoque_ciclo_acao_agape(
@@ -398,7 +378,6 @@ class AgapeRepository(AgapeRepositoryInterface):
         # Registra movimentação de saída
         historico = HistoricoMovimentacaoAgape(
             fk_estoque_agape_id=item_estoque.id,
-            fk_instancia_acao_agape_id=None,
             quantidade=item_ciclo.quantidade,
             origem=HistoricoOrigemEnum.acao,
             destino=HistoricoDestinoEnum.estoque,
@@ -407,20 +386,11 @@ class AgapeRepository(AgapeRepositoryInterface):
         session.add(historico)
 
     def registrar_item_ciclo_acao_agape(
-        self, ciclo_acao_id, dados: RegistrarItemCicloAcaoAgapeFormData
+        self, ciclo_acao_id: UUID, dados: RegistrarItemCicloAcaoAgapeFormData
     ) -> ItemInstanciaAgape:
         session = self._database.session
 
         item = self.buscar_item_estoque_por_id(dados.item_id)
-
-        if int(dados.quantidade) > int(item.quantidade):
-            from acutis_api.exception.errors.unprocessable_entity import (
-                HttpUnprocessableEntityError,
-            )
-
-            raise HttpUnprocessableEntityError(
-                f"Quantidade insuficiente em estoque para '{item.item}'."
-            )
 
         # Ajusta estoque
         item.quantidade -= dados.quantidade
@@ -437,7 +407,6 @@ class AgapeRepository(AgapeRepositoryInterface):
         # Registra movimentação de saída
         historico = HistoricoMovimentacaoAgape(
             fk_estoque_agape_id=item.id,
-            fk_instancia_acao_agape_id=None,
             quantidade=dados.quantidade,
             origem=HistoricoOrigemEnum.estoque,
             destino=HistoricoDestinoEnum.acao,
@@ -458,9 +427,9 @@ class AgapeRepository(AgapeRepositoryInterface):
         query = session.query(InstanciaAcaoAgape)
 
         # Filtros opcionais
-        if hasattr(filtros, 'fk_acao_id') and filtros.fk_acao_id:
+        if filtros.nome_acao_id:
             query = query.filter(
-                InstanciaAcaoAgape.fk_acao_agape_id == filtros.fk_acao_id
+                InstanciaAcaoAgape.fk_acao_agape_id == filtros.nome_acao_id
             )
 
         # Filtro por status
@@ -596,7 +565,7 @@ class AgapeRepository(AgapeRepositoryInterface):
                 (InstanciaAcaoAgape.fk_acao_agape_id == ciclo_acao.id),
                 (InstanciaAcaoAgape.status == StatusAcaoAgapeEnum.finalizado),
             )
-            .first()
+            .one_or_none()
         )
         return ciclo_em_andamento
 
@@ -676,17 +645,20 @@ class AgapeRepository(AgapeRepositoryInterface):
         quantidade,
         item_id=None,
         ciclo_acao_id=None,
+        origem=HistoricoOrigemEnum.acao,
+        tipo_movimentacao=TipoMovimentacaoEnum.entrada,
     ) -> HistoricoMovimentacaoAgape:
         session = self._database.session
 
         historico = HistoricoMovimentacaoAgape(
             fk_estoque_agape_id=item_id,
-            fk_instancia_acao_agape_id=ciclo_acao_id,
             quantidade=quantidade,
-            origem=HistoricoOrigemEnum.acao,
+            origem=origem,
             destino=HistoricoDestinoEnum.estoque,
-            tipo_movimentacoes=TipoMovimentacaoEnum.entrada,
+            tipo_movimentacoes=tipo_movimentacao,
         )
+
+        historico.fk_instancia_acao_agape_id = ciclo_acao_id
 
         session.add(historico)
 
@@ -695,9 +667,7 @@ class AgapeRepository(AgapeRepositoryInterface):
         lead = session.get(Lead, id)
         return lead
 
-    def buscar_familia_por_id(
-        self, familia_id: UUID
-    ) -> Optional[FamiliaAgape]:
+    def buscar_familia_por_id(self, familia_id: UUID) -> FamiliaAgape:
         instancia = self._database.session.scalar(
             select(FamiliaAgape).where(
                 FamiliaAgape.id == familia_id,
@@ -706,9 +676,7 @@ class AgapeRepository(AgapeRepositoryInterface):
         )
         return instancia
 
-    def numero_membros_familia_agape(
-        self, familia_id: UUID
-    ) -> NumeroMembrosFamiliaAgapeSchema:
+    def numero_membros_familia_agape(self, familia_id: UUID) -> int:
         """
         Conta o número de membros ativos de uma família.
         """
@@ -726,7 +694,7 @@ class AgapeRepository(AgapeRepositoryInterface):
             )
             or 0
         )
-        return NumeroMembrosFamiliaAgapeSchema(quantidade=count)
+        return count
 
     def soma_renda_familiar_agape(
         self, familia: FamiliaAgape
@@ -756,7 +724,7 @@ class AgapeRepository(AgapeRepositoryInterface):
             self._database.session.query(InstanciaAcaoAgape)
             .filter(InstanciaAcaoAgape.fk_acao_agape_id == nome_acao_id)
             .order_by(desc(InstanciaAcaoAgape.criado_em))
-            .first()
+            .one_or_none()
         )
 
         return instancia
@@ -821,9 +789,7 @@ class AgapeRepository(AgapeRepositoryInterface):
         self._database.session.add(membro)
         return membro
 
-    def total_itens_recebidos_por_familia(
-        self, familia: FamiliaAgape
-    ) -> TotalItensRecebidosSchema:
+    def total_itens_recebidos_por_familia(self, familia: FamiliaAgape) -> int:
         total_sum = (
             self._database.session.query(func.sum(ItemDoacaoAgape.quantidade))
             .join(
@@ -835,7 +801,7 @@ class AgapeRepository(AgapeRepositoryInterface):
             or 0
         )
 
-        return TotalItensRecebidosSchema(total_recebidas=int(total_sum))
+        return total_sum
 
     def informacoes_agregadas_familias(
         self,
@@ -864,7 +830,7 @@ class AgapeRepository(AgapeRepositoryInterface):
             total_inativas=total_inativas,
         )
 
-    def numero_total_membros_agape(self) -> NumeroTotalMembrosSchema:
+    def numero_total_membros_agape(self) -> int:
         """Calcula o número total de membros de famílias Ágape ativas."""
         session = self._database.session
 
@@ -879,11 +845,9 @@ class AgapeRepository(AgapeRepositoryInterface):
             or 0
         )
 
-        return NumeroTotalMembrosSchema(
-            quantidade_total_membros=quantidade_total_membros
-        )
+        return quantidade_total_membros
 
-    def soma_total_renda_familiar_agape(self) -> SomaTotalRendaSchema:
+    def soma_total_renda_familiar_agape(self) -> float:
         session = self._database.session
 
         soma_total_renda = (
@@ -897,14 +861,14 @@ class AgapeRepository(AgapeRepositoryInterface):
             or 0.0
         )
 
-        return SomaTotalRendaSchema(soma_total_renda=float(soma_total_renda))
+        return float(soma_total_renda)
 
-    def contagem_itens_estoque(self) -> ContagemItensEstoqueSchema:
+    def contagem_itens_estoque(self) -> int:
         session = self._database.session
         total_em_estoque = (
             session.query(func.sum(EstoqueAgape.quantidade)).scalar() or 0
         )
-        return ContagemItensEstoqueSchema(em_estoque=int(total_em_estoque))
+        return total_em_estoque
 
     def ultima_acao_agape_com_itens(self) -> Optional[UltimaAcaoAgapeSchema]:
         session = self._database.session
@@ -979,7 +943,6 @@ class AgapeRepository(AgapeRepositoryInterface):
         self,
         familia: FamiliaAgape,
         dados_endereco: EditarEnderecoFamiliaAgapeRequest,
-        coordenadas: Optional[CoordenadasSchema],
     ) -> FamiliaAgape:
         session = self._database.session
 
@@ -1005,18 +968,6 @@ class AgapeRepository(AgapeRepositoryInterface):
 
         session.add(endereco_obj)
 
-        if coordenadas:
-            coordenada_obj = Coordenada(
-                fk_endereco_id=endereco_obj.id,
-                latitude=coordenadas.latitude,
-                longitude=coordenadas.longitude,
-                latitude_ne=coordenadas.latitude_ne,
-                longitude_ne=coordenadas.longitude_ne,
-                latitude_so=coordenadas.latitude_so,
-                longitude_so=coordenadas.longitude_so,
-            )
-            session.add(coordenada_obj)
-
         return familia
 
     def atualizar_membro_agape(self, membro_agape: MembroAgape) -> MembroAgape:
@@ -1030,13 +981,36 @@ class AgapeRepository(AgapeRepositoryInterface):
         return membro_agape
 
     def listar_familias_beneficiadas_por_ciclo_id(
-        self, ciclo_acao_id: UUID
-    ) -> list[FamiliaAgape]:
-        instancias = (
-            self._database.session.query(FamiliaAgape)
-            .distinct()
+        self, ciclo_acao_id: UUID, filtros: BeneficiariosCicloAcaoQuery
+    ) -> list[FamiliaBeneficiariaSchema]:
+        subquery_recibos = (
+            self._database.session.query(
+                ReciboAgape.fk_doacao_agape_id.label('fk_doacao_agape_id'),
+                func.string_agg(
+                    ReciboAgape.recibo, literal_column("','")
+                ).label('recibos'),
+            ).group_by(ReciboAgape.fk_doacao_agape_id)
+        ).subquery('subquery_recibos')
+
+        beneficiarios_query = (
+            self._database.session.query(
+                DoacaoAgape.id.label('fk_doacao_agape_id'),
+                FamiliaAgape.nome_familia.label('nome_familia'),
+                func.format(
+                    DoacaoAgape.criado_em.label('data_hora_doacao'),
+                    'dd/MM/yyyy HH:mm',
+                ).label('data_hora_doacao'),
+                func.coalesce(subquery_recibos.c.recibos, '').label('recibos'),
+            )
+            .join(
+                MembroAgape, FamiliaAgape.id == MembroAgape.fk_familia_agape_id
+            )
             .join(
                 DoacaoAgape, FamiliaAgape.id == DoacaoAgape.fk_familia_agape_id
+            )
+            .outerjoin(
+                subquery_recibos,
+                DoacaoAgape.id == subquery_recibos.c.fk_doacao_agape_id,
             )
             .join(
                 ItemDoacaoAgape,
@@ -1047,15 +1021,150 @@ class AgapeRepository(AgapeRepositoryInterface):
                 ItemDoacaoAgape.fk_item_instancia_agape_id
                 == ItemInstanciaAgape.id,
             )
+            .join(
+                EstoqueAgape,
+                ItemInstanciaAgape.fk_estoque_agape_id == EstoqueAgape.id,
+            )
+            .join(
+                InstanciaAcaoAgape,
+                InstanciaAcaoAgape.id
+                == ItemInstanciaAgape.fk_instancia_acao_agape_id,
+            )
             .filter(
-                ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id
+                or_(
+                    InstanciaAcaoAgape.status
+                    == StatusAcaoAgapeEnum.em_andamento,
+                    InstanciaAcaoAgape.status
+                    == StatusAcaoAgapeEnum.finalizado,
+                ),
+                InstanciaAcaoAgape.id == ciclo_acao_id,
             )
-            .options(
-                selectinload(FamiliaAgape.membros),
+            .group_by(
+                DoacaoAgape.id,
+                FamiliaAgape.nome_familia,
+                DoacaoAgape.criado_em,
+                subquery_recibos.c.recibos,
             )
+            .order_by(DoacaoAgape.criado_em.desc())
         )
 
-        return instancias.all()
+        if filtros.cpf:
+            beneficiarios_query = beneficiarios_query.filter(
+                MembroAgape.cpf.ilike(
+                    f'%{valida_cpf_cnpj(filtros.cpf, tipo_documento="cpf")}%'
+                )
+            )
+
+        if filtros.data_inicial:
+            beneficiarios_query = beneficiarios_query.filter(
+                between(
+                    cast(DoacaoAgape.criado_em, Date),
+                    filtros.data_inicial,
+                    filtros.data_final,
+                )
+            )
+
+        if filtros.recibos == ReceiptsEnum.com_recibo:
+            beneficiarios_query = beneficiarios_query.filter(
+                subquery_recibos.c.recibos
+            )
+        elif filtros.recibos == ReceiptsEnum.sem_recibo:
+            beneficiarios_query = beneficiarios_query.filter(
+                func.coalesce(subquery_recibos.c.recibos, '')
+            )
+
+        return beneficiarios_query
+
+    def listar_todos_os_recibos_doacoes(self, familia_id: UUID) -> Query:
+        subquery_recibos = (
+            self._database.session.query(
+                ReciboAgape.fk_doacao_agape_id.label('fk_doacao_agape_id'),
+                func.string_agg(
+                    ReciboAgape.recibo, literal_column("','")
+                ).label('recibos'),
+            ).group_by(ReciboAgape.fk_doacao_agape_id)
+        ).subquery('subquery_recibos')
+
+        doacoes_query = (
+            self._database.session.query(
+                AcaoAgape.nome.label('nome_acao'),
+                InstanciaAcaoAgape.id.label('ciclo_acao_id'),
+                DoacaoAgape.id.label('doacao_id'),
+                DoacaoAgape.criado_em.label('dia_horario'),
+                func.coalesce(subquery_recibos.c.recibos, '').label('recibos'),
+            )
+            .select_from(FamiliaAgape)
+            .join(
+                DoacaoAgape, FamiliaAgape.id == DoacaoAgape.fk_familia_agape_id
+            )
+            .join(
+                subquery_recibos,
+                DoacaoAgape.id == subquery_recibos.c.fk_doacao_agape_id,
+                isouter=True,
+            )
+            .join(
+                ItemDoacaoAgape,
+                DoacaoAgape.id == ItemDoacaoAgape.fk_doacao_agape_id,
+            )
+            .join(
+                ItemInstanciaAgape,
+                ItemDoacaoAgape.fk_item_instancia_agape_id
+                == ItemInstanciaAgape.id,
+            )
+            .join(
+                InstanciaAcaoAgape,
+                ItemInstanciaAgape.fk_instancia_acao_agape_id
+                == InstanciaAcaoAgape.id,
+            )
+            .join(
+                AcaoAgape, AcaoAgape.id == InstanciaAcaoAgape.fk_acao_agape_id
+            )
+            .group_by(
+                AcaoAgape.nome,
+                DoacaoAgape.id,
+                InstanciaAcaoAgape.id,
+                DoacaoAgape.criado_em,
+                subquery_recibos.c.recibos,
+            )
+            .order_by(DoacaoAgape.criado_em.desc(), AcaoAgape.nome)
+            .filter(FamiliaAgape.id == familia_id)
+        )
+
+        return doacoes_query
+
+    def listar_geolocalizadores_familia_por_ciclo_id(
+        self, ciclo_acao_id: UUID
+    ) -> list[GeoLocalizadoresFamiliaSchema]:
+        enderecos_beneficiarios_query = (
+            self._database.session.query(
+                FamiliaAgape.nome_familia,
+                Coordenada.latitude,
+                Coordenada.longitude,
+            )
+            .select_from(FamiliaAgape)
+            .join(Endereco, Endereco.id == FamiliaAgape.fk_endereco_id)
+            .join(Coordenada, Coordenada.fk_endereco_id == Endereco.id)
+            .join(
+                DoacaoAgape, DoacaoAgape.fk_familia_agape_id == FamiliaAgape.id
+            )
+            .join(
+                ItemDoacaoAgape,
+                ItemDoacaoAgape.fk_doacao_agape_id == DoacaoAgape.id,
+            )
+            .join(
+                ItemInstanciaAgape,
+                ItemInstanciaAgape.id
+                == ItemDoacaoAgape.fk_item_instancia_agape_id,
+            )
+            .join(
+                InstanciaAcaoAgape,
+                InstanciaAcaoAgape.id
+                == ItemInstanciaAgape.fk_instancia_acao_agape_id,
+            )
+            .filter(InstanciaAcaoAgape.id == ciclo_acao_id)
+        )
+
+        return enderecos_beneficiarios_query.all()
 
     def listar_familias_com_enderecos(self) -> list[FamiliaAgape]:
         instancias = (
@@ -1064,36 +1173,49 @@ class AgapeRepository(AgapeRepositoryInterface):
             .filter(FamiliaAgape.fk_endereco_id.isnot(None))
             .order_by(FamiliaAgape.nome_familia)
         )
-        return instancias.all()
+        return instancias
 
     def listar_historico_movimentacoes_paginado(
-        self, pagina: int, por_pagina: int
-    ) -> tuple[list[tuple[HistoricoMovimentacaoAgape, str]], int]:
-        offset = (pagina - 1) * por_pagina
-
-        query_dados = (
+        self, filtros: ListarHistoricoMovimentacoesAgapeQueryPaginada
+    ) -> Query:
+        movimentacoes_query = (
             self._database.session.query(
-                HistoricoMovimentacaoAgape,
-                EstoqueAgape.item.label('nome_item'),
+                HistoricoMovimentacaoAgape.id,
+                EstoqueAgape.item,
+                EstoqueAgape.id.label('item_id'),
+                HistoricoMovimentacaoAgape.quantidade,
+                HistoricoMovimentacaoAgape.tipo_movimentacoes,
+                HistoricoMovimentacaoAgape.criado_em,
             )
             .join(
                 EstoqueAgape,
-                HistoricoMovimentacaoAgape.fk_estoque_agape_id
-                == EstoqueAgape.id,
+                EstoqueAgape.id
+                == HistoricoMovimentacaoAgape.fk_estoque_agape_id,
             )
-            .order_by(HistoricoMovimentacaoAgape.criado_em.desc())
-            .limit(por_pagina)
-            .offset(offset)
-        )
-        resultados = query_dados.all()
-
-        query_total = self._database.session.query(
-            func.count(HistoricoMovimentacaoAgape.id)
+            .order_by(
+                HistoricoMovimentacaoAgape.criado_em.desc(), EstoqueAgape.item
+            )
         )
 
-        total_itens = query_total.scalar() or 0
+        if filtros.item_id:
+            movimentacoes_query = movimentacoes_query.filter(
+                EstoqueAgape.id == filtros.item_id
+            )
+        if filtros.tipo_movimentacao:
+            movimentacoes_query = movimentacoes_query.filter(
+                HistoricoMovimentacaoAgape.tipo_movimentacoes
+                == filtros.tipo_movimentacao
+            )
+        if filtros.data_movimentacao_inicial:
+            movimentacoes_query = movimentacoes_query.filter(
+                between(
+                    cast(HistoricoMovimentacaoAgape.criado_em, Date),
+                    filtros.data_movimentacao_inicial,
+                    filtros.data_movimentacao_final,
+                )
+            )
 
-        return resultados, total_itens
+        return movimentacoes_query
 
     def listar_itens_por_doacao_agape_id(self, doacao_id: UUID) -> list:
         instancias = (
@@ -1125,17 +1247,16 @@ class AgapeRepository(AgapeRepositoryInterface):
     def listar_itens_recebidos_por_ciclo_e_doacao_id(
         self, ciclo_acao_id: UUID, doacao_id: UUID
     ) -> list:
-        instancias = (
+        itens_query = (
             self._database.session.query(
-                EstoqueAgape.id.label('item_id'),
                 EstoqueAgape.item.label('nome_item'),
-                ItemDoacaoAgape.quantidade.label('quantidade_doada'),
-                ItemDoacaoAgape.id.label('item_doacao_agape_id'),
-                ItemDoacaoAgape.fk_item_instancia_agape_id.label(
-                    'item_instancia_agape_id'
-                ),
+                func.sum(ItemDoacaoAgape.quantidade).label('quantidade'),
             )
-            .select_from(ItemDoacaoAgape)
+            .select_from(DoacaoAgape)
+            .join(
+                ItemDoacaoAgape,
+                DoacaoAgape.id == ItemDoacaoAgape.fk_doacao_agape_id,
+            )
             .join(
                 ItemInstanciaAgape,
                 ItemDoacaoAgape.fk_item_instancia_agape_id
@@ -1143,20 +1264,20 @@ class AgapeRepository(AgapeRepositoryInterface):
             )
             .join(
                 EstoqueAgape,
-                ItemInstanciaAgape.fk_estoque_agape_id == EstoqueAgape.id,
+                EstoqueAgape.id == ItemInstanciaAgape.fk_estoque_agape_id,
             )
-            .filter(ItemDoacaoAgape.fk_doacao_agape_id == doacao_id)
+            .group_by(EstoqueAgape.item)
             .filter(
-                ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id
+                ItemInstanciaAgape.fk_instancia_acao_agape_id == ciclo_acao_id,
+                DoacaoAgape.id == doacao_id,
             )
-            .order_by(EstoqueAgape.item)
         )
 
-        return instancias.all()
+        itens = itens_query.all()
 
-    def listar_voluntarios_agape(
-        self, filtros: PaginacaoQuery
-    ) -> tuple[list[Lead], int]:
+        return itens
+
+    def listar_voluntarios_agape(self) -> list[Lead]:
         query = (
             self._database.session.query(Lead)
             .join(
@@ -1168,22 +1289,29 @@ class AgapeRepository(AgapeRepositoryInterface):
             .order_by(Lead.nome)
         )
 
-        paginacao = query.paginate(
-            page=filtros.pagina,
-            per_page=filtros.por_pagina,
-            error_out=False,
-        )
+        return query
 
-        return paginacao.items, paginacao.total
+    def registrar_doacao_agape(self, familia_id: UUID) -> DoacaoAgape:
+        doacao = DoacaoAgape(fk_familia_agape_id=familia_id)
 
-    def registrar_doacao_agape(self, doacao: DoacaoAgape) -> DoacaoAgape:
         self._database.session.add(doacao)
+        self._database.session.flush()
         return doacao
 
     def registrar_item_doacao_agape(
-        self, item_doacao: ItemDoacaoAgape
+        self,
+        item_instancia_id: UUID,
+        doacao_id: UUID,
+        quantidade: int,
     ) -> ItemDoacaoAgape:
+        item_doacao = ItemDoacaoAgape(
+            fk_item_instancia_agape_id=item_instancia_id,
+            fk_doacao_agape_id=doacao_id,
+            quantidade=quantidade,
+        )
         self._database.session.add(item_doacao)
+        self._database.session.flush()
+
         return item_doacao
 
     def buscar_item_instancia_agape_por_id(
@@ -1440,5 +1568,38 @@ class AgapeRepository(AgapeRepositoryInterface):
             self._database.session.query(DoacaoAgape)
             .filter(DoacaoAgape.fk_familia_agape_id == familia_id)
             .order_by(desc(DoacaoAgape.criado_em))
-            .all()
         )
+
+    def atualizar_endereco(
+        self,
+        endereco: Endereco,
+        dados_endereco: EnderecoScheme,
+    ) -> Endereco:
+        endereco.codigo_postal = dados_endereco.cep
+        endereco.rua = dados_endereco.rua
+        endereco.bairro = dados_endereco.bairro
+        endereco.cidade = dados_endereco.cidade
+        endereco.estado = dados_endereco.estado
+        endereco.numero = dados_endereco.numero
+        endereco.complemento = dados_endereco.complemento
+
+    def atualizar_coordenadas(
+        self,
+        coordenada: Coordenada,
+        dados_coordenada: CoordenadasSchema,
+    ) -> Coordenada:
+        coordenada.latitude = dados_coordenada.latitude
+        coordenada.longitude = dados_coordenada.longitude
+        coordenada.latitude_ne = dados_coordenada.latitude_ne
+        coordenada.latitude_so = dados_coordenada.latitude_so
+        coordenada.longitude_ne = dados_coordenada.longitude_ne
+        coordenada.longitude_so = dados_coordenada.longitude_so
+
+    def query_paginada(
+        self, query: Query, page: int, per_page: int
+    ) -> Tuple[List, int]:
+        query_pagination = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        items, total = query_pagination.items, query_pagination.total
+        return items, total

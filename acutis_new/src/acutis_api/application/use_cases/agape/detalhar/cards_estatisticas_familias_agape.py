@@ -6,8 +6,6 @@ from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 # Placeholder imports for schemas - these will be defined in the next step
 from acutis_api.domain.repositories.schemas.agape import (
     InformacoesAgregadasFamiliasSchema,
-    NumeroTotalMembrosSchema,
-    SomaTotalRendaSchema,
 )
 
 SALARIO_MINIMO = 1518.0
@@ -23,22 +21,14 @@ class CardsEstatisticasFamiliasAgapeUseCase:
         dados_familias: InformacoesAgregadasFamiliasSchema = (
             self.__repository.informacoes_agregadas_familias()
         )
-        dados_membros: NumeroTotalMembrosSchema = (
+        quantidade_total_membros = (
             self.__repository.numero_total_membros_agape()
         )
-        dados_renda: SomaTotalRendaSchema = (
-            self.__repository.soma_total_renda_familiar_agape()
-        )
+        soma_total_renda = self.__repository.soma_total_renda_familiar_agape()
 
-        total_cadastradas = getattr(dados_familias, 'total_cadastradas', 0)
-        total_ativas = getattr(dados_familias, 'total_ativas', 0)
-        total_inativas = getattr(dados_familias, 'total_inativas', 0)
-
-        quantidade_total_membros = getattr(
-            dados_membros, 'quantidade_total_membros', 0
-        )
-
-        soma_total_renda = getattr(dados_renda, 'soma_total_renda', 0.0)
+        total_cadastradas = dados_familias.total_cadastradas
+        total_ativas = dados_familias.total_ativas
+        total_inativas = dados_familias.total_inativas
 
         # Calculate Statistics
         media_membros = (
@@ -47,9 +37,9 @@ class CardsEstatisticasFamiliasAgapeUseCase:
             else 0.0
         )
 
-        renda_media_sm = 0.0
+        soma_renda_media = 0.0
         if total_cadastradas > 0 and soma_total_renda > 0:
-            renda_media_sm = (
+            soma_renda_media = (
                 soma_total_renda / total_cadastradas
             ) / SALARIO_MINIMO
 
@@ -66,7 +56,7 @@ class CardsEstatisticasFamiliasAgapeUseCase:
 
         return CardsEstatisticasFamiliasAgapeResponse(
             familias_cadastradas=f'{total_ativas} - Famílias ativas',
-            renda_media=f'{renda_media_sm:.1f} Salários minimos',
+            renda_media=f'{soma_renda_media:.1f} Salários minimos',
             membros_por_familia=f'{media_membros:.1f} pessoas',
             familias_ativas=f'{total_ativas} - {porcent_familias_ativas:.0f}%',
             familias_inativas=(

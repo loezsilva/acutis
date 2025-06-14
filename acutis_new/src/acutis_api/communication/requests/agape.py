@@ -1,5 +1,6 @@
 import json
 from datetime import date
+from enum import Enum
 from typing import Any, List, Optional
 from uuid import UUID
 
@@ -13,11 +14,15 @@ from pydantic_core import PydanticCustomError
 from spectree import BaseFile
 
 from acutis_api.application.utils.funcoes_auxiliares import (
+    now,
     valida_cpf_cnpj,
     valida_email,
     valida_nome,
 )
 from acutis_api.communication.requests.paginacao import PaginacaoQuery
+from acutis_api.domain.entities.historico_movimentacao_agape import (
+    TipoMovimentacaoEnum,
+)
 from acutis_api.domain.entities.instancia_acao_agape import (
     AbrangenciaInstanciaAcaoAgapeEnum,
     StatusAcaoAgapeEnum,
@@ -71,24 +76,16 @@ class DoacaoAgapeRequestSchema(BaseModel):
 
 # Schema para cadastrar ciclo de ação Ágape
 class RegistrarOuEditarCicloAcaoAgapeRequest(BaseModel):
-    nome_acao_id: UUID = Field(..., description='ID do nome da ação Ágape')
+    nome_acao_id: Optional[UUID] = None
     abrangencia: AbrangenciaInstanciaAcaoAgapeEnum
     endereco: EnderecoAgapeFormData
     doacoes: List[DoacaoAgapeRequestSchema]
 
 
-class ListarNomesAcoesAgapeQueryPaginada(PaginacaoQuery):
-    nome: Optional[str] = Field(None, description='Nome da ação')
-
-
 # Filtros para listar ações com ciclos (rota listar-ciclo-acoes-agape)
 class ListarCiclosAcoesAgapeQueryPaginada(PaginacaoQuery):
-    acao_id: Optional[UUID] = Field(None, description='ID da ação Ágape')
-    data_cadastro_inicial: Optional[date] = Field(
-        None, description='Data inicial de cadastro'
-    )
-    data_cadastro_final: Optional[date] = Field(
-        None, description='Data final de cadastro'
+    nome_acao_id: Optional[UUID] = Field(
+        None, description='ID do nome da ação Ágape'
     )
     status: Optional[StatusAcaoAgapeEnum] = Field(
         None,
@@ -105,7 +102,6 @@ class RegistrarItemEstoqueAgapeRequest(BaseModel):
     item: str = Field(
         ..., description='Nome do item', min_length=3, max_length=100
     )
-    quantidade: int = Field(..., description='Quantidade do item', example=1)
 
     @model_validator(mode='before')
     @classmethod
@@ -131,7 +127,7 @@ class ItemQuantityValidation:
 # Form data para abastecer item de estoque
 class AbastecerItemEstoqueAgapeRequest(BaseModel, ItemQuantityValidation):
     quantidade: int = Field(
-        ..., description='Quantidade a acrescentar', example=1
+        ..., gt=0, description='Quantidade a acrescentar', example=1
     )
 
 
@@ -179,7 +175,7 @@ class RegistrarOuEditarFamiliaAgapeFormData(BaseModel):
     endereco: EnderecoAgapeFormData
     membros: list[MembroFamiliaAgapeFormData]
     observacao: Optional[str] = Field('', max_length=255)
-    comprovante_residencia: BaseFile = None
+    comprovante_residencia: BaseFile | None = None
     fotos_familia: list[BaseFile] = []
 
     @model_validator(mode='before')
@@ -239,10 +235,6 @@ class RegistrarOuEditarFamiliaAgapeFormData(BaseModel):
                 )
 
         return form_data
-
-
-class ListarFamiliasAgapeQueryPaginada(PaginacaoQuery):
-    pass
 
 
 class ListarMembrosFamiliaAgapeQueryPaginada(PaginacaoQuery):
@@ -441,18 +433,11 @@ class EditarMembroAgapeFormData(BaseModel):
         }
 
 
-class ListarHistoricoMovimentacoesAgapeQueryPaginada(BaseModel):
-    pagina: int = Field(1, ge=1, description='Número da página desejada.')
-    por_pagina: int = Field(
-        10,
-        ge=1,
-        le=100,
-        description='Quantidade de resultados por página (máximo de 100).',
-    )
-
-    class Config:
-        from_attributes = True
-        json_schema_extra = {'example': {'pagina': 1, 'por_pagina': 20}}
+class ListarHistoricoMovimentacoesAgapeQueryPaginada(PaginacaoQuery):
+    item_id: Optional[UUID] = None
+    tipo_movimentacao: Optional[TipoMovimentacaoEnum] = None
+    data_movimentacao_inicial: Optional[date] = None
+    data_movimentacao_final: Optional[date] = now().date()
 
 
 class ItemDoacaoInputSchema(BaseModel):
@@ -465,14 +450,14 @@ class ItemDoacaoInputSchema(BaseModel):
 class RegistrarDoacaoAgapeRequestSchema(BaseModel):
     familia_id: UUID
     ciclo_acao_id: UUID
-    itens: List[ItemDoacaoInputSchema]
+    doacoes: List[ItemDoacaoInputSchema]
 
     @model_validator(mode='before')
     @classmethod
     def check_itens_not_empty(cls, values):
-        itens = values.get('itens')
-        if not itens:
-            raise ValueError('A lista de itens não pode estar vazia.')
+        doacoes = values.get('doacoes')
+        if not doacoes:
+            raise ValueError('A lista de doações não pode estar vazia.')
         return values
 
 
@@ -485,5 +470,17 @@ class RegistrarRecibosRequestSchema(BaseModel):
     recibo: str = Field(..., description='URL ou identificador do recibo')
 
 
-class RegistrarRecibosRequestScheme(BaseModel):
-    recibos: List[RegistrarRecibosRequestSchema]
+class RegistrarRecibosRequestFormData(BaseModel):
+    recibos: List[BaseFile] = Field(..., min_items=1, max_items=2)
+
+
+class ReceiptsEnum(str, Enum):
+    com_recibo = 'com_recibo'
+    sem_recibo = 'sem_recibo'
+
+
+class BeneficiariosCicloAcaoQuery(PaginacaoQuery):
+    cpf: Optional[str] = Field(None, max_length=14)
+    data_inicial: Optional[date] = Field(None)
+    data_final: Optional[date] = Field(now().date())
+    recibos: Optional[ReceiptsEnum] = Field(None)

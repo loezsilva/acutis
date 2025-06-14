@@ -6,11 +6,14 @@ STATUS_PERMISSAO_ENDPOINT = '/api/agape/status-permissao-voluntarios'
 
 
 def test_listar_status_permissao_voluntarios_sucesso(
-    client: FlaskClient, membro_token, seed_menu_agape_e_permissoes
+    client: FlaskClient,
+    seed_lead_voluntario_e_token,
+    seed_menu_agape_e_permissoes,
 ):
+    token = seed_lead_voluntario_e_token[1]
     resposta = client.get(
         STATUS_PERMISSAO_ENDPOINT,
-        headers={'Authorization': f'Bearer {membro_token}'},
+        headers={'Authorization': f'Bearer {token}'},
     )
 
     resposta_json = resposta.json
@@ -28,7 +31,7 @@ def test_listar_status_permissao_voluntarios_sem_perfil_cadastrado(
         STATUS_PERMISSAO_ENDPOINT,
         headers={'Authorization': f'Bearer {membro_token}'},
     )
-    assert resposta.status_code == HTTPStatus.NOT_FOUND
+    assert resposta.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_listar_status_permissao_voluntarios_sem_token(client: FlaskClient):

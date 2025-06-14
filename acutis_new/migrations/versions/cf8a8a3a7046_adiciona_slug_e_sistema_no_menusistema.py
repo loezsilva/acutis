@@ -1,9 +1,7 @@
 """adiciona, slug e sistema no menusistema
-
 Revision ID: cf8a8a3a7046
 Revises: ab01b04d524f
 Create Date: 2025-06-07 19:52:47.161200
-
 """
 from alembic import op
 import sqlalchemy as sa

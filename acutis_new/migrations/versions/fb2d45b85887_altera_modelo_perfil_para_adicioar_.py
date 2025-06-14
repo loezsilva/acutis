@@ -1,9 +1,7 @@
 """altera modelo perfil para adicioar sistema
-
 Revision ID: fb2d45b85887
 Revises: cf8a8a3a7046
 Create Date: 2025-06-07 19:59:52.228633
-
 """
 from alembic import op
 import sqlalchemy as sa

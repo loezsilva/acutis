@@ -42,11 +42,7 @@ class ListarCicloAcoesAgapeUseCase:
             resultados=[
                 InstanciaCicloAgapeResponse(
                     id=instancia.id,
-                    abrangencia=instancia.abrangencia,
-                    acao_id=instancia.fk_acao_agape_id,
-                    endereco_id=instancia.fk_endereco_id,
-                    data_inicio=instancia.data_inicio,
-                    data_termino=instancia.data_termino,
+                    nome_acao_id=instancia.fk_acao_agape_id,
                     status=instancia.status,
                 ).model_dump()
                 for instancia in instancias

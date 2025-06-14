@@ -23,31 +23,23 @@ class ListarGeolocalizacoesBeneficiariosUseCase:
         )
         if ciclo_acao is None:
             raise HttpNotFoundError('Ciclo de ação não encontrado.')
+
         familias_beneficiadas = (
-            self.agape_repository.listar_familias_beneficiadas_por_ciclo_id(
-                ciclo_acao_id=ciclo_acao_id
+            self.agape_repository.listar_geolocalizadores_familia_por_ciclo_id(
+                ciclo_acao_id=ciclo_acao_id,
             )
         )
 
-        geolocalizacoes_list = []
+        geolocalizacoes_respostas = []
         if familias_beneficiadas:
-            for familia_entity in familias_beneficiadas:
-                if familia_entity.fk_endereco_id:
-                    endereco = self.agape_repository.buscar_endereco_por_id(
-                        familia_entity.fk_endereco_id
+            for familia in familias_beneficiadas:
+                geolocalizacoes_respostas.append(
+                    GeolocalizacaoBeneficiarioResponse.model_validate(
+                        dict(familia._mapping)
                     )
-                    if endereco and endereco.coordenada:
-                        coordenada = endereco.coordenada
-                        geolocalizacoes_list.append(
-                            GeolocalizacaoBeneficiarioResponse(
-                                familia_id=familia_entity.id,
-                                nome_familia=(familia_entity.nome_familia),
-                                latitude=coordenada.latitude,
-                                longitude=coordenada.longitude,
-                                endereco_id=familia_entity.fk_endereco_id,
-                            )
-                        )
+                )
 
         return ListarGeolocalizacoesBeneficiariosResponse(
-            root=geolocalizacoes_list
+            ciclo_acao_id=ciclo_acao.id,
+            resultados=geolocalizacoes_respostas,
         ).model_dump()

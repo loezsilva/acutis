@@ -36,7 +36,6 @@ class BuscarMembroAgapePorIdUseCase:
 
         return MembroAgapeDetalhesResponse(
             id=membro.id,
-            familia_agape_id=membro.fk_familia_agape_id,
             nome=membro.nome,
             email=membro.email,
             telefone=membro.telefone,
@@ -49,6 +48,4 @@ class BuscarMembroAgapePorIdUseCase:
             renda=membro.renda,
             foto_documento_url=foto_documento_url,
             beneficiario_assistencial=membro.beneficiario_assistencial,
-            criado_em=membro.criado_em,  # Vem de ModeloBase
-            atualizado_em=membro.atualizado_em,  # Vem de ModeloBase
         )

@@ -1,15 +1,15 @@
 import math
 import uuid
 
+from flask import request
+
 from acutis_api.application.utils.funcoes_auxiliares import calcular_idade
+from acutis_api.communication.requests.agape import PaginacaoQuery
 from acutis_api.communication.responses.agape import (
     ListarMembrosFamiliaAgapeResponsePaginada,
     MembroFamiliaAgapeResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
-from acutis_api.domain.repositories.schemas.agape import (
-    ListarMembrosFamiliaAgapeFiltros,
-)
 from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
@@ -25,39 +25,39 @@ class ListarMembrosFamiliaUseCase:
         self.__repository = agape_repository
 
     def execute(
-        self, filtros: ListarMembrosFamiliaAgapeFiltros, familia_id: uuid.UUID
+        self, familia_id: uuid.UUID
     ) -> ListarMembrosFamiliaAgapeResponsePaginada:
+        filtros: PaginacaoQuery = PaginacaoQuery.parse_obj(request.args)
+
         familia = self.__repository.buscar_familia_por_id(familia_id)
 
         if familia is None:
             raise HttpNotFoundError('Família não encontrada.')
 
-        instancias, total = self.__repository.listar_membros_familia(
-            filtros=filtros, familia_id=familia_id
+        instancias = self.__repository.listar_membros_familia(
+            familia_id=familia_id
         )
 
-        # Cria resposta paginada
-        pagina_atual = filtros.pagina
-        paginas_total = (
-            math.ceil(total / filtros.por_pagina) if filtros.por_pagina else 1
+        membros, total = self.__repository.query_paginada(
+            instancias, filtros.pagina, filtros.por_pagina
         )
 
         return ListarMembrosFamiliaAgapeResponsePaginada(
-            pagina=pagina_atual,
-            paginas=paginas_total,
+            pagina=filtros.pagina,
+            paginas=math.ceil(total / filtros.por_pagina),
             total=total,
             resultados=[
                 MembroFamiliaAgapeResponse(
-                    id=instancia.id,
-                    cpf=instancia.cpf,
-                    nome=instancia.nome,
-                    email=instancia.email,
-                    telefone=instancia.telefone,
-                    ocupacao=instancia.ocupacao,
-                    renda=instancia.renda,
-                    responsavel=instancia.responsavel,
-                    idade=calcular_idade(instancia.data_nascimento),
+                    id=membro.id,
+                    cpf=membro.cpf,
+                    nome=membro.nome,
+                    email=membro.email,
+                    telefone=membro.telefone,
+                    ocupacao=membro.ocupacao,
+                    renda=membro.renda,
+                    responsavel=membro.responsavel,
+                    idade=calcular_idade(membro.data_nascimento),
                 ).model_dump()
-                for instancia in instancias
+                for membro in membros
             ],
         )

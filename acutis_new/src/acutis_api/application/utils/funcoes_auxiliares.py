@@ -1,5 +1,6 @@
 import io
 import re
+import unicodedata
 import uuid
 from base64 import b64decode
 from calendar import monthrange
@@ -8,6 +9,7 @@ from enum import Enum
 from typing import Any, Union
 
 import pandas as pd
+import pytz
 from email_validator import EmailNotValidError, validate_email
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from validate_docbr import CNPJ, CPF
@@ -314,3 +316,16 @@ def tratar_valor_campo_por_tipo_valor(
 
         case _:
             return valor_campo
+
+
+def normalizar_texto(text: str) -> str:
+    normalized = unicodedata.normalize('NFKD', text)
+
+    stripped = normalized.encode('ascii', 'ignore').decode('ascii')
+
+    return stripped.lower().strip()
+
+
+def now():
+    tz = pytz.timezone('America/Fortaleza')
+    return datetime.now(tz)

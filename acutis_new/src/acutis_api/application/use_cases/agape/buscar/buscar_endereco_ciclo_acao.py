@@ -19,27 +19,18 @@ class BuscarEnderecoCicloAcaoUseCase:
                 f'Ciclo de ação ágape {ciclo_acao_id} não encontrado'
             )
 
-        if not ciclo_acao.fk_endereco_id:
-            raise HttpNotFoundError(
-                f"""
-                Ciclo de ação ágape {ciclo_acao_id}
-                não possui endereço associado (fk_endereco_id está nulo).
-                """
-            )
-
         endereco = self._agape_repository.buscar_endereco_por_id(
             ciclo_acao.fk_endereco_id
         )
 
-        response_data = {
-            'id': endereco.id,  # ID do Endereço
-            'codigo_postal': endereco.codigo_postal,
-            'logradouro': endereco.logradouro,
-            'numero': endereco.numero,
-            'complemento': endereco.complemento,
-            'bairro': endereco.bairro,
-            'cidade': endereco.cidade,
-            'estado': endereco.estado,
-            'abrangencia': ciclo_acao.abrangencia,
-        }
-        return EnderecoCicloAcaoResponse.model_validate(response_data)
+        return EnderecoCicloAcaoResponse(
+            id=endereco.id,
+            codigo_postal=endereco.codigo_postal,
+            logradouro=endereco.logradouro,
+            numero=endereco.numero,
+            complemento=endereco.complemento,
+            bairro=endereco.bairro,
+            cidade=endereco.cidade,
+            estado=endereco.estado,
+            abrangencia=ciclo_acao.abrangencia,
+        ).model_dump()

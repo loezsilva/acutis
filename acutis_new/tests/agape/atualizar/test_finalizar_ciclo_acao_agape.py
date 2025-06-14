@@ -25,7 +25,22 @@ def test_finalizar_ciclo_acao_sucesso(
     )
 
     response = _request()
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert (
+        response.json[0]['msg'].lower()
+        == 'ciclo da ação ainda não foi iniciado ou já foi finalizado.'
+    )
+
+
+def test_erro_finalizar_ciclo_ja_finalizado(
+    client: FlaskClient, membro_token, seed_ciclo_acao_agape_finalizado
+):
+    response = client.put(
+        f'/api/agape/finalizar-ciclo-acao-agape/{seed_ciclo_acao_agape_finalizado.id}',
+        headers={'Authorization': f'Bearer {membro_token}'},
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
     assert (
         response.json[0]['msg'].lower()
         == 'ciclo da ação ainda não foi iniciado ou já foi finalizado.'

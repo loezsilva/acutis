@@ -27,25 +27,15 @@ class ListarItensDoadosBeneficiarioUseCase:
             )
         )
 
-        resultados_response = []
-        if itens_doados_data:
-            for item_data in itens_doados_data:
-                resultados_response.append(
-                    ItemDoadoBeneficiarioResponse(
-                        item_id=getattr(item_data, 'item_id'),
-                        nome_item=getattr(item_data, 'nome_item'),
-                        quantidade_doada=getattr(
-                            item_data, 'quantidade_doada'
-                        ),
-                        item_doacao_agape_id=getattr(
-                            item_data, 'item_doacao_agape_id'
-                        ),
-                        item_instancia_agape_id=getattr(
-                            item_data, 'item_instancia_agape_id'
-                        ),
-                    )
+        resultados_respostas = []
+        for item_data in itens_doados_data:
+            resultados_respostas.append(
+                ItemDoadoBeneficiarioResponse(
+                    nome_item=item_data.nome_item,
+                    quantidade=item_data.quantidade_doada,
                 )
+            )
 
         return ListarItensDoadosBeneficiarioResponse(
-            root=resultados_response
+            resultados=resultados_respostas
         ).model_dump()

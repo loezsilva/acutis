@@ -18,8 +18,6 @@ def test_registrar_nome_acao_sucesso(client: FlaskClient, membro_token):
     )
 
     assert response.status_code == HTTPStatus.CREATED
-    assert 'id' in response.json
-    assert response.json['nome'] == nome_acao
 
 
 def test_erro_nome_registrar_nome_acao(

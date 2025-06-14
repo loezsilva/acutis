@@ -14,10 +14,18 @@ from acutis_api.application.use_cases.admin.doacoes.listar import (
     ListarDoacoesUseCase,
     MediaDiariaUseCase,
     MediaMensalUseCase,
+    RecorrenciaNaoEfetuadaUseCase,
+    RecorrenciasCanceladasUseCase,
+    RecorrenciasEfetuadasUseCase,
+    RecorrenciasLembretesEfetivosUseCase,
+    RecorrenciasPrevistasUseCase,
+    RecorrenciaTotalUseCase,
 )
 from acutis_api.communication.requests.admin_doacoes import (
     CardDoacoesTotalResponse,
     CardMediaTotalResponse,
+    CardRecorrentesComDoadoresResponse,
+    CardsDoacoesRecorrentesResponse,
     ListarDoacoesQuery,
 )
 from acutis_api.communication.responses.admin_doacoes import (
@@ -155,6 +163,128 @@ def card_media_mensal():
     try:
         repository = AdminDoacoesRepository(database)
         usecase = MediaMensalUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_doacoes_bp.get('/card-recorrentes-nao-efetuadas')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardsDoacoesRecorrentesResponse, HTTP_500=ErroPadraoResponse
+    ),
+    tags=['Admin - Doações'],
+)
+@jwt_required()
+def card_recorrentes_nao_efetuadas():
+    """Contabilizar doações recorrentes não efetuadas"""
+    try:
+        repository = AdminDoacoesRepository(database)
+        usecase = RecorrenciaNaoEfetuadaUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_doacoes_bp.get('/card-recorrentes-total')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardRecorrentesComDoadoresResponse,
+        HTTP_500=ErroPadraoResponse,
+    ),
+    tags=['Admin - Doações'],
+)
+@jwt_required()
+def card_recorrentes_total():
+    """Contabilizar doações recorrentes total"""
+    try:
+        repository = AdminDoacoesRepository(database)
+        usecase = RecorrenciaTotalUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_doacoes_bp.get('/card-recorrentes-previstas')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardsDoacoesRecorrentesResponse, HTTP_500=ErroPadraoResponse
+    ),
+    tags=['Admin - Doações'],
+)
+@jwt_required()
+def card_recorrentes_previstas():
+    """Contabilizar doações recorrentes previstas"""
+    try:
+        repository = AdminDoacoesRepository(database)
+        usecase = RecorrenciasPrevistasUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_doacoes_bp.get('/card-lembretes-efetivos')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardRecorrentesComDoadoresResponse,
+        HTTP_500=ErroPadraoResponse,
+    ),
+    tags=['Admin - Doações'],
+)
+@jwt_required()
+def card_lembretes_efetivos():
+    """Contabilizar doações lembretes efetivos"""
+    try:
+        repository = AdminDoacoesRepository(database)
+        usecase = RecorrenciasLembretesEfetivosUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_doacoes_bp.get('/card-recorrentes-efetuadas')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardsDoacoesRecorrentesResponse, HTTP_500=ErroPadraoResponse
+    ),
+    tags=['Admin - Doações'],
+)
+@jwt_required()
+def card_recorrentes_efetuadas():
+    """Contabilizar doações recorrentes efetuadas"""
+    try:
+        repository = AdminDoacoesRepository(database)
+        usecase = RecorrenciasEfetuadasUseCase(repository)
+        response = usecase.execute()
+        return response, HTTPStatus.OK
+    except Exception as exc:
+        error_response = errors_handler(exc)
+        return error_response
+
+
+@admin_doacoes_bp.get('/card-recorrentes-canceladas')
+@swagger.validate(
+    resp=Response(
+        HTTP_200=CardsDoacoesRecorrentesResponse, HTTP_500=ErroPadraoResponse
+    ),
+    tags=['Admin - Doações'],
+)
+@jwt_required()
+def card_recorrentes_canceladas():
+    """Contabilizar doações recorrentes canceladas"""
+    try:
+        repository = AdminDoacoesRepository(database)
+        usecase = RecorrenciasCanceladasUseCase(repository)
         response = usecase.execute()
         return response, HTTPStatus.OK
     except Exception as exc:

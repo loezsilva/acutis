@@ -25,6 +25,8 @@ def test_buscar_endereco_familia_sucesso(
     assert dados_resposta['cidade'] == endereco_esperado.cidade
     assert dados_resposta['estado'] == endereco_esperado.estado
     assert dados_resposta['codigo_postal'] == endereco_esperado.codigo_postal
+    assert 'latitude' in dados_resposta
+    assert 'longitude' in dados_resposta
     if endereco_esperado.complemento:
         assert dados_resposta['complemento'] == endereco_esperado.complemento
     else:

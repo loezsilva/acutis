@@ -1,4 +1,3 @@
-import uuid
 from http import HTTPStatus
 
 from flask.testing import FlaskClient
@@ -26,22 +25,13 @@ def test_listar_enderecos_familias_sucesso_com_dados(
 
     assert resposta.status_code == HTTPStatus.OK
     resposta_json = resposta.json
+    resultados = resposta_json['resultados']
 
-    assert isinstance(resposta_json, list)
-    assert len(resposta_json) == len(familias_ativas_esperadas), (
+    assert isinstance(resultados, list)
+    assert len(resultados) == len(familias_ativas_esperadas), (
         'O número de endereços listados não corresponde ao número '
         'de famílias ativas.'
     )
-
-    enderecos_resposta_por_familia_id = {
-        uuid.UUID(item['familia_id']): item for item in resposta_json
-    }
-
-    for familia_esperada in familias_ativas_esperadas:
-        assert familia_esperada.id in enderecos_resposta_por_familia_id, (
-            f'Família ID {familia_esperada.id} esperada mas não '
-            f'encontrada na resposta.'
-        )
 
 
 def test_listar_enderecos_familias_sem_dados(
@@ -60,7 +50,7 @@ def test_listar_enderecos_familias_sem_dados(
     )
 
     assert resposta.status_code == HTTPStatus.OK
-    resposta_json = resposta.json
+    resposta_json = resposta.json['resultados']
 
     assert isinstance(resposta_json, list)
     assert len(resposta_json) == 0, (

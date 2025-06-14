@@ -4,11 +4,6 @@ from acutis_api.communication.responses.agape import (
     CardTotalRecebimentosAgapeResponse,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
-
-# Assuming TotalItensRecebidosSchema will be defined here:
-from acutis_api.domain.repositories.schemas.agape import (
-    TotalItensRecebidosSchema,
-)
 from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
@@ -26,19 +21,12 @@ class CardTotalRecebimentosAgapeUseCase:
         if familia is None:
             raise HttpNotFoundError('Família não encontrada.')
 
-        dados_recebimentos: TotalItensRecebidosSchema = (
+        total_itens_recebidos = (
             self.__repository.total_itens_recebidos_por_familia(
                 familia=familia
             )
         )
 
-        total_itens = 0
-
-        if dados_recebimentos and hasattr(
-            dados_recebimentos, 'total_recebidas'
-        ):
-            total_itens = dados_recebimentos.total_recebidas
-
         return CardTotalRecebimentosAgapeResponse(
-            total_itens_recebidos=f'{total_itens} Itens recebidos'
+            total_itens_recebidos=f'{total_itens_recebidos} Itens recebidos'
         ).model_dump()

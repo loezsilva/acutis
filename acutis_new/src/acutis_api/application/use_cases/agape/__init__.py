@@ -14,7 +14,7 @@ from .buscar import (
     BuscarEnderecoFamiliaAgapeUseCase,
     BuscarFamiliaAgapePorCpfUseCase,
     BuscarMembroAgapePorIdUseCase,
-    BuscarUltimaAcaoAgapeUseCase,
+    BuscarNomeAcaoAgapeUseCase,
 )
 from .deletar import (
     DeletarCicloAcaoAgapeUseCase,
@@ -81,7 +81,7 @@ __all__ = [
     'ListarMembrosFamiliaUseCase',
     'BuscarEnderecoFamiliaAgapeUseCase',
     'BuscarEnderecoCicloAcaoUseCase',
-    'BuscarUltimaAcaoAgapeUseCase',
+    'BuscarNomeAcaoAgapeUseCase',
     'BuscarFamiliaAgapePorCpfUseCase',
     'BuscarMembroAgapePorIdUseCase',
     'RegistrarMembrosFamiliaAgapeUseCase',

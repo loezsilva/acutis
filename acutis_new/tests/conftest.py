@@ -10,7 +10,10 @@ from sqlalchemy import event
 from testcontainers.mssql import SqlServerContainer
 
 from acutis_api.api.app import create_app
-from acutis_api.application.utils.funcoes_auxiliares import buscar_data_valida
+from acutis_api.application.utils.funcoes_auxiliares import (
+    buscar_data_valida,
+    normalizar_texto,
+)
 from acutis_api.communication.enums.campanhas import (
     PeriodicidadePainelCampanhasEnum,
 )
@@ -1389,6 +1392,7 @@ def seed_membro_com_doacao_e_campanha():
 @pytest.fixture
 def seed_nome_acao_agape():
     nome_acao_agape = NomeAcaoAgapeFactory()
+    nome_acao_agape.nome = normalizar_texto(nome_acao_agape.nome)
 
     database.session.add(nome_acao_agape)
 
@@ -1586,14 +1590,18 @@ def seed_familia_com_endereco(seed_membro):
     endereco_criado = EnderecoFactory()
     database.session.add(endereco_criado)
     database.session.commit()
-    database.session.flush()
+
+    coordenada = CoordenadaFactory(
+        fk_endereco_id=endereco_criado.id,
+    )
+    database.session.add(coordenada)
+    database.session.commit()
 
     familia_criada = FamiliaAgapeFactory(
         fk_endereco_id=endereco_criado.id, cadastrada_por=seed_membro.id
     )
     database.session.add(familia_criada)
     database.session.commit()
-    database.session.flush()
 
     membro_familia = MembroAgapeFactory(
         fk_familia_agape_id=familia_criada.id,
@@ -1601,7 +1609,6 @@ def seed_familia_com_endereco(seed_membro):
     )
     database.session.add(membro_familia)
     database.session.commit()
-    database.session.flush()
 
     return familia_criada, endereco_criado
 
@@ -2397,8 +2404,8 @@ def seed_historico_movimentacoes_agape(
         quantidade=50,
         origem=HistoricoOrigemEnum.estoque,
         destino=HistoricoOrigemEnum.estoque,
-        fk_instancia_acao_agape_id=ciclo_acao.id,
     )
+    historico_entrada.fk_instancia_acao_agape_id = ciclo_acao.id
     database.session.add(historico_entrada)
     historicos_criados.append(historico_entrada)
 
@@ -2429,8 +2436,8 @@ def seed_historico_movimentacoes_agape(
         quantidade=50,
         origem=HistoricoOrigemEnum.estoque,
         destino=HistoricoOrigemEnum.estoque,
-        fk_instancia_acao_agape_id=ciclo_acao.id,
     )
+    historico_saida.fk_instancia_acao_agape_id = ciclo_acao.id
     database.session.add(historico_saida)
     historicos_criados.append(historico_saida)
 
@@ -2440,8 +2447,8 @@ def seed_historico_movimentacoes_agape(
         quantidade=50,
         origem=HistoricoOrigemEnum.estoque,
         destino=HistoricoOrigemEnum.estoque,
-        fk_instancia_acao_agape_id=ciclo_acao.id,
     )
+    historico_entrada_2.fk_instancia_acao_agape_id = ciclo_acao.id
     database.session.add(historico_entrada_2)
     historicos_criados.append(historico_entrada_2)
 
@@ -2468,8 +2475,8 @@ def seed_historico_movimentacoes_agape(
             quantidade=50,
             origem=HistoricoOrigemEnum.estoque,
             destino=HistoricoOrigemEnum.estoque,
-            fk_instancia_acao_agape_id=ciclo_acao.id,
         )
+        historico_saida_2.fk_instancia_acao_agape_id = ciclo_acao.id
         database.session.add(historico_saida_2)
         historicos_criados.append(historico_saida_2)
 

@@ -21,40 +21,32 @@ class ListarHistoricoMovimentacoesAgapeUseCase:
         Executa a lógica para listar o histórico de movimentações.
         """
 
-        movimentacoes_com_nome_item, total_itens = (
+        movimentacoes_query = (
             self.agape_repository.listar_historico_movimentacoes_paginado(
-                pagina=filtros.pagina,
-                por_pagina=filtros.por_pagina,
+                filtros
             )
         )
 
-        resultados_response = []
-        for mov_entity, nome_item_str in movimentacoes_com_nome_item:
-            resultados_response.append(
+        movimentacoes, total = self.agape_repository.query_paginada(
+            movimentacoes_query, filtros.pagina, filtros.por_pagina
+        )
+
+        resultados_resposta = []
+        for movimentacao in movimentacoes:
+            resultados_resposta.append(
                 HistoricoMovimentacaoItemAgapeResponse(
-                    id=mov_entity.id,
-                    item_id=mov_entity.fk_estoque_agape_id,
-                    nome_item=nome_item_str,  # Nome do item vindo do JOIN
-                    quantidade=mov_entity.quantidade,
-                    tipo_movimentacao=mov_entity.tipo_movimentacoes,
-                    origem=mov_entity.origem,
-                    destino=mov_entity.destino,
-                    ciclo_acao_id=mov_entity.fk_instancia_acao_agape_id,
-                    data_movimentacao=mov_entity.criado_em,
+                    id=movimentacao.id,
+                    item_id=movimentacao.item_id,
+                    nome_item=movimentacao.item,
+                    quantidade=movimentacao.quantidade,
+                    tipo_movimentacao=movimentacao.tipo_movimentacoes,
+                    data_movimentacao=movimentacao.criado_em,
                 )
             )
 
-        total_paginas = (
-            math.ceil(total_itens / filtros.por_pagina)
-            if filtros.por_pagina > 0
-            else 0
-        )
-        if total_paginas == 0 and total_itens > 0:
-            total_paginas = 1
-
         return ListarHistoricoMovimentacoesAgapeResponsePaginada(
             pagina=filtros.pagina,
-            paginas=total_paginas,
-            total=total_itens,
-            resultados=resultados_response,
+            paginas=math.ceil(total / filtros.por_pagina),
+            total=total,
+            resultados=resultados_resposta,
         ).model_dump()

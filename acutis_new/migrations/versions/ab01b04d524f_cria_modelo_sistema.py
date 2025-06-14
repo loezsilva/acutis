@@ -1,9 +1,7 @@
 """cria modelo sistema
-
 Revision ID: ab01b04d524f
 Revises: 73fefac0cf5c
 Create Date: 2025-06-07 19:50:56.295069
-
 """
 from alembic import op
 import sqlalchemy as sa

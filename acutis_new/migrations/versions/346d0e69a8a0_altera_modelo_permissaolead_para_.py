@@ -1,9 +1,7 @@
 """altera modelo permissaolead para adicionar sistema
-
 Revision ID: 346d0e69a8a0
 Revises: fb2d45b85887
 Create Date: 2025-06-07 20:04:21.786666
-
 """
 from alembic import op
 import sqlalchemy as sa

@@ -37,6 +37,12 @@ class EditarEnderecoFamiliaAgapeUseCase:
         )
 
         if familia is None:
+            raise HttpNotFoundError('Familia não encontada.')
+        endereco_familia = self.__repository.buscar_endereco_por_id(
+            endereco_id=familia.fk_endereco_id
+        )
+
+        if familia is None:
             raise HttpNotFoundError(
                 f'Família com ID {familia_id} não encontrada ou já deletada.'
             )
@@ -46,20 +52,21 @@ class EditarEnderecoFamiliaAgapeUseCase:
             {dados_endereco.estado}, {dados_endereco.cep}
         """
 
-        coordenadas_obj: CoordenadasSchema
-
         try:
-            # geolocalizacao_gmaps_obj é do tipo GoogleMapsGeocode
             geolocalizacao_gmaps_obj: GoogleMapsGeocode = (
                 self.__gmaps_service.get_geolocation(endereco=str_endereco)
             )
-            coordenadas_obj = CoordenadasSchema(
-                latitude=geolocalizacao_gmaps_obj.latitude,
-                longitude=geolocalizacao_gmaps_obj.longitude,
-                latitude_ne=geolocalizacao_gmaps_obj.latitude_ne,
-                longitude_ne=geolocalizacao_gmaps_obj.longitude_ne,
-                latitude_so=geolocalizacao_gmaps_obj.latitude_so,
-                longitude_so=geolocalizacao_gmaps_obj.longitude_so,
+
+            self.__repository.atualizar_coordenadas(
+                coordenada=endereco_familia.coordenada,
+                dados_coordenada=CoordenadasSchema(
+                    latitude=geolocalizacao_gmaps_obj.latitude,
+                    longitude=geolocalizacao_gmaps_obj.longitude,
+                    latitude_ne=geolocalizacao_gmaps_obj.latitude_ne,
+                    longitude_ne=geolocalizacao_gmaps_obj.longitude_ne,
+                    latitude_so=geolocalizacao_gmaps_obj.latitude_so,
+                    longitude_so=geolocalizacao_gmaps_obj.longitude_so,
+                ),
             )
 
         except HttpNotFoundError:
@@ -71,7 +78,6 @@ class EditarEnderecoFamiliaAgapeUseCase:
         self.__repository.atualizar_endereco_familia(
             familia=familia,
             dados_endereco=dados_endereco,
-            coordenadas=coordenadas_obj,
         )
 
         self.__repository.salvar_alteracoes()

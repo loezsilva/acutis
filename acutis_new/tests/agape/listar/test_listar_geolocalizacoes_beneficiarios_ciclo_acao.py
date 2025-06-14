@@ -26,11 +26,16 @@ def test_listar_geolocalizacoes_sucesso_com_dados(
 
     assert resposta.status_code == HTTPStatus.OK
     resposta_json = resposta.json
+    resultados = resposta_json['resultados']
 
-    assert isinstance(resposta_json, list), 'A resposta deveria ser uma lista.'
-    assert len(resposta_json) == len(geolocalizacoes_esperadas), (
+    assert 'ciclo_acao_id' in resposta_json
+    assert 'nome_familia' in resultados[0]
+    assert 'latitude' in resultados[0]
+    assert 'longitude' in resultados[0]
+    assert isinstance(resultados, list), 'A resposta deveria ser uma lista.'
+    assert len(resultados) == len(geolocalizacoes_esperadas), (
         f'Esperado {len(geolocalizacoes_esperadas)} geolocalizações, '
-        f'recebido {len(resposta_json)}.'
+        f'recebido {len(resultados)}.'
     )
 
 

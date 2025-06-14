@@ -1,9 +1,7 @@
 """alteracoes de backref nos modelos de permissoes
-
 Revision ID: f203d1d0b5b9
 Revises: 634838243ff7
 Create Date: 2025-06-08 01:09:15.519092
-
 """
 from alembic import op
 import sqlalchemy as sa

@@ -7,7 +7,6 @@ from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 
 # Placeholder imports for schemas - these will be defined in the next step
 from acutis_api.domain.repositories.schemas.agape import (
-    ContagemItensEstoqueSchema,
     UltimaAcaoAgapeSchema,
     UltimaEntradaEstoqueSchema,
 )
@@ -20,7 +19,7 @@ class CardsEstatisticasItensEstoqueUseCase:
     def execute(
         self,
     ) -> CardsEstatisticasItensEstoqueResponse:
-        dados_itens_estoque: ContagemItensEstoqueSchema = (
+        quantidade_itens_em_estoque = (
             self.__repository.contagem_itens_estoque()
         )
         dados_ultima_acao: UltimaAcaoAgapeSchema = (
@@ -29,9 +28,6 @@ class CardsEstatisticasItensEstoqueUseCase:
         dados_ultima_entrada: UltimaEntradaEstoqueSchema = (
             self.__repository.ultima_entrada_estoque()
         )
-
-        em_estoque_val = getattr(dados_itens_estoque, 'em_estoque', 0)
-        itens_em_estoque_str = f'{em_estoque_val} | Em estoque'
 
         ultima_acao_str = 'Não possui'
         if dados_ultima_acao:
@@ -66,7 +62,7 @@ class CardsEstatisticasItensEstoqueUseCase:
 
         # Create Response
         response_data = CardsEstatisticasItensEstoqueResponse(
-            itens_em_estoque=itens_em_estoque_str,
+            itens_em_estoque=f'{quantidade_itens_em_estoque} | Em estoque',
             ultima_acao=ultima_acao_str,
             ultima_entrada=ultima_entrada_str,
         ).model_dump()

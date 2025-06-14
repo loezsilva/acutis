@@ -53,3 +53,12 @@ class CardDoacoesTotalResponse(BaseModel):
 
 class CardMediaTotalResponse(BaseModel):
     media: float
+
+
+class CardsDoacoesRecorrentesResponse(BaseModel):
+    total: float
+    qtd_doacoes: int
+
+
+class CardRecorrentesComDoadoresResponse(CardsDoacoesRecorrentesResponse):
+    qtd_doadores: int

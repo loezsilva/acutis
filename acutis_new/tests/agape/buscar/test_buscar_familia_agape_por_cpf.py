@@ -28,7 +28,11 @@ def test_buscar_familia_agape_por_cpf_sucesso(
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json['id'] == str(familia.id)
+    response_json = response.json
+
+    assert response_json['familia']['id'] == str(familia.id)
+    assert 'endereco' in response_json
+    assert 'fotos_familia_urls' in response_json
 
 
 def test_buscar_familia_agape_por_cpf_nao_encontrado(

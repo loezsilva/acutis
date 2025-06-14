@@ -24,25 +24,21 @@ def test_listar_itens_recebidos_sucesso(
 
     assert resposta.status_code == HTTPStatus.OK
     resposta_json = resposta.json
+    resultados = resposta_json['resultados']
 
-    assert isinstance(resposta_json, list), 'A resposta deveria ser uma lista.'
-    assert len(resposta_json) == len(itens_esperados), (
+    assert isinstance(resultados, list), 'A resposta deveria ser uma lista.'
+    assert len(resultados) == len(itens_esperados), (
         f'Esperado {len(itens_esperados)} itens recebidos, '
-        f'recebido {len(resposta_json)}.'
+        f'recebido {len(resultados)}.'
     )
 
     itens_retornados_formatados = sorted(
         [
             {
-                'item_id': str(item['item_id']),
                 'nome_item': item['nome_item'],
-                'quantidade_doada': item['quantidade_doada'],
-                'item_doacao_agape_id': str(item['item_doacao_agape_id']),
-                'item_instancia_agape_id': str(
-                    item['item_instancia_agape_id']
-                ),
+                'quantidade': item['quantidade'],
             }
-            for item in resposta_json
+            for item in resultados
         ],
         key=lambda x: x['nome_item'],
     )
@@ -50,13 +46,8 @@ def test_listar_itens_recebidos_sucesso(
     itens_esperados_formatados = sorted(
         [
             {
-                'item_id': str(item['item_id']),
                 'nome_item': item['nome_item'],
-                'quantidade_doada': item['quantidade_doada'],
-                'item_doacao_agape_id': str(item['item_doacao_agape_id']),
-                'item_instancia_agape_id': str(
-                    item['item_instancia_agape_id']
-                ),
+                'quantidade': item['quantidade_doada'],
             }
             for item in itens_esperados
         ],
@@ -87,9 +78,10 @@ def test_listar_itens_recebidos_doacao_sem_itens(
 
     assert resposta.status_code == HTTPStatus.OK
     resposta_json = resposta.json
+    resultados = resposta_json['resultados']
 
-    assert isinstance(resposta_json, list), 'A resposta deveria ser uma lista.'
-    assert len(resposta_json) == 0, (
+    assert isinstance(resultados, list), 'A resposta deveria ser uma lista.'
+    assert len(resultados) == 0, (
         'A lista de itens deveria estar vazia para uma doação sem itens '
         'registrados no ciclo.'
     )

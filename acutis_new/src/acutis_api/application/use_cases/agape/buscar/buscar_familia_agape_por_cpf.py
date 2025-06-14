@@ -3,6 +3,7 @@ from uuid import UUID
 from acutis_api.communication.responses.agape import (
     EnderecoResponse,
     FamiliaAgapeDetalhesPorCpfResponse,
+    FamiliaAgapePorCpf,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
 from acutis_api.domain.services.file_service import FileServiceInterface
@@ -28,30 +29,14 @@ class BuscarFamiliaAgapePorCpfUseCase:
             raise HttpNotFoundError(
                 'Nenhum membro encontrado com o CPF fornecido.'
             )
-        if not membro.fk_familia_agape_id:
-            raise HttpNotFoundError(
-                f"""Membro com CPF {cpf_a_buscar} não está
-                  associado a nenhuma família."""
-            )
 
         familia = self._agape_repository.buscar_familia_por_id(
             membro.fk_familia_agape_id
         )
-        if not familia:
-            raise HttpNotFoundError(f"""
-            Família com ID {membro.fk_familia_agape_id}
-              não encontrada ou está inativa.
-            """)
 
-        endereco_response_data = None
-        if familia.fk_endereco_id:
-            endereco_entity = self._agape_repository.buscar_endereco_por_id(
-                familia.fk_endereco_id
-            )
-            if endereco_entity:
-                endereco_response_data = EnderecoResponse.model_validate(
-                    endereco_entity
-                )
+        endereco_familia = self._agape_repository.buscar_endereco_por_id(
+            familia.fk_endereco_id
+        )
 
         fotos_entities = self._agape_repository.listar_fotos_por_familia_id(
             familia.id
@@ -75,15 +60,19 @@ class BuscarFamiliaAgapePorCpfUseCase:
             )
 
         return FamiliaAgapeDetalhesPorCpfResponse(
-            id=familia.id,
-            nome_familia=familia.nome_familia,
-            observacao=familia.observacao,
-            comprovante_residencia_url=comprovante_url,
-            criado_em=familia.criado_em,
-            ativo=familia.deletado_em is None,
-            ultimo_recebimento=(
-                ultimo_recebimento_data if ultimo_recebimento_data else None
+            familia=FamiliaAgapePorCpf(
+                id=familia.id,
+                nome_familia=familia.nome_familia,
+                observacao=familia.observacao,
+                comprovante_residencia_url=comprovante_url,
+                criado_em=familia.criado_em,
+                ativo=familia.deletado_em is None,
+                ultimo_recebimento=(
+                    ultimo_recebimento_data
+                    if ultimo_recebimento_data
+                    else None
+                ),
             ),
-            endereco=endereco_response_data,
+            endereco=EnderecoResponse.model_validate(endereco_familia),
             fotos_familia_urls=fotos_urls,
-        )
+        ).model_dump()

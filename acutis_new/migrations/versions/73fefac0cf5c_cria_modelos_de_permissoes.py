@@ -1,9 +1,7 @@
 """cria modelos de permissoes
-
 Revision ID: 73fefac0cf5c
 Revises: 67f3f5e71cca
 Create Date: 2025-05-30 15:52:14.607097
-
 """
 from alembic import op
 import sqlalchemy as sa

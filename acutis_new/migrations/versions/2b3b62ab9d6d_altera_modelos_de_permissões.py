@@ -1,9 +1,7 @@
 """altera modelos de permissões
-
 Revision ID: 2b3b62ab9d6d
 Revises: 346d0e69a8a0
 Create Date: 2025-06-07 23:24:57.428713
-
 """
 from alembic import op
 import sqlalchemy as sa

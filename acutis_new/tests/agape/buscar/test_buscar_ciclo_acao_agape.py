@@ -22,8 +22,11 @@ def test_buscar_ciclo_acao_agape_sucesso(
     )
 
     response_data = response.json
-
+    print('@', response_data['endereco'])
     assert response.status_code == HTTPStatus.OK
+    assert 'id' in response_data
+    assert str(ciclo_acao.id) == response_data['id']
+    assert 'nome_acao_id' in response_data
     assert 'abrangencia' in response_data
     assert 'doacoes' in response_data
     assert 'endereco' in response_data

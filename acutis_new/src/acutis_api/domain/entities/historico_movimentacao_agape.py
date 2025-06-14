@@ -39,5 +39,5 @@ class HistoricoMovimentacaoAgape(ModeloBase):
     origem: Mapped[HistoricoOrigemEnum | None] = mapped_column(index=True)
     destino: Mapped[HistoricoDestinoEnum | None] = mapped_column(index=True)
     fk_instancia_acao_agape_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey('instancias_acoes_agape.id'), index=True
+        ForeignKey('instancias_acoes_agape.id'), index=True, init=False
     )

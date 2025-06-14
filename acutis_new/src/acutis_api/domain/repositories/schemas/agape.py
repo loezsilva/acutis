@@ -9,10 +9,6 @@ from acutis_api.domain.entities.instancia_acao_agape import StatusAcaoAgapeEnum
 from acutis_api.domain.repositories.schemas.paginacao import PaginacaoQuery
 
 
-class RegistrarNomeAcaoAgapeSchema(BaseModel):
-    nome: str
-
-
 class RegistrarCicloAcaoAgapeScheme(BaseModel):
     nome_acao_id: uuid.UUID
     abrangencia: str
@@ -20,11 +16,6 @@ class RegistrarCicloAcaoAgapeScheme(BaseModel):
 
 
 class NomeAcaoAgapeSchema(BaseModel):
-    id: uuid.UUID
-    nome: str
-
-
-class ListarNomesAcoesAgapeFiltros(PaginacaoQuery):
     id: uuid.UUID
     nome: str
 
@@ -43,11 +34,6 @@ class InstanciaItemAgapeSchema(BaseModel):
 
 class ItemDoacaoCicloAgapeSchema(BaseModel):
     fk_item_instancia_agape_id: uuid.UUID
-    item: str
-    quantidade: int
-
-
-class RegistrarItemEstoqueAgapeSchema(BaseModel):
     item: str
     quantidade: int
 
@@ -129,43 +115,32 @@ class EnderecoScheme(BaseModel):
     complemento: str
 
 
+class FamiliaBeneficiariaSchema(BaseModel):
+    doacao_id: uuid.UUID
+    nome_familia: str
+    data_hora_doacao: Optional[str]
+    recibos: list[str]
+
+
+class GeoLocalizadoresFamiliaSchema(BaseModel):
+    nome_familia: uuid.UUID
+    latitude: float
+    longitude: float
+
+
 class FotoFamiliaAgapeSchema(BaseModel):
     foto: str
     familia_id: uuid.UUID
-
-
-class ListarMembrosFamiliaAgapeFiltros(PaginacaoQuery):
-    pass
-
-
-class NumeroMembrosFamiliaAgapeSchema(BaseModel):
-    quantidade: int
 
 
 class SomaRendaFamiliarAgapeSchema(BaseModel):
     total: float
 
 
-class TotalItensRecebidosSchema(BaseModel):
-    total_recebidas: int
-
-
 class InformacoesAgregadasFamiliasSchema(BaseModel):
     total_cadastradas: int
     total_ativas: int
     total_inativas: int
-
-
-class NumeroTotalMembrosSchema(BaseModel):
-    quantidade_total_membros: int
-
-
-class SomaTotalRendaSchema(BaseModel):
-    soma_total_renda: float
-
-
-class ContagemItensEstoqueSchema(BaseModel):
-    em_estoque: int
 
 
 class UltimaAcaoAgapeSchema(BaseModel):

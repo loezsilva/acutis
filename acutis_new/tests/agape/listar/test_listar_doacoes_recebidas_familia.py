@@ -20,17 +20,18 @@ def test_listar_doacoes_recebidas_familia_sucesso(
         f'{BASE_ENDPOINT}/{str(familia.id)}',
         headers={'Authorization': f'Bearer {membro_token}'},
     )
-
     assert resposta.status_code == HTTPStatus.OK
     resposta_json = resposta.json
+    resultados = resposta_json['resultados']
 
-    assert isinstance(resposta_json, list), 'A resposta deveria ser uma lista.'
-    for doacao in resposta_json:
-        assert 'data_doacao' in doacao
-        assert 'id' in doacao
-        for item in doacao['itens']:
-            assert 'nome_item' in item
-            assert 'quantidade' in item
+    assert isinstance(resultados, list), 'A resposta deveria ser uma lista.'
+
+    for doacao in resultados:
+        assert 'doacao_id' in doacao
+        assert 'ciclo_acao_id' in doacao
+        assert 'dia_horario' in doacao
+        assert 'nome_acao' in doacao
+        assert 'recibos' in doacao
 
 
 def test_listar_doacoes_recebidas_familia_inexistente(
@@ -61,9 +62,10 @@ def test_listar_doacoes_recebidas_familia_sem_doacoes(
 
     assert resposta.status_code == HTTPStatus.OK
     resposta_json = resposta.json
+    resultados = resposta_json['resultados']
 
-    assert isinstance(resposta_json, list), 'A resposta deveria ser uma lista.'
-    assert len(resposta_json) == 0, (
+    assert isinstance(resultados, list), 'A resposta deveria ser uma lista.'
+    assert len(resultados) == 0, (
         'A lista de doações deveria estar vazia para uma família sem doações.'
     )
 

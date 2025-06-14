@@ -58,7 +58,7 @@ def test_remover_voluntario_agape_lead_nao_e_voluntario(
     resposta = client.delete(
         endpoint, headers={'Authorization': f'Bearer {membro_token}'}
     )
-    assert resposta.status_code == HTTPStatus.NOT_FOUND
+    assert resposta.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_remover_voluntario_agape_sem_permissao_token(

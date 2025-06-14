@@ -1,5 +1,3 @@
-import math
-
 from acutis_api.communication.requests.agape import (
     ListarItensEstoqueAgapeQueryPaginada,
 )
@@ -23,9 +21,6 @@ class ListarItensEstoqueAgapeUseCase:
         itens, total = self.__repository.listar_itens_estoque_agape(filtros)
 
         response = ListarItensEstoqueAgapeResponsePaginada(
-            pagina=filtros.pagina,
-            paginas=math.ceil(total / filtros.por_pagina),
-            total=total,
             resultados=[
                 ItemEstoqueAgapeResponse(
                     id=item.id,

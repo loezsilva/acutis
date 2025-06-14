@@ -1,26 +1,29 @@
 import uuid
-from typing import List
 
 from acutis_api.communication.requests.agape import (
-    RegistrarRecibosRequestSchema,
+    RegistrarRecibosRequestFormData,
 )
-from acutis_api.communication.responses.agape import (
-    ReciboAgapeResponse,
-    RegistrarRecibosResponse,
-)
-from acutis_api.domain.entities.recibo_agape import ReciboAgape
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.domain.repositories.schemas.agape import (
+    FotoFamiliaAgapeSchema,
+)
+from acutis_api.domain.services.file_service import FileServiceInterface
 from acutis_api.exception.errors.bad_request import HttpBadRequestError
 from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class RegistrarRecibosDoacaoAgapeUseCase:
-    def __init__(self, agape_repository: AgapeRepositoryInterface):
+    def __init__(
+        self,
+        agape_repository: AgapeRepositoryInterface,
+        file_service: FileServiceInterface,
+    ):
         self.agape_repository = agape_repository
+        self.file_service = file_service
 
     def execute(
-        self, doacao_id: uuid.UUID, request_data: RegistrarRecibosRequestSchema
-    ) -> RegistrarRecibosResponse:
+        self, doacao_id: uuid.UUID, dados: RegistrarRecibosRequestFormData
+    ) -> None:
         doacao = self.agape_repository.buscar_doacao_agape_por_id(doacao_id)
 
         if not doacao:
@@ -28,28 +31,24 @@ class RegistrarRecibosDoacaoAgapeUseCase:
                 f'Doação com ID {doacao_id} não encontrada.'
             )
 
-        recibos_criados_entidades: List[ReciboAgape] = []
+        for arquivo in dados.recibos:
+            self.__valida_recibo(arquivo)
 
-        if not request_data.recibos:
-            raise HttpBadRequestError('Você deve informar os recibos')
-
-        for recibo_input in request_data.recibos:
-            novo_recibo = ReciboAgape(
-                fk_doacao_agape_id=doacao.id, recibo=recibo_input.recibo
+            self.agape_repository.registrar_foto_familia(
+                FotoFamiliaAgapeSchema(
+                    familia_id=doacao.fk_familia_agape_id,
+                    foto=self.file_service.salvar_arquivo(arquivo),
+                )
             )
-            recibo_persistido = self.agape_repository.registrar_recibo_agape(
-                novo_recibo
-            )
-            recibos_criados_entidades.append(recibo_persistido)
 
-        if recibos_criados_entidades:
-            self.agape_repository.salvar_alteracoes()
+        self.agape_repository.salvar_alteracoes()
 
-        recibos_response_list = [
-            ReciboAgapeResponse.model_validate(recibo_ent)
-            for recibo_ent in recibos_criados_entidades
-        ]
+    def __valida_recibo(self, recibo) -> None:
+        if not recibo.filename:
+            raise HttpBadRequestError('Nome do arquivo inválido.')
 
-        return RegistrarRecibosResponse(
-            recibos_criados=recibos_response_list
-        ).model_dump()
+        extension = recibo.filename.rsplit('.', 1)[1].lower()
+
+        allowed_extensions = {'png', 'jpg', 'jpeg'}
+        if extension not in allowed_extensions:
+            raise HttpBadRequestError('Extensão do arquivo não permitida.')

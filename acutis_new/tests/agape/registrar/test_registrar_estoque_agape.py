@@ -10,17 +10,14 @@ faker = Faker(locale='pt-BR')
 
 def test_registrar_item_estoque_sucesso(client: FlaskClient, membro_token):
     item = faker.name()
-    quantidade = faker.pyint()
 
     response = client.post(
         REGISTRAR_ITEM_ESTOQUE_AGAPE_ENDPOINT,
         headers={'Authorization': f'Bearer {membro_token}'},
-        json={'item': item, 'quantidade': quantidade},
+        json={'item': item},
     )
 
     assert response.status_code == HTTPStatus.CREATED
-    assert 'id' in response.json
-    assert response.json['item'] == item
 
 
 def test_erro_registrar_item_estoque_existente(
@@ -31,7 +28,7 @@ def test_erro_registrar_item_estoque_existente(
     response = client.post(
         REGISTRAR_ITEM_ESTOQUE_AGAPE_ENDPOINT,
         headers={'Authorization': f'Bearer {membro_token}'},
-        json={'item': item, 'quantidade': seed_item_estoque_agape.quantidade},
+        json={'item': item},
     )
     assert response.status_code == HTTPStatus.CONFLICT
 
@@ -43,20 +40,17 @@ def test_erro_registrar_item_estoque_sem_item(
     response = client.post(
         REGISTRAR_ITEM_ESTOQUE_AGAPE_ENDPOINT,
         headers={'Authorization': f'Bearer {membro_token}'},
-        json={'quantidade': 1},
     )
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_erro_registrar_item_estoque_sem_quantidade(
+def test_erro_registrar_item_estoque_sem_token(
     client: FlaskClient,
-    membro_token,
 ):
     response = client.post(
         REGISTRAR_ITEM_ESTOQUE_AGAPE_ENDPOINT,
-        headers={'Authorization': f'Bearer {membro_token}'},
         json={'item': 'item'},
     )
 
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.status_code == HTTPStatus.UNAUTHORIZED

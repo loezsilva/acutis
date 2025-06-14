@@ -2,11 +2,9 @@ from acutis_api.domain.entities.instancia_acao_agape import (
     StatusAcaoAgapeEnum,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.exception.errors.bad_request import HttpBadRequestError
 from acutis_api.exception.errors.conflict import HttpConflictError
 from acutis_api.exception.errors.not_found import HttpNotFoundError
-from acutis_api.exception.errors.unprocessable_entity import (
-    HttpUnprocessableEntityError,
-)
 
 
 class FinalizarCicloAcaoAgapeUseCase:
@@ -31,7 +29,7 @@ class FinalizarCicloAcaoAgapeUseCase:
             )
 
         if ciclo_acao.status != StatusAcaoAgapeEnum.em_andamento:
-            raise HttpUnprocessableEntityError(
+            raise HttpBadRequestError(
                 'Ciclo da ação ainda não foi iniciado ou já foi finalizado.'
             )
 

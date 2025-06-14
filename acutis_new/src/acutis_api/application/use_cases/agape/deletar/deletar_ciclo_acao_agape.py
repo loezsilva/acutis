@@ -3,10 +3,8 @@ from acutis_api.domain.entities.instancia_acao_agape import (
     StatusAcaoAgapeEnum,
 )
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
+from acutis_api.exception.errors.bad_request import HttpBadRequestError
 from acutis_api.exception.errors.not_found import HttpNotFoundError
-from acutis_api.exception.errors.unprocessable_entity import (
-    HttpUnprocessableEntityError,
-)
 
 
 class DeletarCicloAcaoAgapeUseCase:
@@ -26,7 +24,7 @@ class DeletarCicloAcaoAgapeUseCase:
             raise HttpNotFoundError('Ciclo da ação não encontrado.')
 
         if ciclo_acao.status != StatusAcaoAgapeEnum.nao_iniciado:
-            raise HttpUnprocessableEntityError(
+            raise HttpBadRequestError(
                 'Somentes ciclos não iniciados podem ser deletados.'
             )
 

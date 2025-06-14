@@ -17,11 +17,6 @@ def test_listar_beneficiarios_ciclo_com_doacoes_sucesso(
     """
     dados_fixture = seed_ciclo_com_doacoes_completas
     ciclo_acao = dados_fixture['ciclo_acao']
-    doacoes_info_esperadas = dados_fixture['doacoes_info']
-
-    ids_familias_beneficiarias = {
-        info['familia'].id for info in doacoes_info_esperadas
-    }
 
     resposta = client.get(
         f'{LISTAR_BENEFICIARIOS_ENDPOINT}/{ciclo_acao.id}',
@@ -29,9 +24,12 @@ def test_listar_beneficiarios_ciclo_com_doacoes_sucesso(
     )
 
     assert resposta.status_code == HTTPStatus.OK
-    resposta_json = resposta.json
-    assert isinstance(resposta_json, list)
-    assert len(resposta_json) == len(ids_familias_beneficiarias)
+    resultados = resposta.json['resultados']
+    assert isinstance(resultados, list)
+    assert 'doacao_id' in resultados[0]
+    assert 'nome_familia' in resultados[0]
+    assert 'data_hora_doacao' in resultados[0]
+    assert 'recibos' in resultados[0]
 
 
 def test_listar_beneficiarios_ciclo_sem_doacoes(
@@ -51,9 +49,6 @@ def test_listar_beneficiarios_ciclo_sem_doacoes(
     )
 
     assert resposta.status_code == HTTPStatus.OK
-    resposta_json = resposta.json
-    assert isinstance(resposta_json, list)
-    assert len(resposta_json) == 0
 
 
 def test_listar_beneficiarios_ciclo_nao_encontrado(

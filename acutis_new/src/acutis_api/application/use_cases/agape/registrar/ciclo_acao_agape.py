@@ -7,6 +7,7 @@ from acutis_api.domain.repositories.schemas.agape import (
     RegistrarCicloAcaoAgapeScheme,
 )
 from acutis_api.domain.services.google_maps_service import GoogleMapsAPI
+from acutis_api.exception.errors.not_found import HttpNotFoundError
 
 
 class RegistrarCicloAcaoAgapeUseCase:
@@ -30,11 +31,15 @@ class RegistrarCicloAcaoAgapeUseCase:
             dados.nome_acao_id
         )
 
+        if nome_acao is None:
+            raise HttpNotFoundError('Nome da ação não encontrado.')
+
         abrangencia = dados.abrangencia
         dados_endereco = dados.endereco
 
         str_endereco = generate_address_string(dados_endereco, abrangencia)
         endereco = self.__agape_repository.registrar_endereco(dados_endereco)
+
         self.__agape_repository.registrar_coordenada(
             endereco.id, self.__gmaps.get_geolocation(str_endereco)
         )

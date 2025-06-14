@@ -17,11 +17,6 @@ def test_listar_item_estoque_agape(
 
     # Validar estrutura de paginação na resposta
     assert 'resultados' in data
-    assert 'pagina' in data
-    assert 'total' in data
-    assert 'paginas' in data
-
-    assert data['total'] > 0
 
     resultado = data['resultados'][0]
 

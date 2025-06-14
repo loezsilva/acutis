@@ -1,6 +1,7 @@
 from acutis_api.communication.responses.agape import (
     BuscarCicloAcaoAgapeResponse,
     DoacaoAgapeResponse,
+    EnderecoResponse,
 )
 from acutis_api.domain.entities.endereco import Endereco
 from acutis_api.domain.repositories.agape import AgapeRepositoryInterface
@@ -43,9 +44,10 @@ class BuscarCicloAcaoAgapeUseCase:
 
         # Prepara resposta completa
         response = BuscarCicloAcaoAgapeResponse(
-            id=ciclo_acao_agape.fk_acao_agape_id,
+            id=ciclo_acao_agape.id,
+            nome_acao_id=ciclo_acao_agape.fk_acao_agape_id,
             abrangencia=ciclo_acao_agape.abrangencia,
-            endereco=endereco,
+            endereco=EnderecoResponse.model_validate(endereco).model_dump(),
             doacoes=lista_doacoes,
         ).model_dump()
 

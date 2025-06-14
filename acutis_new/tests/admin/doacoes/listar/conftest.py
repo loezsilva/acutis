@@ -38,7 +38,7 @@ def seed_gera_4_doacoes():
         lead.senha = '@Teste;1234'
         database.session.add(lead)
         benfeitor = BenfeitorFactory(
-            nome='Yan da Pororoca', numero_documento='14069725334'
+            nome='Yan da Pororoca', numero_documento='14069799334'
         )
         database.session.add(benfeitor)
         membro = MembroFactory(
@@ -82,13 +82,14 @@ def seed_gera_4_doacoes():
 
 @pytest.fixture
 def seed_gera_4_doacoes_mensais():
-    def _dados_doacao(
+    def _dados_doacao(  # noqa: PLR0913
         *,
         campanha: Campanha,
         doacao_ativa: bool = True,
         doacao_recorrente: bool = True,
         status_doacao: StatusProcessamentoEnum = StatusProcessamentoEnum.pago,
         anonimo: bool = False,
+        criado_em: datetime = None,
     ) -> tuple[Lead, Doacao]:
         endereco = EnderecoFactory()
         database.session.add(endereco)
@@ -113,6 +114,9 @@ def seed_gera_4_doacoes_mensais():
             doacao.data_criacao = datetime.now() - relativedelta(
                 months=(3 - i)
             )
+
+            if criado_em:
+                doacao.data_criacao = criado_em
             database.session.add(doacao)
             pagamento_doacao = PagamentoDoacaoFactory(
                 fk_doacao_id=doacao.id,
@@ -124,6 +128,9 @@ def seed_gera_4_doacoes_mensais():
             pagamento_doacao.criado_em = datetime.now() - relativedelta(
                 months=(3 - i)
             )
+
+            if criado_em:
+                pagamento_doacao.criado_em = criado_em
             database.session.add(pagamento_doacao)
 
             processamento_doacao = ProcessamentoDoacaoFactory(
@@ -134,6 +141,9 @@ def seed_gera_4_doacoes_mensais():
             processamento_doacao.criado_em = datetime.now() - relativedelta(
                 months=(3 - i)
             )
+
+            if criado_em:
+                processamento_doacao.criado_em = criado_em
             database.session.add(processamento_doacao)
             database.session.commit()
 

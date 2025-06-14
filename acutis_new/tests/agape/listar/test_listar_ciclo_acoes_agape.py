@@ -27,11 +27,7 @@ def test_listar_ciclo_acoes_agape(
     resultado = data['resultados'][0]
 
     assert 'id' in resultado
-    assert 'acao_id' in resultado
-    assert 'endereco_id' in resultado
-    assert 'data_inicio' in resultado
-    assert 'data_termino' in resultado
+    assert 'nome_acao_id' in resultado
     assert 'status' in resultado
-    assert 'abrangencia' in resultado
 
     assert resultado['id'] == str(ciclo_acao.id)
